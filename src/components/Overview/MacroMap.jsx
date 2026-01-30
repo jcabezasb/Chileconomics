@@ -14,7 +14,7 @@ const MacroMap = ({ onRegionSelect }) => {
     // Custom projection config for Chile's long shape
     // Centers and zooms to fit Chile reasonably well
     const projectionConfig = {
-        scale: 700, // Reduced from 2000 to fit full length
+        scale: 805, // Increased by 15% from 700
         center: [-70, -38] // Centered vertically
     };
 
