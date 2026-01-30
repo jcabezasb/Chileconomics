@@ -46,11 +46,12 @@ const CompactIndicator = ({ indicator }) => {
             borderRadius: '8px',
             border: '1px solid var(--border)',
             display: 'grid',
-            gridTemplateColumns: '0.7fr auto auto auto',
+            gridTemplateColumns: 'minmax(0, 1fr) max-content max-content max-content',
             alignItems: 'center',
             gap: '0.5rem',
             transition: 'all 0.2s ease',
-            cursor: 'default'
+            cursor: 'default',
+            height: '100%'
         }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)';

@@ -34,8 +34,8 @@ function App() {
 
     return (
         <div className="container">
-            <header style={{ padding: '2rem 0', textAlign: 'center' }}>
-                <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Panorama Macroeconómico — Chile</h1>
+            <header className="hero-header">
+                <h1 className="hero-title">CHILECONOMICS</h1>
             </header>
 
             <section className="overview-section" style={{ paddingBottom: '4rem' }}>
@@ -108,10 +108,9 @@ function App() {
                             {/* Cards */}
                             <div style={{
                                 flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.4rem',
-                                justifyContent: 'center'
+                                display: 'grid',
+                                gridTemplateRows: 'repeat(6, minmax(0, 1fr))',
+                                gap: '0.4rem'
                             }}>
                                 {sideIndicators.map(ind => (
                                     <CompactIndicator key={ind.id} indicator={ind} />
