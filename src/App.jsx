@@ -34,8 +34,7 @@ function App() {
                 <div className="dashboard-grid" style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-                    gap: '3rem',
-                    // alignItems: 'start' removed to allow stretching
+                    gap: '3rem'
                 }}>
                     {/* Column 1: Map */}
                     <div className="map-column">
