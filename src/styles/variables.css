@@ -1,29 +1,44 @@
 :root {
   /* Typography */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  
+
   /* Colors - Light Theme (Default) */
   --bg-primary: #f8fafc;
   --bg-card: #ffffff;
   --text-primary: #0f172a;
   --text-secondary: #64748b;
   --border: #e2e8f0;
-  
+
   /* Brand Colors - Sophisticated Palette */
-  --color-brand: #0f172a; /* Slate 900 */
-  --color-accent: #2563eb; /* Blue 600 */
-  
+  --color-brand: #0f172a;
+  /* Slate 900 */
+  /* Brand Colors - Sophisticated Palette */
+  --color-brand: #0f172a;
+  /* Slate 900 */
+  --color-accent: #2563eb;
+  /* Blue 600 */
+
+  /* Map Colors - Neon Style */
+  --map-fill: #e2e8f0;
+  --map-fill-hover: #38bdf8;
+  /* Sky 400 (Neon-ish Blue) */
+  --map-stroke: #ffffff;
+  --map-fill-selected: #0ea5e9;
+  /* Sky 500 */
+
   /* Semantic Colors */
-  --trend-up: #10b981; /* Emerald 500 */
-  --trend-down: #ef4444; /* Red 500 */
+  --trend-up: #10b981;
+  /* Emerald 500 */
+  --trend-down: #ef4444;
+  /* Red 500 */
   --trend-neutral: #64748b;
-  
+
   /* Spacing */
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 2rem;
   --spacing-xl: 4rem;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -36,5 +51,15 @@
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --border: #334155;
+
+    /* Dark Mode Map Colors */
+    --map-fill: #334155;
+    /* Slate 700 */
+    --map-fill-hover: #22d3ee;
+    /* Cyan 400 (Bright Neon) */
+    --map-stroke: #1e293b;
+    /* Matches card bg */
+    --map-fill-selected: #06b6d4;
+    /* Cyan 500 */
   }
 }

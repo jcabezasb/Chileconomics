@@ -48,21 +48,22 @@ const MacroMap = ({ onRegionSelect }) => {
                                         }}
                                         style={{
                                             default: {
-                                                fill: isSelected ? "var(--color-accent)" : "var(--border)",
-                                                stroke: "var(--bg-card)",
+                                                fill: isSelected ? "var(--map-fill-selected)" : "var(--map-fill)",
+                                                stroke: "var(--map-stroke)",
                                                 strokeWidth: 0.5,
                                                 outline: "none",
                                                 transition: "all 0.3s ease"
                                             },
                                             hover: {
-                                                fill: isSelected ? "var(--color-accent)" : "var(--text-secondary)",
-                                                stroke: "var(--bg-card)",
+                                                fill: isSelected ? "var(--map-fill-selected)" : "var(--map-fill-hover)",
+                                                stroke: "var(--map-stroke)",
                                                 strokeWidth: 0.5,
                                                 outline: "none",
-                                                cursor: "pointer"
+                                                cursor: "pointer",
+                                                filter: "drop-shadow(0 0 5px var(--map-fill-hover))" // Neon glow effect
                                             },
                                             pressed: {
-                                                fill: "var(--color-accent)",
+                                                fill: "var(--map-fill-selected)",
                                                 outline: "none"
                                             }
                                         }}
