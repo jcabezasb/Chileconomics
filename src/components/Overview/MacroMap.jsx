@@ -14,7 +14,7 @@ const MacroMap = ({ onRegionSelect }) => {
     // Custom projection config for Chile's long shape
     // Centers and zooms to fit Chile reasonably well
     const projectionConfig = {
-        scale: 925, // Increased by 15% again
+        scale: 878, // Reduced by 5% from 925
         center: [-70, -38] // Centered vertically
     };
 
@@ -24,7 +24,7 @@ const MacroMap = ({ onRegionSelect }) => {
         .range(["#fee2e2", "#ef4444"]);
 
     return (
-        <div className="macro-map-container" style={{ width: "100%", height: "100%", minHeight: "500px", background: "var(--bg-card)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)" }}>
+        <div className="macro-map-container" style={{ width: "100%", height: "580px", background: "var(--bg-card)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)" }}>
             <ComposableMap
                 projection="geoMercator"
                 projectionConfig={projectionConfig}

@@ -61,5 +61,10 @@
     /* Matches card bg */
     --map-fill-selected: #06b6d4;
     /* Cyan 500 */
+
+    /* Neon Chart Colors */
+    --chart-neon: #a855f7;
+    /* Purple 500 */
+    --chart-neon-soft: rgba(168, 85, 247, 0.15);
   }
 }

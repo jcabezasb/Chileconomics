@@ -17,7 +17,14 @@ Construir un dashboard macroeconómico de Chile tipo "Scrollytelling".
 - **Datos:** API Banco Central de Chile (actualmente usando Mocks en `src/services/api.js`).
 - **Backend (Futuro):** Vercel Serverless Functions para proxy/caché.
 
-## ✅ Estado Actual (Progreso)
+## ✅ Estado Actual
+### Progress
+- [x] Initial React + Vite scaffolding.
+- [x] Interactive TopoJSON Map of Chile (Local asset).
+- [x] Key Macro Indicators grid with Sparkline charts.
+- [x] Responsive layout with synchronized component heights.
+- [x] Mock API service with time-series data.
+- [x] Dark mode design system (Neon accents).
 - [x] **Inicialización:** Proyecto Vite creado y configurado.
 - [x] **Diseño:** Sistema de variables CSS (Slate/Blue palette) creado.
 - [x] **Componente Mapa:** Implementado `MacroMap.jsx` con interactividad básica (selección de regiones).

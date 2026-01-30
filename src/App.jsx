@@ -20,10 +20,10 @@ function App() {
 
     return (
         <div className="container">
-            <header style={{ padding: '4rem 0', textAlign: 'center' }}>
-                <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Chileconomics</h1>
-                <p style={{ fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
-                    Monitor macroeconómico de la actividad chilena. Datos oficiales en tiempo real.
+            <header style={{ padding: '2rem 0', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Chileconomics</h1>
+                <p style={{ fontSize: '1rem', maxWidth: '600px', margin: '0 auto', color: 'var(--text-secondary)' }}>
+                    Monitor macroeconómico de la actividad chilena.
                 </p>
             </header>
 
@@ -33,15 +33,13 @@ function App() {
 
                 <div className="dashboard-grid" style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(300px, 1fr) 2fr', // Map 1 part, Cards 2 parts
-                    gap: '2rem',
+                    gridTemplateColumns: 'minmax(250px, 1fr) 2.5fr',
+                    gap: '1.5rem',
+                    alignItems: 'stretch' // Ensure they match height
                 }}>
                     {/* Column 1: Map */}
                     <div className="map-column">
                         <MacroMap onRegionSelect={(reg) => console.log(reg)} />
-                        <p style={{ marginTop: '1rem', fontSize: '0.8rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                            Seleccione una región para ver detalles locales
-                        </p>
                     </div>
 
                     {/* Column 2: Indicators Grid */}

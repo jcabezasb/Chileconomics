@@ -25,7 +25,7 @@ const MacroCard = ({ indicator }) => {
     return (
         <div style={{
             background: 'var(--bg-card)',
-            padding: '1.5rem',
+            padding: '1rem', // Reduced padding
             borderRadius: '12px',
             boxShadow: 'var(--shadow-md)',
             border: '1px solid var(--border)',
@@ -34,7 +34,7 @@ const MacroCard = ({ indicator }) => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            minHeight: '160px' // Slightly taller for chart
+            height: '282px' // Increased to match new map height (580px)
         }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
@@ -58,7 +58,7 @@ const MacroCard = ({ indicator }) => {
             </div>
 
             {/* Sparkline Chart */}
-            <TrendChart data={chartData} color={getChartColor(indicator.trend)} height={50} />
+            <TrendChart data={chartData} color="var(--chart-neon)" height={40} />
         </div>
     );
 };
