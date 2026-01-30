@@ -68,10 +68,31 @@ export const getGDPComponents = async () => {
 }
 
 export const getChartData = async (indicatorId) => {
-    // Return time series mock
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    return months.map((m, i) => ({
-        name: m,
-        value: Math.floor(Math.random() * 10) + 1 // Random mock
-    }));
+
+    // Configs for pseudo-random but realistic looking data
+    let base = 5;
+    let volatility = 1;
+
+    switch (indicatorId) {
+        case 'imacec': base = 1.0; volatility = 0.5; break;
+        case 'ipc': base = 3.5; volatility = 0.3; break;
+        case 'tpm': base = 8.0; volatility = 0.75; break; // Trending down
+        case 'dolar': base = 950; volatility = 20; break;
+        case 'cobre': base = 3.8; volatility = 0.2; break;
+        case 'desempleo': base = 8.5; volatility = 0.4; break;
+        default: base = 5;
+    }
+
+    return months.map((m, i) => {
+        let val = base + (Math.random() * volatility - volatility / 2);
+        // Add trend
+        if (indicatorId === 'tpm') val -= (i * 0.1); // TPM bajando
+        if (indicatorId === 'imacec') val += (i * 0.05); // Recuperación
+
+        return {
+            name: m,
+            value: Number(val.toFixed(2))
+        };
+    });
 }
