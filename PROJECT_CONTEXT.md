@@ -20,9 +20,10 @@ Construir un dashboard macroeconómico de Chile tipo "Scrollytelling".
 ## ✅ Estado Actual
 ### Progress
 - [x] Initial React + Vite scaffolding.
-- [x] Interactive TopoJSON Map of Chile (Local asset).
-- [x] Key Macro Indicators grid with Sparkline charts.
-- [x] Responsive layout with synchronized component heights.
+- [x] Interactive TopoJSON Map of Chile (Local asset) with **Neon Pulse Animation**.
+- [x] Key Macro Indicators grid with **Large Sparkline charts** (120px height).
+- [x] **Neon Purple Aesthetic:** Consistent purple line and soft fill for charts.
+- [x] Responsive layout with synchronized component heights and high-contrast white text values.
 - [x] Mock API service with time-series data.
 - [x] Dark mode design system (Neon accents).
 - [x] **Inicialización:** Proyecto Vite creado y configurado.

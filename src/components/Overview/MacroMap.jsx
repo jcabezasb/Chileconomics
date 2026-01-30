@@ -10,13 +10,39 @@ const CHILE_TOPO_URL = chileTopo;
 
 const MacroMap = ({ onRegionSelect }) => {
     const [selectedRegion, setSelectedRegion] = useState(null);
+    const [isPulseActive, setIsPulseActive] = useState(false);
+
+    // Trigger pulse on mount
+    useEffect(() => {
+        setIsPulseActive(true);
+        const timer = setTimeout(() => setIsPulseActive(false), 2000); // 2s duration
+        return () => clearTimeout(timer);
+    }, []);
 
     // Custom projection config for Chile's long shape
     // Centers and zooms to fit Chile reasonably well
     const projectionConfig = {
-        scale: 878, // Reduced by 5% from 925
+        scale: 567, // Reduced another 10%
         center: [-70, -38] // Centered vertically
     };
+
+    // Animation keyframes
+    const pulseKeyframes = `
+        @keyframes neonPulse {
+            0% { 
+                fill: var(--map-fill);
+                filter: drop-shadow(0 0 0px transparent);
+            }
+            50% { 
+                fill: var(--map-fill-hover);
+                filter: drop-shadow(0 0 8px var(--map-fill-hover));
+            }
+            100% { 
+                fill: var(--map-fill);
+                filter: drop-shadow(0 0 0px transparent);
+            }
+        }
+    `;
 
     // Example color scale based on some mock data (e.g., Growth)
     const colorScale = scaleLinear()
@@ -24,13 +50,14 @@ const MacroMap = ({ onRegionSelect }) => {
         .range(["#fee2e2", "#ef4444"]);
 
     return (
-        <div className="macro-map-container" style={{ width: "100%", height: "580px", background: "var(--bg-card)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)" }}>
+        <div className="macro-map-container" style={{ position: 'relative', width: "100%", height: "100%", overflow: "hidden" }}>
+            <style>{pulseKeyframes}</style>
             <ComposableMap
                 projection="geoMercator"
                 projectionConfig={projectionConfig}
-                width={300} // Narrower width for Chile
-                height={800} // Taller aspect ratio for Chile
-                style={{ width: "100%", height: "100%" }}
+                width={200} // Compact width
+                height={500} // Proportional height
+                style={{ width: "100%", height: "100%", maxHeight: "400px" }}
             >
                 <ZoomableGroup center={[-70, -38]} zoom={1} minZoom={1} maxZoom={4}>
                     <Geographies geography={CHILE_TOPO_URL}>
@@ -52,7 +79,8 @@ const MacroMap = ({ onRegionSelect }) => {
                                                 stroke: "var(--map-stroke)",
                                                 strokeWidth: 0.5,
                                                 outline: "none",
-                                                transition: "all 0.3s ease"
+                                                transition: "all 0.3s ease",
+                                                animation: isPulseActive ? `neonPulse 1.5s ease-in-out` : 'none'
                                             },
                                             hover: {
                                                 fill: isSelected ? "var(--map-fill-selected)" : "var(--map-fill-hover)",

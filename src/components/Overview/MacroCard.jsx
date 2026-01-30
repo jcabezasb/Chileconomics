@@ -25,8 +25,8 @@ const MacroCard = ({ indicator }) => {
     return (
         <div style={{
             background: 'var(--bg-card)',
-            padding: '1rem', // Reduced padding
-            borderRadius: '12px',
+            padding: '0.75rem', // Reduced padding
+            borderRadius: '10px',
             boxShadow: 'var(--shadow-md)',
             border: '1px solid var(--border)',
             transition: 'transform 0.2s',
@@ -34,31 +34,32 @@ const MacroCard = ({ indicator }) => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            height: '282px' // Increased to match new map height (580px)
+            height: '100%', // Fill available space
+            boxSizing: 'border-box'
         }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{indicator.title}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{indicator.title}</span>
                 {getTrendIcon(indicator.trend)}
             </div>
 
             {/* Main Value */}
             <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-brand)' }}>{indicator.value}</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{indicator.value}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: "space-between", alignItems: "center", marginTop: "0.2rem" }}>
-                    <span style={{ fontSize: '0.9rem', color: indicator.trend === 'up' ? 'var(--trend-up)' : indicator.trend === 'down' ? 'var(--trend-down)' : 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', justifyContent: "space-between", alignItems: "center", marginTop: "0.1rem" }}>
+                    <span style={{ fontSize: '0.75rem', color: indicator.trend === 'up' ? 'var(--trend-up)' : indicator.trend === 'down' ? 'var(--trend-down)' : 'var(--text-secondary)' }}>
                         {indicator.variation}
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
                         {indicator.period}
                     </span>
                 </div>
             </div>
 
             {/* Sparkline Chart */}
-            <TrendChart data={chartData} color="var(--chart-neon)" height={40} />
+            <TrendChart data={chartData} color="var(--chart-neon)" height={90} />
         </div>
     );
 };
