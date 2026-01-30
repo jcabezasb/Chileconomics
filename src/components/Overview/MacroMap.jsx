@@ -21,7 +21,7 @@ const MacroMap = ({ onRegionSelect }) => {
         .range(["#fee2e2", "#ef4444"]);
 
     return (
-        <div className="macro-map-container" style={{ width: "100%", height: "600px", background: "#f8fafc", borderRadius: "12px", overflow: "hidden" }}>
+        <div className="macro-map-container" style={{ width: "100%", height: "600px", background: "var(--bg-card)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)" }}>
             <ComposableMap
                 projection="geoMercator"
                 projectionConfig={projectionConfig}
@@ -45,15 +45,15 @@ const MacroMap = ({ onRegionSelect }) => {
                                         }}
                                         style={{
                                             default: {
-                                                fill: isSelected ? "var(--color-accent)" : "#cbd5e1",
-                                                stroke: "#FFF",
+                                                fill: isSelected ? "var(--color-accent)" : "var(--border)",
+                                                stroke: "var(--bg-card)",
                                                 strokeWidth: 0.5,
                                                 outline: "none",
                                                 transition: "all 0.3s ease"
                                             },
                                             hover: {
-                                                fill: isSelected ? "var(--color-accent)" : "#94a3b8",
-                                                stroke: "#FFF",
+                                                fill: isSelected ? "var(--color-accent)" : "var(--text-secondary)",
+                                                stroke: "var(--bg-card)",
                                                 strokeWidth: 0.5,
                                                 outline: "none",
                                                 cursor: "pointer"
