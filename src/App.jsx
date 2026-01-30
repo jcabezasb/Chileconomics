@@ -35,7 +35,7 @@ function App() {
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
                     gap: '3rem',
-                    alignItems: 'start'
+                    // alignItems: 'start' removed to allow stretching
                 }}>
                     {/* Column 1: Map */}
                     <div className="map-column">
