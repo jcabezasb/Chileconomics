@@ -3,7 +3,10 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simp
 import { scaleLinear } from "d3-scale";
 
 // URL for Chile TopoJSON (16 Regions)
-const CHILE_TOPO_URL = "https://raw.githubusercontent.com/gonzalobustos/chile-geojson/master/topojson/regiones.json";
+import chileTopo from "../../assets/chile.json";
+
+// URL for Chile TopoJSON (16 Regions)
+const CHILE_TOPO_URL = chileTopo;
 
 const MacroMap = ({ onRegionSelect }) => {
     const [selectedRegion, setSelectedRegion] = useState(null);
@@ -11,8 +14,8 @@ const MacroMap = ({ onRegionSelect }) => {
     // Custom projection config for Chile's long shape
     // Centers and zooms to fit Chile reasonably well
     const projectionConfig = {
-        scale: 2000,
-        center: [-70, -35]
+        scale: 700, // Reduced from 2000 to fit full length
+        center: [-70, -38] // Centered vertically
     };
 
     // Example color scale based on some mock data (e.g., Growth)
@@ -25,11 +28,11 @@ const MacroMap = ({ onRegionSelect }) => {
             <ComposableMap
                 projection="geoMercator"
                 projectionConfig={projectionConfig}
-                width={400}
+                width={300} // Narrower width for Chile
                 height={800} // Taller aspect ratio for Chile
                 style={{ width: "100%", height: "100%" }}
             >
-                <ZoomableGroup center={[-71, -38]} zoom={1.2}>
+                <ZoomableGroup center={[-70, -38]} zoom={1} minZoom={1} maxZoom={4}>
                     <Geographies geography={CHILE_TOPO_URL}>
                         {({ geographies }) =>
                             geographies.map((geo) => {
