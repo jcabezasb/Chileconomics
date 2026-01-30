@@ -28,13 +28,13 @@ function App() {
             </header>
 
             {/* Main Scrollytelling Sections */}
-            <section className="overview-section" style={{ minHeight: '80vh' }}>
+            <section className="overview-section" style={{ paddingBottom: '4rem' }}>
                 <h2 style={{ marginBottom: '2rem' }}>Vistazo General</h2>
 
                 <div className="dashboard-grid" style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-                    gap: '3rem'
+                    gridTemplateColumns: 'minmax(300px, 1fr) 2fr', // Map 1 part, Cards 2 parts
+                    gap: '2rem',
                 }}>
                     {/* Column 1: Map */}
                     <div className="map-column">
