@@ -42,7 +42,8 @@ function App() {
             if (!valid.length) return;
 
             const latest = valid[valid.length - 1];
-            const previous = valid.length > 1 ? valid[valid.length - 2] : null;
+            // Variación en 12 meses (4 trimestres atrás)
+            const previous = valid.length > 4 ? valid[valid.length - 5] : null;
             const latestValue = Number(latest.value);
             const previousValue = previous ? Number(previous.value) : null;
 
@@ -95,7 +96,8 @@ function App() {
                     const valid = series.filter(entry => entry && entry.value !== null);
                     if (valid.length) {
                         const latest = valid[valid.length - 1];
-                        const previous = valid.length > 1 ? valid[valid.length - 2] : null;
+                        // Variación en 12 meses (4 trimestres atrás)
+                        const previous = valid.length > 4 ? valid[valid.length - 5] : null;
                         const latestValue = Number(latest.value);
                         const previousValue = previous ? Number(previous.value) : null;
 
