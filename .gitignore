@@ -75,6 +75,7 @@ typings/
 .env.test.local
 .env.production.local
 .env.local
+credenviales.env
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -117,3 +118,4 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+.vercel

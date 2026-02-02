@@ -2,20 +2,41 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // Mini sparkline SVG component
-const MiniSparkline = ({ trend }) => {
+const MiniSparkline = ({ history, trend }) => {
     const color = trend === 'up' ? 'var(--trend-up)' : trend === 'down' ? 'var(--trend-down)' : 'var(--text-secondary)';
 
-    // Generate a simple sparkline path
-    const points = trend === 'up'
-        ? "M0,20 L10,18 L20,22 L30,15 L40,18 L50,12 L60,14 L70,8 L80,10 L90,5 L100,3"
-        : trend === 'down'
-            ? "M0,5 L10,8 L20,6 L30,12 L40,10 L50,15 L60,13 L70,18 L80,16 L90,20 L100,22"
-            : "M0,12 L10,10 L20,14 L30,12 L40,13 L50,11 L60,13 L70,12 L80,14 L90,11 L100,13";
+    // Si no hay history o es corta, usar un path estático como fallback
+    if (!history || history.length < 2) {
+        const points = trend === 'up'
+            ? "M0,20 L10,18 L20,22 L30,15 L40,18 L50,12 L60,14 L70,8 L80,10 L90,5 L100,3"
+            : trend === 'down'
+                ? "M0,5 L10,8 L20,6 L30,12 L40,10 L50,15 L60,13 L70,18 L80,16 L90,20 L100,22"
+                : "M0,12 L10,10 L20,14 L30,12 L40,13 L50,11 L60,13 L70,12 L80,14 L90,11 L100,13";
+        return (
+            <svg width="45" height="18" viewBox="0 0 100 25" style={{ flexShrink: 0 }}>
+                <path d={points} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        );
+    }
+
+    // Generar path real basado en la historia
+    const min = Math.min(...history);
+    const max = Math.max(...history);
+    const range = max - min || 1;
+    const width = 100;
+    const height = 20;
+    const padding = 2.5;
+
+    const points = history.map((val, i) => {
+        const x = (i / (history.length - 1)) * width;
+        const y = (height + padding) - ((val - min) / range) * height;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' L ');
 
     return (
-        <svg width="45" height="18" viewBox="0 0 100 25" style={{ flexShrink: 0 }}>
+        <svg width="45" height="18" viewBox={`0 0 ${width} ${height + padding * 2}`} style={{ flexShrink: 0 }}>
             <path
-                d={points}
+                d={`M ${points}`}
                 fill="none"
                 stroke={color}
                 strokeWidth="2.5"
@@ -40,19 +61,20 @@ const CompactIndicator = ({ indicator }) => {
             : 'var(--text-secondary)';
 
     return (
-        <div style={{
-            background: 'rgba(255,255,255,0.02)',
-            padding: '0.5rem 0.75rem',
-            borderRadius: '8px',
-            border: '1px solid var(--border)',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) max-content max-content max-content',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s ease',
-            cursor: 'default',
-            height: '100%'
-        }}
+        <div
+            style={{
+                background: 'rgba(255,255,255,0.02)',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1fr) max-content max-content max-content',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s ease',
+                cursor: 'default',
+                height: '100%'
+            }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
                 e.currentTarget.style.borderColor = 'var(--accent)';
@@ -83,7 +105,7 @@ const CompactIndicator = ({ indicator }) => {
             </span>
 
             {/* Sparkline */}
-            <MiniSparkline trend={indicator.trend} />
+            <MiniSparkline history={indicator.history} trend={indicator.trend} />
 
             {/* Variation + Icon */}
             <div style={{

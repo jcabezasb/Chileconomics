@@ -88,9 +88,11 @@ const mockChartData = (indicatorId) => {
     });
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 const fetchData = async (url, fallback) => {
     try {
-        const response = await fetch(url);
+        const response = await fetch(`${API_BASE_URL}${url}`);
         if (!response.ok) throw new Error("Request failed");
         const payload = await response.json();
         return payload?.data ?? fallback;
@@ -108,5 +110,91 @@ export const getGDPComponents = async () => {
 };
 
 export const getChartData = async (indicatorId) => {
+    // Intentar obtener datos reales del BC
+    const bcchData = await loadBcchData();
+    const keyMap = {
+        'ipc': 'ipc',
+        'dolar': 'dolar'
+    };
+
+    const key = keyMap[indicatorId];
+    if (bcchData && key && bcchData[key]) {
+        // Convertir formato BC {date, value} a formato Recharts {name, value}
+        // Tomamos los últimos 12 registros para el gráfico
+        return bcchData[key].data.slice(-12).map(d => ({
+            name: d.date.substring(0, 7), // YYYY-MM
+            value: d.value
+        }));
+    }
+
     return fetchData(`/api/chart?id=${encodeURIComponent(indicatorId)}`, mockChartData(indicatorId));
+};
+
+// Mapeo de IDs de series a claves en el JSON
+const SERIES_KEY_MAP = {
+    'F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T': 'pib_real',
+    'F073.TCO.PRE.Z.D': 'dolar',
+    'F074.IPC.VAR.Z.Z.C.M': 'ipc',
+    // Regionales
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.15.0.T': 'pib_reg_XV',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.01.0.T': 'pib_reg_I',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.02.0.T': 'pib_reg_II',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.03.0.T': 'pib_reg_III',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.04.0.T': 'pib_reg_IV',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.05.0.T': 'pib_reg_V',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.13.0.T': 'pib_reg_RM',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.06.0.T': 'pib_reg_VI',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.07.0.T': 'pib_reg_VII',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.16.0.T': 'pib_reg_XVI',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.08.0.T': 'pib_reg_VIII',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.09.0.T': 'pib_reg_IX',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.14.0.T': 'pib_reg_XIV',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.10.0.T': 'pib_reg_X',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.11.0.T': 'pib_reg_XI',
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.12.0.T': 'pib_reg_XII'
+};
+
+// Cache para datos del BC
+let bcchDataCache = null;
+
+const loadBcchData = async () => {
+    if (bcchDataCache) return bcchDataCache;
+
+    try {
+        const response = await fetch('/data/bcch_series.json');
+        if (!response.ok) throw new Error('Failed to load BCCH data');
+        bcchDataCache = await response.json();
+        return bcchDataCache;
+    } catch (error) {
+        console.warn('Could not load BCCH data:', error);
+        return null;
+    }
+};
+
+export const getSeries = async (seriesId, options = {}) => {
+    if (!seriesId) return [];
+
+    // Intentar cargar desde JSON estático primero
+    const bcchData = await loadBcchData();
+    const key = SERIES_KEY_MAP[seriesId];
+
+    if (bcchData && key && bcchData[key]) {
+        return bcchData[key].data || [];
+    }
+
+    // Fallback a la API si está disponible
+    const params = new URLSearchParams({ series: seriesId });
+    if (options.start) params.append("desde", options.start);
+    if (options.end) params.append("hasta", options.end);
+    if (options.frequency) params.append("frecuencia", options.frequency);
+    const payload = await fetchData(`/api/bcch-series?${params.toString()}`, []);
+    return payload || [];
+};
+
+export const getLatestSeries = async (seriesId, frequency) => {
+    if (!seriesId) return null;
+    const params = new URLSearchParams({ series: seriesId, last: "1" });
+    if (frequency) params.append("frecuencia", frequency);
+    const payload = await fetchData(`/api/bcch-series?${params.toString()}`, null);
+    return payload?.latest ?? null;
 };

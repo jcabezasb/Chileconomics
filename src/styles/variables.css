@@ -4,11 +4,11 @@
   --font-display: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
 
   /* Colors - Light Theme (Default) */
-  --bg-primary: #f8fafc;
+  --bg-primary: #f5f7fb;
   --bg-card: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --border: #e2e8f0;
+  --text-primary: #0b1220;
+  --text-secondary: #56657a;
+  --border: #e3e9f3;
 
   /* Brand Colors - Sophisticated Palette */
   --color-brand: #0f172a;
@@ -43,6 +43,18 @@
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+  /* Chart Colors */
+  --chart-neon: #1f2a5a;
+  --chart-neon-soft: rgba(31, 42, 90, 0.14);
+
+  /* Growth Bars - Light */
+  --growth-pos: #16a34a;
+  --growth-pos-soft: rgba(22, 163, 74, 0.2);
+  --growth-pos-fade: rgba(22, 163, 74, 0.05);
+  --growth-neg: #dc2626;
+  --growth-neg-soft: rgba(220, 38, 38, 0.2);
+  --growth-neg-fade: rgba(220, 38, 38, 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,4 +80,56 @@
     /* Purple 500 */
     --chart-neon-soft: rgba(168, 85, 247, 0.15);
   }
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-card: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+
+  /* Dark Mode Map Colors */
+  --map-fill: #334155;
+  --map-fill-hover: #22d3ee;
+  --map-stroke: #1e293b;
+  --map-fill-selected: #06b6d4;
+
+  /* Neon Chart Colors */
+  --chart-neon: #a855f7;
+  --chart-neon-soft: rgba(168, 85, 247, 0.15);
+
+  /* Growth Bars - Dark */
+  --growth-pos: #2bffb8;
+  --growth-pos-soft: rgba(0, 255, 157, 0.55);
+  --growth-pos-fade: rgba(0, 255, 157, 0.08);
+  --growth-neg: #ff4a7a;
+  --growth-neg-soft: rgba(255, 45, 94, 0.55);
+  --growth-neg-fade: rgba(255, 45, 94, 0.08);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f7fb;
+  --bg-card: #ffffff;
+  --text-primary: #0b1220;
+  --text-secondary: #56657a;
+  --border: #e3e9f3;
+
+  /* Map Colors - Light */
+  --map-fill: #e2e8f0;
+  --map-fill-hover: #38bdf8;
+  --map-stroke: #ffffff;
+  --map-fill-selected: #0ea5e9;
+
+  /* Chart Colors - Light */
+  --chart-neon: #1f2a5a;
+  --chart-neon-soft: rgba(31, 42, 90, 0.14);
+
+  /* Growth Bars - Light */
+  --growth-pos: #16a34a;
+  --growth-pos-soft: rgba(22, 163, 74, 0.2);
+  --growth-pos-fade: rgba(22, 163, 74, 0.05);
+  --growth-neg: #dc2626;
+  --growth-neg-soft: rgba(220, 38, 38, 0.2);
+  --growth-neg-fade: rgba(220, 38, 38, 0.05);
 }

@@ -8,8 +8,7 @@ import chileTopo from "../../assets/chile.json";
 // URL for Chile TopoJSON (16 Regions)
 const CHILE_TOPO_URL = chileTopo;
 
-const MacroMap = ({ onRegionSelect }) => {
-    const [selectedRegion, setSelectedRegion] = useState(null);
+const MacroMap = ({ onRegionSelect, selectedRegion }) => {
     const [isPulseActive, setIsPulseActive] = useState(false);
 
     // Trigger pulse on mount
@@ -63,14 +62,13 @@ const MacroMap = ({ onRegionSelect }) => {
                     <Geographies geography={CHILE_TOPO_URL}>
                         {({ geographies }) =>
                             geographies.map((geo) => {
-                                const isSelected = selectedRegion === geo.properties.Region;
+                                const regionName = geo.properties.Region || geo.properties.name;
+                                const isSelected = selectedRegion === regionName;
                                 return (
                                     <Geography
                                         key={geo.rsmKey}
                                         geography={geo}
                                         onClick={() => {
-                                            const regionName = geo.properties.Region || geo.properties.name;
-                                            setSelectedRegion(regionName);
                                             if (onRegionSelect) onRegionSelect(regionName);
                                         }}
                                         style={{
@@ -103,22 +101,6 @@ const MacroMap = ({ onRegionSelect }) => {
                 </ZoomableGroup>
             </ComposableMap>
 
-            {/* Region Label Overlay */}
-            {selectedRegion && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: '20px',
-                    right: '20px',
-                    background: 'white',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    boxShadow: 'var(--shadow-md)',
-                    border: '1px solid var(--border)'
-                }}>
-                    <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Región Seleccionada</h4>
-                    <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-brand)' }}>{selectedRegion}</p>
-                </div>
-            )}
         </div>
     );
 };
