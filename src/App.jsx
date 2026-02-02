@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import MacroMap from './components/Overview/MacroMap';
 import MacroCard from './components/Overview/MacroCard';
 import CompactIndicator from './components/Overview/CompactIndicator';
+import PIBComparisonChart from './components/Overview/PIBComparisonChart';
 import { getKeyIndicators, getSeries } from './services/api';
 import './styles/global.css';
 
@@ -173,27 +174,95 @@ function App() {
         return 0.75 + (hash / 1000) * 0.55; // 0.75 - 1.30
     };
 
-    const pibValue = typeof latestPib?.value === 'number' ? latestPib.value : 254.5;
-    const pibVariation = typeof latestPib?.variation === 'number' ? latestPib.variation : 1.2;
+    const pibValue = typeof latestPib?.value === 'number' ? latestPib.value : 51880.0;
+    const pibVariation = typeof latestPib?.variation === 'number' ? latestPib.variation : 2.3;
 
-    const dolarValue = typeof latestDolar?.value === 'number' ? latestDolar.value : 940.5;
-    const dolarVariation = typeof latestDolar?.variation === 'number' ? latestDolar.variation : 1.2;
+    // Mocks de componentes basados en pesos históricos (BCCH)
+    const pibCompositionData = useMemo(() => {
+        const total = pibValue;
+        return {
+            total: total,
+            consumo: total * 0.62,
+            inversion: total * 0.22,
+            gasto: total * 0.14,
+            export: total * 0.31,
+            import: -total * 0.29
+        };
+    }, [pibValue]);
 
     const baseIndicatorSpecs = [
         {
             id: 'pib',
-            title: 'PIB',
+            title: 'PIB Total',
             value: pibValue,
             unit: 'MM CLP',
             decimals: 0,
             variation: pibVariation,
             trend: pibVariation >= 0 ? 'up' : 'down',
             history: latestPib?.history || [],
-            type: 'level'
+            type: 'level',
+            weight: 100
         },
-        { id: 'consumo', title: 'Consumo', value: 3.4, unit: '%', decimals: 1, variation: null, trend: 'up', type: 'rate' },
-        { id: 'exportaciones', title: 'Exportaciones', value: 89.3, unit: 'MM USD', decimals: 1, variation: null, trend: 'up', type: 'level' },
-        { id: 'importaciones', title: 'Importaciones', value: 75.1, unit: 'MM USD', decimals: 1, variation: null, trend: 'up', type: 'level' }
+        {
+            id: 'consumo',
+            title: 'Consumo Privado',
+            value: pibCompositionData.consumo,
+            unit: 'MM CLP',
+            decimals: 0,
+            variation: 1.8,
+            trend: 'up',
+            type: 'level',
+            weight: 62,
+            history: [1.2, 1.4, 1.3, 1.5, 1.7, 1.6, 1.8]
+        },
+        {
+            id: 'inversion',
+            title: 'Inversion (FBKF)',
+            value: pibCompositionData.inversion,
+            unit: 'MM CLP',
+            decimals: 0,
+            variation: -2.4,
+            trend: 'down',
+            type: 'level',
+            weight: 22,
+            history: [2.1, 1.9, 1.8, 1.5, 1.2, 0.8, -0.5]
+        },
+        {
+            id: 'gasto',
+            title: 'Gasto Gobierno',
+            value: pibCompositionData.gasto,
+            unit: 'MM CLP',
+            decimals: 0,
+            variation: 3.1,
+            trend: 'up',
+            type: 'level',
+            weight: 14,
+            history: [2.8, 2.9, 3.0, 3.1, 3.0, 3.2, 3.1]
+        },
+        {
+            id: 'exportaciones',
+            title: 'Exportaciones',
+            value: pibCompositionData.export,
+            unit: 'MM CLP',
+            decimals: 0,
+            variation: 4.2,
+            trend: 'up',
+            type: 'level',
+            weight: 31,
+            history: [3.5, 3.8, 3.6, 4.0, 4.1, 4.3, 4.2]
+        },
+        {
+            id: 'importaciones',
+            title: 'Importaciones',
+            value: Math.abs(pibCompositionData.import),
+            unit: 'MM CLP',
+            decimals: 0,
+            variation: -0.8,
+            trend: 'down',
+            type: 'level',
+            weight: 29,
+            history: [2.5, 2.2, 1.8, 1.5, 1.2, 1.0, 0.8]
+        }
     ];
 
     const buildSideIndicators = (regionName) => {
@@ -471,7 +540,7 @@ function App() {
                 ref={(el) => { revealElementsRef.current[0] = el; }}
                 style={{ paddingBottom: '4rem' }}
             >
-                {/* Main Grid: 3 columns - [Map + Cards] | Charts (2x2) */}
+                {/* Main Grid: 3 columns - [PIB Overview] | Charts (2x2) */}
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: '2fr 1fr 1fr',
@@ -479,7 +548,7 @@ function App() {
                     gap: '1rem',
                     height: '550px'
                 }}>
-                    {/* Column 1: Map + Indicator Cards (UNIFIED BOX) */}
+                    {/* Column 1: PIB Structure (UNIFIED BOX) */}
                     <div style={{
                         background: 'var(--bg-card)',
                         padding: '1.25rem',
@@ -489,230 +558,70 @@ function App() {
                         flexDirection: 'column',
                         gridRow: 'span 2'
                     }}>
-                        <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 600 }}>Mapa de Chile</h3>
-                        <div style={{
-                            display: 'flex',
-                            gap: '0.4rem',
-                            marginBottom: '1rem',
-                            flexWrap: 'wrap'
-                        }}>
-                            <button
-                                style={getOverviewButtonStyle('pib')}
-                                onClick={() => setOverviewView('pib')}
-                            >
-                                PIB
-                            </button>
-                            <button
-                                style={getOverviewButtonStyle('crecimiento')}
-                                onClick={() => setOverviewView('crecimiento')}
-                            >
-                                Crecimiento
-                            </button>
-                            <button
-                                style={getOverviewButtonStyle('exportaciones')}
-                                onClick={() => setOverviewView('exportaciones')}
-                            >
-                                Exportaciones
-                            </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Estructura del PIB Nacional</h3>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Muestra de oferta y demanda final</div>
                         </div>
 
-                        {/* Map + Cards side by side inside the same box */}
                         <div style={{
                             display: 'flex',
                             gap: '1.5rem',
                             flex: 1,
-                            alignItems: 'stretch'
+                            minHeight: 0
                         }}>
-                            {/* Map */}
-                            <div
-                                style={{
-                                    flex: overviewView === 'crecimiento' || overviewView === 'exportaciones' ? '1 1 100%' : '0 0 40%',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center'
-                                }}
-                            >
-                                {overviewView === 'crecimiento' ? (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                                Comparativo regional
-                                            </span>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                                <select
-                                                    value={growthMetric}
-                                                    onChange={(event) => setGrowthMetric(event.target.value)}
-                                                    style={{
-                                                        background: 'transparent',
-                                                        color: 'var(--text-secondary)',
-                                                        border: '1px solid var(--border)',
-                                                        borderRadius: '6px',
-                                                        padding: '0.3rem 0.5rem',
-                                                        fontSize: '0.7rem'
-                                                    }}
-                                                >
-                                                    {growthMetricOptions.map(option => (
-                                                        <option key={option.id} value={option.id} style={{ color: '#111' }}>
-                                                            {option.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                                                    <span style={{ color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>---</span>
-                                                    <span>Promedio</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style={{ flex: 1, minHeight: '320px' }}>
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={regionGrowthData} margin={{ top: 8, right: 48, left: 0, bottom: 8 }}>
-                                                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                                                    <XAxis dataKey="region" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
-                                                    <YAxis tickFormatter={formatGrowthTick} tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
-                                                    <Tooltip content={renderGrowthTooltip} />
-                                                    <defs>
-                                                        <linearGradient id="growthPositive" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="0%" stopColor="var(--growth-pos)" stopOpacity={0.9} />
-                                                            <stop offset="65%" stopColor="var(--growth-pos)" stopOpacity={0.55} />
-                                                            <stop offset="100%" stopColor="var(--growth-pos)" stopOpacity={0.12} />
-                                                        </linearGradient>
-                                                        <linearGradient id="growthNegative" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="0%" stopColor="var(--growth-neg)" stopOpacity={0.9} />
-                                                            <stop offset="65%" stopColor="var(--growth-neg)" stopOpacity={0.55} />
-                                                            <stop offset="100%" stopColor="var(--growth-neg)" stopOpacity={0.12} />
-                                                        </linearGradient>
-                                                        <filter id="growthGlowPositive" x="-30%" y="-30%" width="160%" height="160%">
-                                                            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="var(--growth-pos)" floodOpacity="0.6" />
-                                                        </filter>
-                                                        <filter id="growthGlowNegative" x="-30%" y="-30%" width="160%" height="160%">
-                                                            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="var(--growth-neg)" floodOpacity="0.6" />
-                                                        </filter>
-                                                    </defs>
-                                                    <Bar dataKey={growthMetric} radius={[6, 6, 0, 0]}>
-                                                        {regionGrowthData.map((entry, index) => (
-                                                            <Cell
-                                                                key={`cell-${index}`}
-                                                                fill={Number(entry[growthMetric]) < 0 ? 'url(#growthNegative)' : 'url(#growthPositive)'}
-                                                                stroke={Number(entry[growthMetric]) < 0 ? 'var(--growth-neg)' : 'var(--growth-pos)'}
-                                                                strokeWidth={1.2}
-                                                                filter={theme === 'dark'
-                                                                    ? (Number(entry[growthMetric]) < 0 ? 'url(#growthGlowNegative)' : 'url(#growthGlowPositive)')
-                                                                    : 'none'}
-                                                            />
-                                                        ))}
-                                                    </Bar>
-                                                    <ReferenceLine
-                                                        y={growthAverage}
-                                                        stroke={theme === 'dark' ? '#ffffff' : 'var(--text-secondary)'}
-                                                        strokeDasharray="6 6"
-                                                        strokeWidth={1.5}
-                                                        label={{ value: `${growthAverage}%`, position: 'right', fill: 'var(--text-primary)', fontSize: 10 }}
-                                                    />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    </div>
-                                ) : overviewView === 'exportaciones' ? (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                                Exportaciones por item
-                                            </span>
-                                        </div>
-                                        <div style={{ flex: 1, minHeight: '320px', overflow: 'hidden' }}>
-                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                                                <thead>
-                                                    <tr style={{ color: 'var(--text-secondary)', textAlign: 'left' }}>
-                                                        <th style={{ padding: '0.4rem 0.25rem', fontWeight: 600 }}>Exportacion (item)</th>
-                                                        <th style={{ padding: '0.4rem 0.25rem', fontWeight: 600, textAlign: 'right' }}>Valor exportado</th>
-                                                        <th style={{ padding: '0.4rem 0.25rem', fontWeight: 600, textAlign: 'right' }}>Delta 12 meses</th>
-                                                        <th style={{ padding: '0.4rem 0.25rem', fontWeight: 600, textAlign: 'right' }}>Tendencia 12m</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {exportTableRows.map((row) => {
-                                                        const { linePath, areaPath } = buildSparklinePaths(row.series, 90, 24);
-                                                        const seriesStart = row.series?.[0] ?? 0;
-                                                        const seriesEnd = row.series?.[row.series.length - 1] ?? 0;
-                                                        const isUp = seriesEnd >= seriesStart;
-                                                        const sparkStroke = isUp ? 'var(--growth-pos)' : 'var(--growth-neg)';
-                                                        const sparkFill = isUp
-                                                            ? 'var(--growth-pos-soft)'
-                                                            : 'var(--growth-neg-soft)';
-                                                        return (
-                                                            <tr key={row.item} style={{ borderTop: '1px solid var(--border)' }}>
-                                                                <td style={{ padding: '0.45rem 0.25rem', color: 'var(--text-primary)' }}>
-                                                                    {row.item}
-                                                                </td>
-                                                                <td style={{ padding: '0.45rem 0.25rem', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>{row.value}</td>
-                                                                <td
-                                                                    style={{
-                                                                        padding: '0.45rem 0.25rem',
-                                                                        textAlign: 'right',
-                                                                        color: row.delta.startsWith('-') ? 'var(--trend-down)' : 'var(--trend-up)',
-                                                                        fontWeight: 600
-                                                                    }}
-                                                                >
-                                                                    {row.delta}
-                                                                </td>
-                                                                <td style={{ padding: '0.45rem 0.25rem', textAlign: 'right' }}>
-                                                                    <svg width="90" height="24" viewBox="0 0 90 24">
-                                                                        <path d={areaPath} fill={sparkFill} />
-                                                                        <path
-                                                                            d={linePath}
-                                                                            fill="none"
-                                                                            stroke={sparkStroke}
-                                                                            strokeWidth="1.6"
-                                                                            strokeLinecap="round"
-                                                                            strokeLinejoin="round"
-                                                                        />
-                                                                    </svg>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <MacroMap
-                                        selectedRegion={selectedRegion}
-                                        onRegionSelect={(regionName) => {
-                                            setSelectedRegion((prev) => prev === regionName ? null : regionName);
-                                        }}
-                                    />
-                                )}
+                            {/* Chart Area */}
+                            <div style={{ flex: 1.2, position: 'relative' }}>
+                                <PIBComparisonChart data={pibCompositionData} theme={theme} />
                             </div>
 
-                            {/* Cards */}
-                            {overviewView !== 'crecimiento' && overviewView !== 'exportaciones' && (
-                                <div style={{
-                                    flex: 1,
-                                    display: 'grid',
-                                    gridTemplateRows: 'repeat(4, minmax(0, 1fr))',
-                                    gap: '0.4rem'
-                                }}>
-                                    {sideIndicators.map(ind => (
-                                        <CompactIndicator key={ind.id} indicator={ind} />
-                                    ))}
-                                </div>
-                            )}
+                            {/* Components List Area */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem', overflowY: 'auto' }}>
+                                {sideIndicators.map(ind => (
+                                    <div key={ind.id} style={{
+                                        padding: '0.6rem 0.8rem',
+                                        borderRadius: '8px',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid var(--border)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.2rem'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{ind.title}</span>
+                                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{ind.weight}% del PIB</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '0.2rem' }}>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{ind.value}</div>
+                                            <div style={{ width: '40px', height: '16px' }}>
+                                                <svg width="40" height="16" viewBox="0 0 40 16">
+                                                    <path
+                                                        d={buildSparklinePaths(ind.history || [], 40, 16).linePath}
+                                                        fill="none"
+                                                        stroke={ind.trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'}
+                                                        strokeWidth="1.5"
+                                                    />
+                                                </svg>
+                                            </div>
+                                            <div style={{
+                                                fontSize: '0.7rem',
+                                                fontWeight: 600,
+                                                color: ind.trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
+                                            }}>
+                                                {ind.variation}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         <p style={{
-                            margin: '0.75rem 0 0 0',
+                            margin: '1rem 0 0 0',
                             fontSize: '0.65rem',
                             color: 'var(--text-muted)',
                             fontStyle: 'italic'
                         }}>
-                            {overviewView === 'crecimiento'
-                                ? `${currentGrowthLabel} por region`
-                                : overviewView === 'exportaciones'
-                                    ? 'Tabla mock de exportaciones'
-                                    : selectedRegion
-                                        ? `Datos Regionales: ${selectedRegion}`
-                                        : 'Datos Nacionales'}
+                            Datos Nacionales: Estimación basada en cuentas nacionales trimestrales.
                         </p>
                     </div>
 
@@ -726,9 +635,69 @@ function App() {
                 </div>
             </section>
 
-            {/* Placeholder for subsequent sections */}
-            <section style={{ padding: '4rem 0', borderTop: '1px solid var(--border)', marginTop: '4rem' }}>
-                {/* More content will go here */}
+            {/* NEW SECTION: Geográfico / Regional */}
+            <section
+                className="regional-section reveal"
+                ref={(el) => { revealElementsRef.current[1] = el; }}
+                style={{ padding: '4rem 0' }}
+            >
+                <div style={{
+                    background: 'var(--bg-card)',
+                    padding: '2rem',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-lg)'
+                }}>
+                    <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Análisis Geográfico y Estructura Regional</h2>
+                        <p style={{ color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
+                            Explora el pulso de la economía a nivel regional. Selecciona una zona en el mapa para ver el PIB real y su peso en la economía nacional.
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '2rem', minHeight: '500px' }}>
+                        <div style={{ flex: 1, position: 'relative' }}>
+                            <MacroMap
+                                selectedRegion={selectedRegion}
+                                onRegionSelect={(regionName) => {
+                                    setSelectedRegion((prev) => prev === regionName ? null : regionName);
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ flex: 0.8, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            {selectedRegion ? (
+                                <div className="reveal is-visible" style={{ animation: 'slideIn 0.3s ease' }}>
+                                    <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--accent)' }}>{selectedRegion}</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                        <div style={{ borderLeft: '3px solid var(--accent)', paddingLeft: '1rem' }}>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>PIB Regional</div>
+                                            <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>{sideIndicators[0].value}</div>
+                                            <div style={{ fontSize: '0.9rem', color: sideIndicators[0].trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)', fontWeight: 600 }}>
+                                                {sideIndicators[0].variation} YoY
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Peso Nacional</div>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>{getRegionFactor(selectedRegion).toFixed(1)}%</div>
+                                            </div>
+                                            <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Estatus</div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--trend-up)' }}>En Crecimiento</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <p>Selecciona una región en el mapa para ver el detalle económico local.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </section>
         </div>
     );
