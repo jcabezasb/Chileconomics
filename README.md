@@ -36,15 +36,36 @@ Navegación vertical donde cada sección narra un aspecto macroeconómico:
 - **Actualización:** Estrategia de Cache + Cron Jobs para mantener datos "calientes" (hot data).
 
 ## 🚀 Instalación y Ejecución
-*(Pendiente de definición detallada)*
 
 ```bash
-# Instalación de dependencias
+# 1. Instalar dependencias de Frontend y Backend
 npm install
+pip install -r requirements.txt
 
-# Servidor de desarrollo
+# 2. Configurar credenciales
+# Crea un archivo .env con:
+# BCCH_USER=tu_usuario
+# BCCH_PASSWORD=tu_password
+
+# 3. Sincronizar datos por primera vez (descarga series del Banco Central)
+npm run sync-data
+
+# 4. Servidor de desarrollo
 npm run dev
 ```
+
+## 🛠 Estado Actual y Próximos Pasos
+
+El dashboard ya se encuentra conectado a la API oficial del Banco Central de Chile:
+- **Datos Reales**: PIB (Nacional y de las 16 regiones), IPC y Dólar.
+- **Visualización**: Minigráficos (sparklines) y variaciones porcentuales automáticas basadas en historia real.
+- **Mapeo Regional**: Interacción con el mapa completamente vinculada a series oficiales.
+
+**Próximos Pasos:**
+- Integrar series regionales adicionales (Desempleo, Ocupación, etc.) donde la fuente oficial esté disponible.
+- Refinar la visualización de los gráficos de tendencia detallados.
+- Implementar el BFF final en Vercel para ocultar credenciales en producción.
+
 
 ## 📄 Licencia
 [Definir Licencia]
