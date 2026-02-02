@@ -191,28 +191,6 @@ function App() {
             history: latestPib?.history || [],
             type: 'level'
         },
-        {
-            id: 'dolar_clp',
-            title: 'USD/CLP',
-            value: dolarValue,
-            unit: '',
-            decimals: 1,
-            variation: dolarVariation,
-            trend: dolarVariation >= 0 ? 'up' : 'down',
-            history: latestDolar?.history || [],
-            type: 'price'
-        },
-        {
-            id: 'ipc',
-            title: 'IPC (m/m)',
-            value: latestIpc?.value || 3.8,
-            unit: '%',
-            decimals: 1,
-            variation: null,
-            trend: (latestIpc?.value || 0) >= 0 ? 'up' : 'down',
-            history: latestIpc?.history || [],
-            type: 'rate'
-        },
         { id: 'consumo', title: 'Consumo', value: 3.4, unit: '%', decimals: 1, variation: null, trend: 'up', type: 'rate' },
         { id: 'exportaciones', title: 'Exportaciones', value: 89.3, unit: 'MM USD', decimals: 1, variation: null, trend: 'up', type: 'level' },
         { id: 'importaciones', title: 'Importaciones', value: 75.1, unit: 'MM USD', decimals: 1, variation: null, trend: 'up', type: 'level' }
@@ -712,7 +690,7 @@ function App() {
                                 <div style={{
                                     flex: 1,
                                     display: 'grid',
-                                    gridTemplateRows: 'repeat(6, minmax(0, 1fr))',
+                                    gridTemplateRows: 'repeat(4, minmax(0, 1fr))',
                                     gap: '0.4rem'
                                 }}>
                                     {sideIndicators.map(ind => (
