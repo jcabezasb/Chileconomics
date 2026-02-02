@@ -254,7 +254,7 @@ function App() {
         {
             id: 'importaciones',
             title: 'Importaciones',
-            value: Math.abs(pibCompositionData.import),
+            value: pibCompositionData.import,
             unit: 'MM CLP',
             decimals: 0,
             variation: -0.8,
@@ -329,7 +329,8 @@ function App() {
                 value: spec.unit === '%' ? buildPercentLabel(value, spec.decimals) : buildValueLabel(value, spec.unit, spec.decimals),
                 variation: variationLabel,
                 trend,
-                history: history
+                history: history,
+                weight: spec.weight
             };
         });
     };
@@ -570,48 +571,72 @@ function App() {
                             minHeight: 0
                         }}>
                             {/* Chart Area */}
-                            <div style={{ flex: 1.2, position: 'relative' }}>
+                            <div style={{ flex: 0.95, position: 'relative' }}>
                                 <PIBComparisonChart data={pibCompositionData} theme={theme} />
                             </div>
 
-                            {/* Components List Area */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem', overflowY: 'auto' }}>
-                                {sideIndicators.map(ind => (
-                                    <div key={ind.id} style={{
-                                        padding: '0.6rem 0.8rem',
-                                        borderRadius: '8px',
-                                        background: 'rgba(255,255,255,0.02)',
-                                        border: '1px solid var(--border)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '0.2rem'
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{ind.title}</span>
-                                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{ind.weight}% del PIB</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '0.2rem' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{ind.value}</div>
-                                            <div style={{ width: '40px', height: '16px' }}>
-                                                <svg width="40" height="16" viewBox="0 0 40 16">
+                            {/* Components List Area (Table-like density) */}
+                            <div style={{ flex: 2.05, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1.8fr 1.15fr 0.85fr 1fr 0.9fr',
+                                    padding: '0 0.8rem 0.5rem 0.8rem',
+                                    fontSize: '0.65rem',
+                                    color: 'var(--text-muted)',
+                                    fontWeight: 700,
+                                    borderBottom: '1px solid var(--border)',
+                                    marginBottom: '0.5rem',
+                                    letterSpacing: '0.05em'
+                                }}>
+                                    <span>COMPONENTE</span>
+                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>VALOR</span>
+                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>%PIB</span>
+                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>TREND</span>
+                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>VAR.%</span>
+                                </div>
+                                <div style={{ display: 'grid', gridAutoRows: '1fr', gap: '0.35rem', overflowY: 'auto', paddingRight: '4px', flex: 1, height: '100%' }}>
+                                    {sideIndicators.map(ind => (
+                                        <div key={ind.id} style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '1.8fr 1.1fr 0.8fr 0.9fr 0.9fr',
+                                            padding: '0.6rem 0.8rem',
+                                            borderRadius: '6px',
+                                            background: 'rgba(255,255,255,0.015)',
+                                            border: '1px solid transparent',
+                                            alignItems: 'center',
+                                            transition: 'background 0.2s ease',
+                                            height: '100%'
+                                        }}>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{ind.title}</span>
+                                            <span style={{ fontSize: '0.78rem', fontWeight: 700, textAlign: 'center', color: 'var(--text-primary)', fontFamily: 'monospace', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>
+                                                {ind.value.split(' ')[0]}
+                                            </span>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 800, textAlign: 'center', color: 'var(--accent)', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>
+                                                {ind.weight}%
+                                            </span>
+                                            <div style={{ display: 'flex', justifyContent: 'center', opacity: 0.8, borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>
+                                                <svg width="34" height="12" viewBox="0 0 40 16">
                                                     <path
                                                         d={buildSparklinePaths(ind.history || [], 40, 16).linePath}
                                                         fill="none"
                                                         stroke={ind.trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'}
-                                                        strokeWidth="1.5"
+                                                        strokeWidth="2"
                                                     />
                                                 </svg>
                                             </div>
-                                            <div style={{
-                                                fontSize: '0.7rem',
-                                                fontWeight: 600,
-                                                color: ind.trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
+                                            <span style={{
+                                                fontSize: '0.72rem',
+                                                fontWeight: 700,
+                                                textAlign: 'center',
+                                                color: ind.trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)',
+                                                borderLeft: '1px solid var(--border)',
+                                                padding: '0 0.6rem'
                                             }}>
                                                 {ind.variation}
-                                            </div>
+                                            </span>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
 

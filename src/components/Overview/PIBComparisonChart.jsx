@@ -1,25 +1,32 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 const PIBComparisonChart = ({ data, theme }) => {
     // data format: { name: 'PIB Structural', total: 51880, consumo: 31000, inversion: 11000, gasto: 7000, export: 16000, import: -13120 }
 
+    // Premium Color Palette
+    const colors = {
+        consumo: '#00E5FF',
+        inversion: '#7C4DFF',
+        gasto: '#00FF85',
+        export: '#FFD600',
+        import: '#FF3D71'
+    };
+
+    const importValue = data.import < 0 ? data.import : -Math.abs(data.import || 0);
+
     const chartData = [
         {
-            name: 'PIB Total',
-            value: data.total,
-            type: 'total'
-        },
-        {
-            name: 'Componentes',
+            name: 'Estructura',
             consumo: data.consumo,
             inversion: data.inversion,
             gasto: data.gasto,
             export: data.export,
-            import: data.import, // Negative value
-            type: 'breakdown'
+            import: importValue, // Must be negative
         }
     ];
+
+    const glowStyle = () => ({});
 
     const formatYAxis = (value) => {
         return `${(value / 1000).toFixed(0)}k`;
@@ -33,16 +40,20 @@ const PIBComparisonChart = ({ data, theme }) => {
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
                     padding: '0.75rem',
-                    boxShadow: 'var(--shadow-lg)'
+                    boxShadow: 'var(--shadow-lg)',
+                    minWidth: '240px'
                 }}>
                     <p style={{ fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
-                        {payload[0].payload.name || 'Componente'}
+                        Composicion
                     </p>
                     {payload.map((entry, index) => (
-                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', fontSize: '0.8rem' }}>
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                             <span style={{ color: entry.color }}>{entry.name}:</span>
                             <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                                {new Intl.NumberFormat('es-CL').format(Math.abs(entry.value))} MM CLP
+                                {new Intl.NumberFormat('es-CL', {
+                                    minimumFractionDigits: 1,
+                                    maximumFractionDigits: 1
+                                }).format(Math.abs(entry.value))} MM CLP
                             </span>
                         </div>
                     ))}
@@ -53,42 +64,40 @@ const PIBComparisonChart = ({ data, theme }) => {
     };
 
     return (
-        <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
+        <div style={{ width: '100%', height: '100%', minHeight: '340px' }}>
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                     data={chartData}
-                    margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
-                    barSize={60}
+                    margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                    barSize={120}
+                    stackOffset="sign"
                 >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.5} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.4} />
                     <XAxis
                         dataKey="name"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+                        tick={{ fill: 'var(--text-secondary)', fontSize: 13, fontWeight: 700 }}
+                        dy={10}
                     />
                     <YAxis
                         tickFormatter={formatYAxis}
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
+                        width={36}
+                        tickMargin={0}
+                        domain={['auto', 'auto']} // Allows negative values to be shown
+                        tick={{ fill: 'var(--text-secondary)', fontSize: 11, dx: -12 }}
                     />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-card)', opacity: 0.4 }} />
-                    <ReferenceLine y={0} stroke="var(--text-muted)" />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                    <ReferenceLine y={0} stroke="var(--text-muted)" strokeWidth={2} />
 
-                    {/* Barra de PIB Total */}
-                    <Bar dataKey="value" stackId="a" name="Total PIB">
-                        {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.type === 'total' ? 'var(--accent)' : 'transparent'} />
-                        ))}
-                    </Bar>
-
-                    {/* Barra de Componentes - Stacked */}
-                    <Bar dataKey="consumo" stackId="b" name="Consumo" fill="#3b82f6" />
-                    <Bar dataKey="inversion" stackId="b" name="Inversion" fill="#8b5cf6" />
-                    <Bar dataKey="gasto" stackId="b" name="Gasto Gob." fill="#ec4899" />
-                    <Bar dataKey="export" stackId="b" name="Exportaciones" fill="#10b981" />
-                    <Bar dataKey="import" stackId="b" name="Importaciones" fill="#ef4444" />
+                    {/* Components - Recharts stacks positives on top and negatives on bottom automatically */}
+                    <Bar dataKey="consumo" stackId="pib" name="Consumo" fill={colors.consumo} stroke={colors.consumo} strokeWidth={0.8} style={glowStyle(colors.consumo)} />
+                    <Bar dataKey="inversion" stackId="pib" name="Inversion" fill={colors.inversion} stroke={colors.inversion} strokeWidth={0.8} style={glowStyle(colors.inversion)} />
+                    <Bar dataKey="gasto" stackId="pib" name="Gasto Gob." fill={colors.gasto} stroke={colors.gasto} strokeWidth={0.8} style={glowStyle(colors.gasto)} />
+                    <Bar dataKey="export" stackId="pib" name="Exportaciones" fill={colors.export} stroke={colors.export} strokeWidth={0.8} style={glowStyle(colors.export)} />
+                    <Bar dataKey="import" stackId="pib" name="Importaciones" fill={colors.import} stroke={colors.import} strokeWidth={0.8} style={glowStyle(colors.import)} />
                 </BarChart>
             </ResponsiveContainer>
         </div>
