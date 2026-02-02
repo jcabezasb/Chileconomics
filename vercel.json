@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/bcch-bundle",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

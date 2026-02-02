@@ -92,3 +92,40 @@ p {
 .text-neutral {
     color: var(--trend-neutral);
 }
+
+.period-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.period-select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.range-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+.range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.range-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 1px solid var(--border);
+    cursor: pointer;
+}

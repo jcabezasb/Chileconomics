@@ -90,6 +90,42 @@ const mockChartData = (indicatorId) => {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+const formatNumber = (value, options = {}) => {
+    const { minimumFractionDigits = 0, maximumFractionDigits = 0 } = options;
+    return new Intl.NumberFormat('es-CL', {
+        minimumFractionDigits,
+        maximumFractionDigits
+    }).format(value);
+};
+
+const monthShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+const parseDateParts = (date) => {
+    if (!date) return null;
+    const [year, month, day] = date.split('-');
+    if (!year || !month) return null;
+    return {
+        year,
+        month: Number(month),
+        day: day ? Number(day) : null
+    };
+};
+
+const formatMonthLabel = (date) => {
+    const parts = parseDateParts(date);
+    if (!parts || !parts.month) return '';
+    const mon = monthShort[parts.month - 1] || '';
+    return `${mon} ${parts.year}`;
+};
+
+const formatDayLabel = (date) => {
+    const parts = parseDateParts(date);
+    if (!parts || !parts.day) return '';
+    const mon = monthShort[parts.month - 1] || '';
+    const day = String(parts.day).padStart(2, '0');
+    return `${day}-${mon}`;
+};
+
 const fetchData = async (url, fallback) => {
     try {
         const response = await fetch(`${API_BASE_URL}${url}`);
@@ -102,6 +138,84 @@ const fetchData = async (url, fallback) => {
 };
 
 export const getKeyIndicators = async () => {
+    const bcchData = await loadBcchData();
+    if (bcchData) {
+        const ipcSeries = bcchData.ipc_index?.data || [];
+        const dolarSeries = bcchData.dolar?.data || [];
+        const cobreSeries = bcchData.cobre?.data || [];
+        const desempleoSeries = bcchData.desempleo?.data || [];
+
+        const ipcYoY = buildYoYFromIndex(ipcSeries, 12);
+        const ipcLatest = ipcYoY[ipcYoY.length - 1];
+        const ipcPrev = ipcYoY.length > 1 ? ipcYoY[ipcYoY.length - 2] : null;
+        const ipcDelta = ipcLatest && ipcPrev ? ipcLatest.value - ipcPrev.value : null;
+
+        const dolarLatest = dolarSeries[dolarSeries.length - 1];
+        const dolarPrev = dolarSeries.length > 1 ? dolarSeries[dolarSeries.length - 2] : null;
+        const dolarDelta = dolarLatest && dolarPrev ? dolarLatest.value - dolarPrev.value : null;
+
+        const cobreLatest = cobreSeries[cobreSeries.length - 1];
+        const cobrePrev = cobreSeries.length > 1 ? cobreSeries[cobreSeries.length - 2] : null;
+        const cobreDelta = cobreLatest && cobrePrev && cobrePrev.value
+            ? ((cobreLatest.value - cobrePrev.value) / cobrePrev.value) * 100
+            : null;
+
+        const desempleoLatest = desempleoSeries[desempleoSeries.length - 1];
+        const desempleoPrev = desempleoSeries.length > 1 ? desempleoSeries[desempleoSeries.length - 2] : null;
+        const desempleoDelta = desempleoLatest && desempleoPrev
+            ? desempleoLatest.value - desempleoPrev.value
+            : null;
+
+        if (ipcLatest && dolarLatest && cobreLatest && desempleoLatest) {
+            return [
+                {
+                    id: 'ipc',
+                    title: 'IPC (12 meses)',
+                    value: `${formatNumber(ipcLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                    variation: ipcDelta === null
+                        ? ''
+                        : `${ipcDelta >= 0 ? '+' : ''}${formatNumber(ipcDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                    trend: ipcDelta === null ? 'neutral' : (ipcDelta >= 0 ? 'up' : 'down'),
+                    period: formatMonthLabel(ipcLatest.date),
+                    description: 'Inflacion anual'
+                },
+                {
+                    id: 'dolar',
+                    title: 'Dolar Obs.',
+                    value: `$${formatNumber(dolarLatest.value, { maximumFractionDigits: 0 })}`,
+                    variation: dolarDelta === null
+                        ? ''
+                        : `${dolarDelta >= 0 ? '+' : ''}$${formatNumber(Math.abs(dolarDelta), { maximumFractionDigits: 0 })}`,
+                    trend: dolarDelta === null ? 'neutral' : (dolarDelta >= 0 ? 'up' : 'down'),
+                    period: formatDayLabel(dolarLatest.date) || 'Hoy',
+                    description: 'Tipo de cambio USD/CLP'
+                },
+                {
+                    id: 'cobre',
+                    title: 'Cobre',
+                    value: `$${formatNumber(cobreLatest.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                    variation: cobreDelta === null
+                        ? ''
+                        : `${cobreDelta >= 0 ? '+' : ''}${formatNumber(cobreDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                    trend: cobreDelta === null ? 'neutral' : (cobreDelta >= 0 ? 'up' : 'down'),
+                    period: formatDayLabel(cobreLatest.date) || 'Hoy',
+                    description: 'USD/Libra Bolsa Metales'
+                },
+                {
+                    id: 'desempleo',
+                    title: 'Desempleo',
+                    value: `${formatNumber(desempleoLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                    variation: desempleoDelta === null
+                        ? ''
+                        : `${desempleoDelta >= 0 ? '+' : ''}${formatNumber(desempleoDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp`,
+                    trend: desempleoDelta === null ? 'neutral' : (desempleoDelta >= 0 ? 'up' : 'down'),
+                    period: formatMonthLabel(desempleoLatest.date),
+                    description: 'Tasa de desocupacion nacional'
+                }
+            ];
+        }
+    }
+
     return fetchData("/api/indicators", mockIndicators);
 };
 
@@ -109,21 +223,47 @@ export const getGDPComponents = async () => {
     return fetchData("/api/gdp-components", mockGDPComponents);
 };
 
+const formatChartLabel = (date) => {
+    if (!date) return '';
+    return date.length >= 7 ? date.substring(0, 7) : date;
+};
+
+const buildYoYFromIndex = (series, lag = 12) => {
+    const valid = (series || []).filter((entry) => entry && entry.value !== null && entry.value !== undefined);
+    return valid.map((entry, index) => {
+        const previous = index - lag >= 0 ? valid[index - lag] : null;
+        const yoy = previous && previous.value
+            ? ((entry.value - previous.value) / previous.value) * 100
+            : null;
+        return {
+            date: entry.date,
+            value: yoy
+        };
+    }).filter((entry) => entry.value !== null);
+};
+
 export const getChartData = async (indicatorId) => {
-    // Intentar obtener datos reales del BC
     const bcchData = await loadBcchData();
     const keyMap = {
-        'ipc': 'ipc',
-        'dolar': 'dolar'
+        ipc: 'ipc_index',
+        dolar: 'dolar',
+        cobre: 'cobre',
+        desempleo: 'desempleo'
     };
 
     const key = keyMap[indicatorId];
     if (bcchData && key && bcchData[key]) {
-        // Convertir formato BC {date, value} a formato Recharts {name, value}
-        // Tomamos los últimos 12 registros para el gráfico
-        return bcchData[key].data.slice(-12).map(d => ({
-            name: d.date.substring(0, 7), // YYYY-MM
-            value: d.value
+        const raw = bcchData[key].data || [];
+        let series = raw;
+
+        if (indicatorId === 'ipc') {
+            series = buildYoYFromIndex(raw, 12);
+        }
+
+        return series.map((entry) => ({
+            name: formatChartLabel(entry.date),
+            date: entry.date,
+            value: entry.value
         }));
     }
 
@@ -133,8 +273,17 @@ export const getChartData = async (indicatorId) => {
 // Mapeo de IDs de series a claves en el JSON
 const SERIES_KEY_MAP = {
     'F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T': 'pib_real',
+    'F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T': 'pib_nominal',
+    'F033.CPR.FLU.N.CLP.EP18.0.T': 'consumo_privado',
+    'F033.COG.FLU.N.CLP.EP18.0.T': 'gasto_gob_nominal',
+    'F033.FKF.FLU.N.CLP.EP18.0.T': 'fbkf_nominal',
+    'F033.VAX.FLU.N.CLP.EP18.0.T': 'existencias_nominal',
+    'F033.XBS.FLU.N.CLP.EP18.0.T': 'export_nominal',
+    'F033.IBS.FLU.N.CLP.EP18.0.T': 'import_nominal',
     'F073.TCO.PRE.Z.D': 'dolar',
-    'F074.IPC.VAR.Z.Z.C.M': 'ipc',
+    'F074.IPC.IND.Z.EP23.C.M': 'ipc_index',
+    'F019.PPB.PRE.100.D': 'cobre',
+    'F049.DES.TAS.INE9.10.M': 'desempleo',
     // Regionales
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.15.0.T': 'pib_reg_XV',
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.01.0.T': 'pib_reg_I',
@@ -160,13 +309,26 @@ let bcchDataCache = null;
 const loadBcchData = async () => {
     if (bcchDataCache) return bcchDataCache;
 
+    const isLocal = typeof window !== 'undefined' && window.location?.hostname === 'localhost';
+    const dataUrl = isLocal ? '/data/bcch_series.json' : '/api/bcch-bundle';
+
     try {
-        const response = await fetch('/data/bcch_series.json');
+        const response = await fetch(dataUrl);
         if (!response.ok) throw new Error('Failed to load BCCH data');
         bcchDataCache = await response.json();
         return bcchDataCache;
     } catch (error) {
         console.warn('Could not load BCCH data:', error);
+        if (dataUrl !== '/data/bcch_series.json') {
+            try {
+                const fallback = await fetch('/data/bcch_series.json');
+                if (!fallback.ok) throw new Error('Failed to load BCCH data');
+                bcchDataCache = await fallback.json();
+                return bcchDataCache;
+            } catch (fallbackError) {
+                console.warn('Could not load fallback BCCH data:', fallbackError);
+            }
+        }
         return null;
     }
 };

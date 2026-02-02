@@ -19,19 +19,73 @@ SERIES_CONFIG = {
         "id": "F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T",
         "name": "PIB Real Nacional",
         "frequency": "T",
-        "desde": "2015-01-01"
+        "desde": "1996-01-01"
     },
-    "ipc": {
-        "id": "F074.IPC.VAR.Z.Z.C.M",
-        "name": "IPC (Var. Mensual)",
+    "pib_nominal": {
+        "id": "F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T",
+        "name": "PIB Nominal Nacional",
+        "frequency": "T",
+        "desde": "1996-01-01"
+    },
+    "consumo_privado": {
+        "id": "F033.CPR.FLU.N.CLP.EP18.0.T",
+        "name": "Consumo Privado (Hogares + IPSFL)",
+        "frequency": "T",
+        "desde": "1996-01-01"
+    },
+    "gasto_gob_nominal": {
+        "id": "F033.COG.FLU.N.CLP.EP18.0.T",
+        "name": "Gasto de Gobierno",
+        "frequency": "T",
+        "desde": "1996-01-01"
+    },
+    "fbkf_nominal": {
+        "id": "F033.FKF.FLU.N.CLP.EP18.0.T",
+        "name": "Formacion Bruta de Capital Fijo",
+        "frequency": "T",
+        "desde": "1996-01-01"
+    },
+    "existencias_nominal": {
+        "id": "F033.VAX.FLU.N.CLP.EP18.0.T",
+        "name": "Variacion de Existencias",
+        "frequency": "T",
+        "desde": "1996-01-01"
+    },
+    "export_nominal": {
+        "id": "F033.XBS.FLU.N.CLP.EP18.0.T",
+        "name": "Exportaciones Bienes y Servicios",
+        "frequency": "T",
+        "desde": "1996-01-01"
+    },
+    "import_nominal": {
+        "id": "F033.IBS.FLU.N.CLP.EP18.0.T",
+        "name": "Importaciones Bienes y Servicios",
+        "frequency": "T",
+        "desde": "1996-01-01"
+    },
+    "ipc_index": {
+        "id": "F074.IPC.IND.Z.EP23.C.M",
+        "name": "IPC Indice",
         "frequency": "M",
-        "desde": "2023-01-01"
+        "desde": "1996-01-01"
     },
     "dolar": {
         "id": "F073.TCO.PRE.Z.D",
-        "name": "Dólar Observado",
+        "name": "Dolar Observado",
         "frequency": "D",
-        "desde": "2024-01-01"
+        "desde": "1996-01-01"
+    },
+    "cobre": {
+        "id": "F019.PPB.PRE.100.D",
+        "name": "Precio del Cobre",
+        "frequency": "D",
+        "desde": "1996-01-01"
+    },
+    "desempleo": {
+        "id": "F049.DES.TAS.INE9.10.M",
+        "name": "Desempleo",
+        "frequency": "M",
+        "desde": "1996-01-01"
     },
     # PIB Regional Real
     "pib_reg_XV": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.15.0.T", "name": "PIB Arica y Parinacota", "frequency": "T", "desde": "2018-01-01"},
@@ -91,10 +145,10 @@ def main():
     password = os.environ.get("BCCH_PASSWORD")
     
     if not user or not password:
-        print("❌ Error: No se encontraron las credenciales BCCH_USER o BCCH_PASSWORD")
+        print("Error: No se encontraron las credenciales BCCH_USER o BCCH_PASSWORD")
         return
     
-    print("🔗 Conectando a la API del Banco Central...")
+    print("Conectando a la API del Banco Central...")
     siete = bcchapi.Siete(user, password)
     
     # Crear directorio de salida
@@ -103,7 +157,7 @@ def main():
     all_data = {}
     
     for key, config in SERIES_CONFIG.items():
-        print(f"📊 Obteniendo serie: {config['name']} ({config['id']})")
+        print(f"Obteniendo serie: {config['name']} ({config['id']})")
         
         try:
             records = fetch_series(siete, config["id"], config.get("desde"))
@@ -128,20 +182,20 @@ def main():
                     "updated_at": datetime.now().isoformat()
                 }
                 
-                print(f"   ✅ {len(valid_records)} registros. Último: {latest['date']} = {latest['value']:,.2f}")
+                print(f"   OK: {len(valid_records)} registros. Ultimo: {latest['date']} = {latest['value']:,.2f}")
             else:
-                print(f"   ⚠️ Sin datos válidos")
+                print("   WARNING: Sin datos validos")
                 
         except Exception as e:
-            print(f"   ❌ Error: {e}")
+            print(f"   ERROR: {e}")
     
     # Guardar archivo combinado
     output_path = os.path.join(OUTPUT_DIR, "bcch_series.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(all_data, f, ensure_ascii=False, indent=2)
     
-    print(f"\n✅ Datos guardados en: {output_path}")
-    print(f"📅 Última actualización: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"\nOK: Datos guardados en: {output_path}")
+    print(f"Ultima actualizacion: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 if __name__ == "__main__":

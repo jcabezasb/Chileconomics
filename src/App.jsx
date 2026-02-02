@@ -24,6 +24,106 @@ function App() {
     const [latestDolar, setLatestDolar] = useState(null);
     const [latestIpc, setLatestIpc] = useState(null);
     const [regionalData, setRegionalData] = useState({}); // { regionId: { value, variation, history } }
+    const [compositionStats, setCompositionStats] = useState(null);
+    const [pibCompositionData, setPibCompositionData] = useState({
+        total: 51880.0,
+        consumo: 32165.0,
+        inversion: 11414.0,
+        gasto: 7263.0,
+        export: 16083.0,
+        import: -15045.0
+    });
+    const [nominalSeries, setNominalSeries] = useState(null);
+    const [availablePeriods, setAvailablePeriods] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('');
+    const [selectedQuarter, setSelectedQuarter] = useState('');
+    const [selectedDate, setSelectedDate] = useState(null);
+
+    const normalizeSeries = (series) => (
+        (series || [])
+            .filter(entry => entry && entry.value !== null && entry.value !== undefined)
+            .map(entry => ({ ...entry, value: Number(entry.value) }))
+            .filter(entry => !Number.isNaN(entry.value))
+    );
+
+    const getQuarterFromDate = (dateStr) => {
+        if (!dateStr || dateStr.length < 7) return null;
+        const month = Number(dateStr.slice(5, 7));
+        if (month <= 3) return 'Q1';
+        if (month <= 6) return 'Q2';
+        if (month <= 9) return 'Q3';
+        return 'Q4';
+    };
+
+    const buildPeriods = (series) => {
+        const valid = normalizeSeries(series);
+        return valid
+            .map(entry => {
+                const year = entry.date ? entry.date.slice(0, 4) : '';
+                const quarter = getQuarterFromDate(entry.date);
+                return year && quarter ? { date: entry.date, year, quarter } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    };
+
+    const computeSeriesStatsAtDate = (series, targetDate, options = {}) => {
+        const { lag = 4, historyPoints = 4 } = options;
+        const valid = normalizeSeries(series);
+        if (!valid.length) return null;
+        const targetIndex = targetDate
+            ? valid.findIndex(entry => entry.date === targetDate)
+            : valid.length - 1;
+        const index = targetIndex >= 0 ? targetIndex : valid.length - 1;
+        const latest = valid[index];
+        const previous = index - lag >= 0 ? valid[index - lag] : null;
+        const variation = previous && previous.value !== 0
+            ? ((latest.value - previous.value) / previous.value) * 100
+            : null;
+        const start = Math.max(0, index - historyPoints + 1);
+        const history = valid.slice(start, index + 1).map(entry => entry.value);
+        const prior = index - 1 >= 0 ? valid[index - 1] : null;
+        const trend = prior ? (latest.value >= prior.value ? 'up' : 'down') : 'up';
+        return {
+            value: latest.value,
+            variation,
+            history,
+            trend,
+            date: latest.date
+        };
+    };
+
+    const mergeInvestmentSeries = (fbkfSeries, existenciasSeries) => {
+        const map = new Map();
+        normalizeSeries(fbkfSeries).forEach(entry => {
+            map.set(entry.date, { date: entry.date, fbkf: entry.value, vax: 0 });
+        });
+        normalizeSeries(existenciasSeries).forEach(entry => {
+            const current = map.get(entry.date) || { date: entry.date, fbkf: 0, vax: 0 };
+            map.set(entry.date, { ...current, vax: entry.value });
+        });
+        return Array.from(map.values())
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+            .map(entry => ({ date: entry.date, value: (entry.fbkf || 0) + (entry.vax || 0) }));
+    };
+
+    const periodYears = useMemo(() => {
+        const years = Array.from(new Set(availablePeriods.map(period => period.year)));
+        return years.sort((a, b) => Number(b) - Number(a));
+    }, [availablePeriods]);
+
+    const periodQuarters = useMemo(() => {
+        if (!selectedYear) return [];
+        const quarters = Array.from(
+            new Set(
+                availablePeriods
+                    .filter(period => period.year === selectedYear)
+                    .map(period => period.quarter)
+            )
+        );
+        const order = ['Q1', 'Q2', 'Q3', 'Q4'];
+        return quarters.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    }, [availablePeriods, selectedYear]);
 
     useEffect(() => {
         getKeyIndicators().then(data => {
@@ -33,30 +133,107 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (!availablePeriods.length || !selectedYear || !selectedQuarter) return;
+        const match = availablePeriods.find(
+            (period) => period.year === selectedYear && period.quarter === selectedQuarter
+        );
+        if (match && match.date !== selectedDate) {
+            setSelectedDate(match.date);
+        }
+    }, [availablePeriods, selectedYear, selectedQuarter, selectedDate]);
+
+    useEffect(() => {
+        if (!periodQuarters.length) return;
+        if (!selectedQuarter || !periodQuarters.includes(selectedQuarter)) {
+            setSelectedQuarter(periodQuarters[periodQuarters.length - 1]);
+        }
+    }, [periodQuarters, selectedQuarter]);
+
+    useEffect(() => {
+        if (!nominalSeries) return;
+        const investmentSeries = mergeInvestmentSeries(nominalSeries.fbkfSeries, nominalSeries.existenciasSeries);
+
+        const consumoStats = computeSeriesStatsAtDate(nominalSeries.consumoSeries, selectedDate, { lag: 4, historyPoints: 4 });
+        const gastoStats = computeSeriesStatsAtDate(nominalSeries.gastoSeries, selectedDate, { lag: 4, historyPoints: 4 });
+        const exportStats = computeSeriesStatsAtDate(nominalSeries.exportSeries, selectedDate, { lag: 4, historyPoints: 4 });
+        const importStats = computeSeriesStatsAtDate(nominalSeries.importSeries, selectedDate, { lag: 4, historyPoints: 4 });
+        const inversionStats = computeSeriesStatsAtDate(investmentSeries, selectedDate, { lag: 4, historyPoints: 4 });
+        const pibStats = computeSeriesStatsAtDate(nominalSeries.pibSeries, selectedDate, { lag: 4, historyPoints: 4 });
+
+        const total = pibStats?.value || latestPib?.value || 0;
+
+        setCompositionStats({
+            consumo: consumoStats,
+            gasto: gastoStats,
+            export: exportStats,
+            import: importStats,
+            inversion: inversionStats,
+            total: pibStats
+        });
+
+        if (total) {
+            setPibCompositionData({
+                total,
+                consumo: consumoStats?.value ?? 0,
+                inversion: inversionStats?.value ?? 0,
+                gasto: gastoStats?.value ?? 0,
+                export: exportStats?.value ?? 0,
+                import: -(Math.abs(importStats?.value ?? 0))
+            });
+        }
+    }, [nominalSeries, selectedDate, latestPib]);
+
+    useEffect(() => {
         let isActive = true;
 
         const loadPibSeries = async () => {
-            const series = await getSeries('F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T', { frequency: 'T' });
+            const series = await getSeries('F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T', { frequency: 'T' });
             if (!isActive || !Array.isArray(series) || !series.length) return;
 
-            const valid = series.filter(entry => entry && entry.value !== null && entry.value !== undefined);
-            if (!valid.length) return;
+            const stats = computeSeriesStatsAtDate(series, null, { lag: 4, historyPoints: 4 });
+            if (!stats) return;
+            setLatestPib({ date: stats.date, value: stats.value, variation: stats.variation, history: stats.history });
+        };
 
-            const latest = valid[valid.length - 1];
-            // Variación en 12 meses (4 trimestres atrás)
-            const previous = valid.length > 4 ? valid[valid.length - 5] : null;
-            const latestValue = Number(latest.value);
-            const previousValue = previous ? Number(previous.value) : null;
+        const loadNominalComponents = async () => {
+            const [
+                consumoSeries,
+                gastoSeries,
+                fbkfSeries,
+                existenciasSeries,
+                exportSeries,
+                importSeries,
+                pibSeries
+            ] = await Promise.all([
+                getSeries('F033.CPR.FLU.N.CLP.EP18.0.T', { frequency: 'T' }),
+                getSeries('F033.COG.FLU.N.CLP.EP18.0.T', { frequency: 'T' }),
+                getSeries('F033.FKF.FLU.N.CLP.EP18.0.T', { frequency: 'T' }),
+                getSeries('F033.VAX.FLU.N.CLP.EP18.0.T', { frequency: 'T' }),
+                getSeries('F033.XBS.FLU.N.CLP.EP18.0.T', { frequency: 'T' }),
+                getSeries('F033.IBS.FLU.N.CLP.EP18.0.T', { frequency: 'T' }),
+                getSeries('F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T', { frequency: 'T' })
+            ]);
 
-            if (Number.isNaN(latestValue)) return;
+            if (!isActive) return;
 
-            const variation = previousValue !== null && !Number.isNaN(previousValue) && previousValue !== 0
-                ? ((latestValue - previousValue) / previousValue) * 100
-                : null;
+            setNominalSeries({
+                consumoSeries,
+                gastoSeries,
+                fbkfSeries,
+                existenciasSeries,
+                exportSeries,
+                importSeries,
+                pibSeries
+            });
 
-            // Guardar los últimos 10 puntos para el minigráfico
-            const history = valid.slice(-10).map(v => v.value);
-            setLatestPib({ ...latest, value: latestValue, variation, history });
+            const periods = buildPeriods(pibSeries);
+            if (periods.length) {
+                setAvailablePeriods(periods);
+                const latest = periods[periods.length - 1];
+                if (!selectedYear) setSelectedYear(latest.year);
+                if (!selectedQuarter) setSelectedQuarter(latest.quarter);
+                if (!selectedDate) setSelectedDate(latest.date);
+            }
         };
 
         const loadOtherSeries = async () => {
@@ -117,6 +294,7 @@ function App() {
         loadPibSeries();
         loadOtherSeries();
         loadRegionalSeries();
+        loadNominalComponents();
 
         return () => {
             isActive = false;
@@ -174,21 +352,16 @@ function App() {
         return 0.75 + (hash / 1000) * 0.55; // 0.75 - 1.30
     };
 
-    const pibValue = typeof latestPib?.value === 'number' ? latestPib.value : 51880.0;
-    const pibVariation = typeof latestPib?.variation === 'number' ? latestPib.variation : 2.3;
+    const pibValue = typeof pibCompositionData.total === 'number' ? pibCompositionData.total : (latestPib?.value ?? 51880.0);
+    const pibVariation = typeof compositionStats?.total?.variation === 'number'
+        ? compositionStats.total.variation
+        : (latestPib?.variation ?? 0);
 
-    // Mocks de componentes basados en pesos históricos (BCCH)
-    const pibCompositionData = useMemo(() => {
-        const total = pibValue;
-        return {
-            total: total,
-            consumo: total * 0.62,
-            inversion: total * 0.22,
-            gasto: total * 0.14,
-            export: total * 0.31,
-            import: -total * 0.29
-        };
-    }, [pibValue]);
+    const getShare = (value) => {
+        if (!pibCompositionData.total) return null;
+        const share = (Math.abs(value) / pibCompositionData.total) * 100;
+        return Number(share.toFixed(1));
+    };
 
     const baseIndicatorSpecs = [
         {
@@ -199,7 +372,7 @@ function App() {
             decimals: 0,
             variation: pibVariation,
             trend: pibVariation >= 0 ? 'up' : 'down',
-            history: latestPib?.history || [],
+            history: compositionStats?.total?.history || latestPib?.history || [],
             type: 'level',
             weight: 100
         },
@@ -209,11 +382,11 @@ function App() {
             value: pibCompositionData.consumo,
             unit: 'MM CLP',
             decimals: 0,
-            variation: 1.8,
-            trend: 'up',
+            variation: compositionStats?.consumo?.variation ?? 1.8,
+            trend: compositionStats?.consumo?.trend || ((compositionStats?.consumo?.variation ?? 1.8) >= 0 ? 'up' : 'down'),
             type: 'level',
-            weight: 62,
-            history: [1.2, 1.4, 1.3, 1.5, 1.7, 1.6, 1.8]
+            weight: getShare(pibCompositionData.consumo) ?? 62,
+            history: compositionStats?.consumo?.history || [1.2, 1.4, 1.3, 1.5, 1.7, 1.6, 1.8]
         },
         {
             id: 'inversion',
@@ -221,11 +394,11 @@ function App() {
             value: pibCompositionData.inversion,
             unit: 'MM CLP',
             decimals: 0,
-            variation: -2.4,
-            trend: 'down',
+            variation: compositionStats?.inversion?.variation ?? -2.4,
+            trend: compositionStats?.inversion?.trend || ((compositionStats?.inversion?.variation ?? -2.4) >= 0 ? 'up' : 'down'),
             type: 'level',
-            weight: 22,
-            history: [2.1, 1.9, 1.8, 1.5, 1.2, 0.8, -0.5]
+            weight: getShare(pibCompositionData.inversion) ?? 22,
+            history: compositionStats?.inversion?.history || [2.1, 1.9, 1.8, 1.5, 1.2, 0.8, -0.5]
         },
         {
             id: 'gasto',
@@ -233,11 +406,11 @@ function App() {
             value: pibCompositionData.gasto,
             unit: 'MM CLP',
             decimals: 0,
-            variation: 3.1,
-            trend: 'up',
+            variation: compositionStats?.gasto?.variation ?? 3.1,
+            trend: compositionStats?.gasto?.trend || ((compositionStats?.gasto?.variation ?? 3.1) >= 0 ? 'up' : 'down'),
             type: 'level',
-            weight: 14,
-            history: [2.8, 2.9, 3.0, 3.1, 3.0, 3.2, 3.1]
+            weight: getShare(pibCompositionData.gasto) ?? 14,
+            history: compositionStats?.gasto?.history || [2.8, 2.9, 3.0, 3.1, 3.0, 3.2, 3.1]
         },
         {
             id: 'exportaciones',
@@ -245,11 +418,11 @@ function App() {
             value: pibCompositionData.export,
             unit: 'MM CLP',
             decimals: 0,
-            variation: 4.2,
-            trend: 'up',
+            variation: compositionStats?.export?.variation ?? 4.2,
+            trend: compositionStats?.export?.trend || ((compositionStats?.export?.variation ?? 4.2) >= 0 ? 'up' : 'down'),
             type: 'level',
-            weight: 31,
-            history: [3.5, 3.8, 3.6, 4.0, 4.1, 4.3, 4.2]
+            weight: getShare(pibCompositionData.export) ?? 31,
+            history: compositionStats?.export?.history || [3.5, 3.8, 3.6, 4.0, 4.1, 4.3, 4.2]
         },
         {
             id: 'importaciones',
@@ -257,11 +430,11 @@ function App() {
             value: pibCompositionData.import,
             unit: 'MM CLP',
             decimals: 0,
-            variation: -0.8,
-            trend: 'down',
+            variation: compositionStats?.import?.variation ?? -0.8,
+            trend: compositionStats?.import?.trend || ((compositionStats?.import?.variation ?? -0.8) >= 0 ? 'up' : 'down'),
             type: 'level',
-            weight: 29,
-            history: [2.5, 2.2, 1.8, 1.5, 1.2, 1.0, 0.8]
+            weight: getShare(pibCompositionData.import) ?? 29,
+            history: compositionStats?.import?.history || [2.5, 2.2, 1.8, 1.5, 1.2, 1.0, 0.8]
         }
     ];
 
@@ -459,9 +632,10 @@ function App() {
     };
 
     // Chart indicators
-    const chartIndicators = indicators.filter(ind =>
-        ['ipc', 'dolar', 'cobre', 'desempleo'].includes(ind.id)
-    );
+    const chartOrder = ['ipc', 'dolar', 'desempleo', 'cobre'];
+    const chartIndicators = indicators
+        .filter(ind => chartOrder.includes(ind.id))
+        .sort((a, b) => chartOrder.indexOf(a.id) - chartOrder.indexOf(b.id));
 
     return (
         <div className="container">
@@ -577,9 +751,45 @@ function App() {
 
                             {/* Components List Area (Table-like density) */}
                             <div style={{ flex: 2.05, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', marginBottom: '0.6rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>Ano</span>
+                                        <select
+                                            className="period-select"
+                                            value={selectedYear}
+                                            onChange={(event) => setSelectedYear(event.target.value)}
+                                            style={{
+                                                fontSize: '0.65rem',
+                                                padding: '0.25rem 0.45rem',
+                                                borderRadius: '6px'
+                                            }}
+                                        >
+                                            {periodYears.map((year) => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>Trim.</span>
+                                        <select
+                                            className="period-select"
+                                            value={selectedQuarter}
+                                            onChange={(event) => setSelectedQuarter(event.target.value)}
+                                            style={{
+                                                fontSize: '0.65rem',
+                                                padding: '0.25rem 0.45rem',
+                                                borderRadius: '6px'
+                                            }}
+                                        >
+                                            {periodQuarters.map((quarter) => (
+                                                <option key={quarter} value={quarter}>{quarter}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
                                 <div style={{
                                     display: 'grid',
-                                    gridTemplateColumns: '1.8fr 1.15fr 0.85fr 1fr 0.9fr',
+                                    gridTemplateColumns: '1.9fr 1.15fr 0.9fr 1fr',
                                     padding: '0 0.8rem 0.5rem 0.8rem',
                                     fontSize: '0.65rem',
                                     color: 'var(--text-muted)',
@@ -592,13 +802,12 @@ function App() {
                                     <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>VALOR</span>
                                     <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>%PIB</span>
                                     <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>TREND</span>
-                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>VAR.%</span>
                                 </div>
                                 <div style={{ display: 'grid', gridAutoRows: '1fr', gap: '0.35rem', overflowY: 'auto', paddingRight: '4px', flex: 1, height: '100%' }}>
                                     {sideIndicators.map(ind => (
                                         <div key={ind.id} style={{
                                             display: 'grid',
-                                            gridTemplateColumns: '1.8fr 1.1fr 0.8fr 0.9fr 0.9fr',
+                                            gridTemplateColumns: '1.9fr 1.15fr 0.9fr 1fr',
                                             padding: '0.6rem 0.8rem',
                                             borderRadius: '6px',
                                             background: 'rgba(255,255,255,0.015)',
@@ -624,16 +833,6 @@ function App() {
                                                     />
                                                 </svg>
                                             </div>
-                                            <span style={{
-                                                fontSize: '0.72rem',
-                                                fontWeight: 700,
-                                                textAlign: 'center',
-                                                color: ind.trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)',
-                                                borderLeft: '1px solid var(--border)',
-                                                padding: '0 0.6rem'
-                                            }}>
-                                                {ind.variation}
-                                            </span>
                                         </div>
                                     ))}
                                 </div>
