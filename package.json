@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "sync-data": "python sync_bcch_data.py",
-    "build": "npm run sync-data && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
