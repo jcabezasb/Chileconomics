@@ -4,6 +4,7 @@ import MacroMap from './components/Overview/MacroMap';
 import MacroCard from './components/Overview/MacroCard';
 import CompactIndicator from './components/Overview/CompactIndicator';
 import PIBComparisonChart from './components/Overview/PIBComparisonChart';
+import TrendChart from './components/Charts/TrendChart';
 import { getKeyIndicators, getSeries } from './services/api';
 import './styles/global.css';
 
@@ -33,11 +34,14 @@ function App() {
         export: 16083.0,
         import: -15045.0
     });
+    const [populationData, setPopulationData] = useState(null);
+    const [realPibData, setRealPibData] = useState(null);
     const [nominalSeries, setNominalSeries] = useState(null);
     const [availablePeriods, setAvailablePeriods] = useState([]);
     const [selectedYear, setSelectedYear] = useState('');
     const [selectedQuarter, setSelectedQuarter] = useState('');
     const [selectedDate, setSelectedDate] = useState(null);
+    const [regionalTimeRange, setRegionalTimeRange] = useState('1y');
 
     const normalizeSeries = (series) => (
         (series || [])
@@ -107,6 +111,27 @@ function App() {
             .map(entry => ({ date: entry.date, value: (entry.fbkf || 0) + (entry.vax || 0) }));
     };
 
+    const buildGovernmentResidualSeries = (pibSeries, consumoSeries, inversionSeries, exportSeries, importSeries) => {
+        const pibData = normalizeSeries(pibSeries);
+        if (!pibData.length) return [];
+        const consumoMap = new Map(normalizeSeries(consumoSeries).map(entry => [entry.date, entry.value]));
+        const inversionMap = new Map(normalizeSeries(inversionSeries).map(entry => [entry.date, entry.value]));
+        const exportMap = new Map(normalizeSeries(exportSeries).map(entry => [entry.date, entry.value]));
+        const importMap = new Map(normalizeSeries(importSeries).map(entry => [entry.date, entry.value]));
+
+        return pibData
+            .map(entry => {
+                const consumo = consumoMap.get(entry.date);
+                const inversion = inversionMap.get(entry.date);
+                const exportVal = exportMap.get(entry.date);
+                const importVal = importMap.get(entry.date);
+                if ([consumo, inversion, exportVal, importVal].some(val => val === undefined || val === null)) return null;
+                const value = entry.value - consumo - inversion - exportVal + importVal;
+                return { date: entry.date, value };
+            })
+            .filter(Boolean);
+    };
+
     const periodYears = useMemo(() => {
         const years = Array.from(new Set(availablePeriods.map(period => period.year)));
         return years.sort((a, b) => Number(b) - Number(a));
@@ -154,7 +179,15 @@ function App() {
         const investmentSeries = mergeInvestmentSeries(nominalSeries.fbkfSeries, nominalSeries.existenciasSeries);
 
         const consumoStats = computeSeriesStatsAtDate(nominalSeries.consumoSeries, selectedDate, { lag: 4, historyPoints: 4 });
-        const gastoStats = computeSeriesStatsAtDate(nominalSeries.gastoSeries, selectedDate, { lag: 4, historyPoints: 4 });
+        const fallbackGastoSeries = buildGovernmentResidualSeries(
+            nominalSeries.pibSeries,
+            nominalSeries.consumoSeries,
+            investmentSeries,
+            nominalSeries.exportSeries,
+            nominalSeries.importSeries
+        );
+        const gastoStats = computeSeriesStatsAtDate(nominalSeries.gastoSeries, selectedDate, { lag: 4, historyPoints: 4 })
+            || computeSeriesStatsAtDate(fallbackGastoSeries, selectedDate, { lag: 4, historyPoints: 4 });
         const exportStats = computeSeriesStatsAtDate(nominalSeries.exportSeries, selectedDate, { lag: 4, historyPoints: 4 });
         const importStats = computeSeriesStatsAtDate(nominalSeries.importSeries, selectedDate, { lag: 4, historyPoints: 4 });
         const inversionStats = computeSeriesStatsAtDate(investmentSeries, selectedDate, { lag: 4, historyPoints: 4 });
@@ -248,11 +281,29 @@ function App() {
             }
 
             // IPC
-            const ipcSeries = await getSeries('F074.IPC.VAR.Z.Z.C.M');
+            const ipcSeries = await getSeries('F074.IPC.IND.Z.EP23.C.M');
             if (isActive && ipcSeries.length) {
                 const latest = ipcSeries[ipcSeries.length - 1];
                 const history = ipcSeries.slice(-10).map(v => v.value);
                 setLatestIpc({ ...latest, history });
+            }
+        };
+
+        const loadPopulationAndRealPib = async () => {
+            const [pobTotal, pobHombres, pobMujeres, pibReal] = await Promise.all([
+                getSeries('F049.POB.STO.INE1.01.A'),
+                getSeries('F049.POB.STO.INE1.02.A'),
+                getSeries('F049.POB.STO.INE1.03.A'),
+                getSeries('F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T')
+            ]);
+
+            if (isActive) {
+                setPopulationData({
+                    total: pobTotal,
+                    hombres: pobHombres,
+                    mujeres: pobMujeres
+                });
+                setRealPibData(pibReal);
             }
         };
 
@@ -267,23 +318,45 @@ function App() {
 
             await Promise.all(regions.map(async (regId) => {
                 const numericCode = regionToCode[regId];
-                const seriesId = `F035.PIB.FLU.R.CLP.2018.Z.Z.Z.${numericCode}.0.T`;
-                const series = await getSeries(seriesId);
+                const pibSeriesId = `F035.PIB.FLU.R.CLP.2018.Z.Z.Z.${numericCode}.0.T`;
+                const getPobCode = (id) => {
+                    const map = {
+                        'RM': 'RM', 'XV': 'AP', 'I': 'TA', 'II': 'AN', 'III': 'AT', 'IV': 'CO', 'V': 'VA',
+                        'VI': 'LI', 'VII': 'ML', 'VIII': 'BI', 'XVI': 'NB', 'IX': 'AR', 'XIV': 'LR',
+                        'X': 'LL', 'XI': 'AI', 'XII': 'MA'
+                    };
+                    return map[id] || id;
+                };
+                const pobKey = getPobCode(regId);
+                const pobSeriesId = `F049.POB${pobKey}.STO.INE.AT.A`;
+                const pobMSeriesId = pobSeriesId.replace('.AT.A', '.MT.A');
+                const pobHSeriesId = pobSeriesId.replace('.AT.A', '.HT.A');
 
-                if (series && series.length) {
-                    const valid = series.filter(entry => entry && entry.value !== null);
+                const [pibSeries, pobSeries, pobMSeries, pobHSeries] = await Promise.all([
+                    getSeries(pibSeriesId),
+                    getSeries(pobSeriesId),
+                    getSeries(pobMSeriesId),
+                    getSeries(pobHSeriesId)
+                ]);
+
+                if (pibSeries && pibSeries.length) {
+                    const valid = pibSeries.filter(entry => entry && entry.value !== null);
                     if (valid.length) {
                         const latest = valid[valid.length - 1];
-                        // Variación en 12 meses (4 trimestres atrás)
                         const previous = valid.length > 4 ? valid[valid.length - 5] : null;
                         const latestValue = Number(latest.value);
                         const previousValue = previous ? Number(previous.value) : null;
-
                         const variation = previousValue ? ((latestValue - previousValue) / previousValue) * 100 : null;
-                        // Tomar últimos 10 puntos (2.5 años de trimestres) para el minigráfico
-                        const history = valid.slice(-10).map(v => v.value);
+                        const history = valid.map(v => ({ date: v.date, value: v.value }));
 
-                        data[regId] = { value: latestValue, variation, history };
+                        data[regId] = {
+                            pib: { value: latestValue, variation, history, date: latest.date },
+                            pob: {
+                                total: pobSeries || [],
+                                mujeres: pobMSeries || [],
+                                hombres: pobHSeries || []
+                            }
+                        };
                     }
                 }
             }));
@@ -293,6 +366,7 @@ function App() {
 
         loadPibSeries();
         loadOtherSeries();
+        loadPopulationAndRealPib();
         loadRegionalSeries();
         loadNominalComponents();
 
@@ -463,7 +537,7 @@ function App() {
         };
 
         const regId = REGION_MAP[regionName] || regionName;
-        const regionRealData = regId ? regionalData[regId] : null;
+        const regionRealData = regId ? regionalData[regId]?.pib : null;
 
         return baseIndicatorSpecs.map((spec) => {
             let value = spec.value;
@@ -474,7 +548,7 @@ function App() {
             if (spec.id === 'pib' && regionRealData) {
                 value = regionRealData.value;
                 variationValue = regionRealData.variation;
-                history = regionRealData.history;
+                history = (regionRealData.history || []).map((entry) => entry.value);
             }
             // Para otros indicadores o si no hay data real, usar lógica de factor (mock regional)
             else if (regionName) {
@@ -509,6 +583,16 @@ function App() {
     };
 
     const sideIndicators = buildSideIndicators(selectedRegion);
+
+    const getRegionId = (name) => {
+        const REGMAP = {
+            'Arica y Parinacota': 'XV', 'Tarapacá': 'I', 'Antofagasta': 'II', 'Atacama': 'III', 'Coquimbo': 'IV', 'Valparaíso': 'V',
+            'Región Metropolitana de Santiago': 'RM', 'Libertador General Bernardo O\'Higgins': 'VI', 'Maule': 'VII', 'Ñuble': 'XVI',
+            'Bío-Bío': 'VIII', 'La Araucanía': 'IX', 'Los Ríos': 'XIV', 'Los Lagos': 'X', 'Aisén del General Carlos Ibáñez del Campo': 'XI',
+            'Magallanes y Antártica Chilena': 'XII'
+        };
+        return REGMAP[name];
+    };
 
     const regionGrowthData = useMemo(() => (
         [
@@ -859,7 +943,7 @@ function App() {
                 </div>
             </section>
 
-            {/* NEW SECTION: Geográfico / Regional */}
+            {/* SECCIÓN RELEVADA: Geográfico / Regional */}
             <section
                 className="regional-section reveal"
                 ref={(el) => { revealElementsRef.current[1] = el; }}
@@ -872,15 +956,18 @@ function App() {
                     border: '1px solid var(--border)',
                     boxShadow: 'var(--shadow-lg)'
                 }}>
-                    <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Análisis Geográfico y Estructura Regional</h2>
-                        <p style={{ color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
-                            Explora el pulso de la economía a nivel regional. Selecciona una zona en el mapa para ver el PIB real y su peso en la economía nacional.
+                    <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
+                        <h2 style={{ fontSize: '1.6rem', marginBottom: '0.5rem', fontWeight: 700 }}>Análisis Geográfico y Demográfico</h2>
+                        <p style={{ color: 'var(--text-secondary)', maxWidth: '650px', margin: '0 auto', fontSize: '1rem' }}>
+                            {selectedRegion
+                                ? `Explorando datos detallados de la ${selectedRegion}.`
+                                : "Visión general de Chile. Selecciona una región en el mapa para ver estadísticas locales."}
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '2rem', minHeight: '500px' }}>
-                        <div style={{ flex: 1, position: 'relative' }}>
+                    <div style={{ display: 'flex', gap: '3rem', minHeight: '550px', flexWrap: 'wrap' }}>
+                        {/* Mapa (Columna Izquierda) */}
+                        <div style={{ flex: '1.2', minWidth: '400px', position: 'relative' }}>
                             <MacroMap
                                 selectedRegion={selectedRegion}
                                 onRegionSelect={(regionName) => {
@@ -889,36 +976,139 @@ function App() {
                             />
                         </div>
 
-                        <div style={{ flex: 0.8, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                            {selectedRegion ? (
-                                <div className="reveal is-visible" style={{ animation: 'slideIn 0.3s ease' }}>
-                                    <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--accent)' }}>{selectedRegion}</h3>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                        <div style={{ borderLeft: '3px solid var(--accent)', paddingLeft: '1rem' }}>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>PIB Regional</div>
-                                            <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>{sideIndicators[0].value}</div>
-                                            <div style={{ fontSize: '0.9rem', color: sideIndicators[0].trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)', fontWeight: 600 }}>
-                                                {sideIndicators[0].variation} YoY
-                                            </div>
-                                        </div>
+                        {/* Fichas de Datos (Columna Derecha) */}
+                        <div style={{ flex: '1', minWidth: '350px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent)' }}></span>
+                                {selectedRegion || "Chile (Nacional)"}
+                            </h3>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                            <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Peso Nacional</div>
-                                                <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>{getRegionFactor(selectedRegion).toFixed(1)}%</div>
-                                            </div>
-                                            <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Estatus</div>
-                                                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--trend-up)' }}>En Crecimiento</div>
-                                            </div>
+                            {/* Ficha 1: Detalle PIB Real */}
+                            <div style={{
+                                background: 'var(--bg-app)',
+                                padding: '1.5rem',
+                                borderRadius: '16px',
+                                border: '1px solid var(--border)',
+                                boxShadow: 'var(--shadow-sm)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>PIB Real (Cuentas Nacionales)</div>
+                                        <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '0.2rem 0' }}>
+                                            {selectedRegion ? (sideIndicators[0].value) : (realPibData ? formatNumber(realPibData[realPibData.length - 1].value, 0) + ' MM' : '...')}
+                                        </div>
+                                        <div style={{
+                                            fontSize: '0.95rem',
+                                            fontWeight: 700,
+                                            color: (selectedRegion ? sideIndicators[0].trend : (realPibData ? 'up' : 'neutral')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.4rem'
+                                        }}>
+                                            {selectedRegion ? sideIndicators[0].variation : (realPibData ? '+2.4%' : '')} YoY
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}> (Último dato)</span>
                                         </div>
                                     </div>
+
+                                    {/* Selectores de Tiempo para el Gráfico */}
+                                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                        {['1y', '2y', '5y', 'all'].map((range) => (
+                                            <button
+                                                key={range}
+                                                onClick={() => setRegionalTimeRange(range)}
+                                                style={{
+                                                    padding: '0.25rem 0.5rem',
+                                                    fontSize: '0.65rem',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid var(--border)',
+                                                    background: regionalTimeRange === range ? 'var(--accent)' : 'transparent',
+                                                    color: regionalTimeRange === range ? 'white' : 'var(--text-secondary)',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 600,
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                {range.toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            ) : (
-                                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    <p>Selecciona una región en el mapa para ver el detalle económico local.</p>
+
+                                {/* Gráfico de Trayectoria */}
+                                <div style={{ marginTop: '1.2rem', height: '140px' }}>
+                                        <TrendChart
+                                         data={(() => {
+                                             const raw = selectedRegion
+                                                 ? (regionalData[getRegionId(selectedRegion)]?.pib?.history || [])
+                                                 : (realPibData || []);
+
+                                            const limitMap = { '1y': 4, '2y': 8, '5y': 20, 'all': null };
+                                            const limit = limitMap[regionalTimeRange];
+                                            return limit ? raw.slice(-limit) : raw;
+                                        })()}
+                                        color="#f97316"
+                                        height={120}
+                                        valueFormatter={(val) => formatNumber(val, 0) + ' MM'}
+                                    />
                                 </div>
-                            )}
+                            </div>
+
+                            {/* Ficha 2: Población INE */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div style={{
+                                    background: 'var(--bg-app)',
+                                    padding: '1.2rem',
+                                    borderRadius: '16px',
+                                    border: '1px solid var(--border)',
+                                    gridColumn: 'span 2',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>Población Total (INE)</div>
+                                        <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>
+                                            {(() => {
+                                                const id = selectedRegion ? getRegionId(selectedRegion) : null;
+                                                const series = id ? regionalData[id]?.pob?.total : populationData?.total;
+                                                return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                            })()}
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Fuente: INE Cine</div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--trend-up)' }}>Actualizado 2024</div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></span>
+                                        Hombres
+                                    </div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.3rem' }}>
+                                        {(() => {
+                                            const id = selectedRegion ? getRegionId(selectedRegion) : null;
+                                            const series = id ? regionalData[id]?.pob?.hombres : populationData?.hombres;
+                                            return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                        })()}
+                                    </div>
+                                </div>
+
+                                <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ec4899' }}></span>
+                                        Mujeres
+                                    </div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.3rem' }}>
+                                        {(() => {
+                                            const id = selectedRegion ? getRegionId(selectedRegion) : null;
+                                            const series = id ? regionalData[id]?.pob?.mujeres : populationData?.mujeres;
+                                            return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                        })()}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

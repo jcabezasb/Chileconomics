@@ -19,7 +19,14 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
     if (!data || data.length === 0) return null;
 
     const gradientId = useId();
+    const glowId = useId();
     const average = data.reduce((acc, item) => acc + (Number(item.value) || 0), 0) / data.length;
+    const values = data.map((item) => Number(item.value)).filter((value) => !Number.isNaN(value));
+    const minValue = values.length ? Math.min(...values) : 0;
+    const maxValue = values.length ? Math.max(...values) : 0;
+    const range = maxValue - minValue;
+    const padding = range === 0 ? Math.abs(maxValue || 1) * 0.05 : range * 0.12;
+    const chartDomain = [minValue - padding, maxValue + padding];
     const averageLabel = averageFormatter
         ? averageFormatter(average)
         : new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(average);
@@ -51,11 +58,15 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                     <AreaChart data={data}>
                         <defs>
                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={color} stopOpacity={0.35} />
-                                <stop offset="95%" stopColor={color} stopOpacity={0} />
+                                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={color} stopOpacity={0.02} />
                             </linearGradient>
+                            <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor={color} floodOpacity="0.45" />
+                                <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor={color} floodOpacity="0.18" />
+                            </filter>
                         </defs>
-                        <YAxis hide domain={['auto', 'auto']} />
+                        <YAxis hide domain={chartDomain} />
                         <ReferenceLine
                             y={average}
                             stroke="#ffffff"
@@ -69,7 +80,13 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                             stroke={color}
                             fillOpacity={1}
                             fill={`url(#${gradientId})`}
-                            strokeWidth={2}
+                            strokeWidth={2.4}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            dot={false}
+                            activeDot={false}
+                            connectNulls
+                            filter={`url(#${glowId})`}
                         />
                     </AreaChart>
                 </ResponsiveContainer>

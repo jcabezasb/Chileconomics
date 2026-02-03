@@ -260,11 +260,13 @@ export const getChartData = async (indicatorId) => {
             series = buildYoYFromIndex(raw, 12);
         }
 
-        return series.map((entry) => ({
-            name: formatChartLabel(entry.date),
-            date: entry.date,
-            value: entry.value
-        }));
+        return series
+            .filter((entry) => entry && entry.value !== null && entry.value !== undefined)
+            .map((entry) => ({
+                name: formatChartLabel(entry.date),
+                date: entry.date,
+                value: entry.value
+            }));
     }
 
     return fetchData(`/api/chart?id=${encodeURIComponent(indicatorId)}`, mockChartData(indicatorId));
@@ -284,7 +286,11 @@ const SERIES_KEY_MAP = {
     'F074.IPC.IND.Z.EP23.C.M': 'ipc_index',
     'F019.PPB.PRE.100.D': 'cobre',
     'F049.DES.TAS.INE9.10.M': 'desempleo',
-    // Regionales
+    // Población Nacional
+    'F049.POB.STO.INE1.01.A': 'pob_total',
+    'F049.POB.STO.INE1.03.A': 'pob_mujeres',
+    'F049.POB.STO.INE1.02.A': 'pob_hombres',
+    // Regionales - PIB
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.15.0.T': 'pib_reg_XV',
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.01.0.T': 'pib_reg_I',
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.02.0.T': 'pib_reg_II',
@@ -300,11 +306,93 @@ const SERIES_KEY_MAP = {
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.14.0.T': 'pib_reg_XIV',
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.10.0.T': 'pib_reg_X',
     'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.11.0.T': 'pib_reg_XI',
-    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.12.0.T': 'pib_reg_XII'
+    'F035.PIB.FLU.R.CLP.2018.Z.Z.Z.12.0.T': 'pib_reg_XII',
+    // Regionales - Población Total
+    'F049.POBAP.STO.INE.AT.A': 'pob_reg_XV',
+    'F049.POBTA.STO.INE.AT.A': 'pob_reg_I',
+    'F049.POBAN.STO.INE.AT.A': 'pob_reg_II',
+    'F049.POBAT.STO.INE.AT.A': 'pob_reg_III',
+    'F049.POBCO.STO.INE.AT.A': 'pob_reg_IV',
+    'F049.POBVA.STO.INE.AT.A': 'pob_reg_V',
+    'F049.POBRM.STO.INE.AT.A': 'pob_reg_RM',
+    'F049.POBLI.STO.INE.AT.A': 'pob_reg_VI',
+    'F049.POBML.STO.INE.AT.A': 'pob_reg_VII',
+    'F049.POBBI.STO.INE.AT.A': 'pob_reg_VIII',
+    'F049.POBNB.STO.INE.AT.A': 'pob_reg_XVI',
+    'F049.POBAR.STO.INE.AT.A': 'pob_reg_IX',
+    'F049.POBLR.STO.INE.AT.A': 'pob_reg_XIV',
+    'F049.POBLL.STO.INE.AT.A': 'pob_reg_X',
+    'F049.POBAI.STO.INE.AT.A': 'pob_reg_XI',
+    'F049.POBMA.STO.INE.AT.A': 'pob_reg_XII',
+    // Mujeres
+    'F049.POBAP.STO.INE.MT.A': 'pob_reg_XV_m',
+    'F049.POBTA.STO.INE.MT.A': 'pob_reg_I_m',
+    'F049.POBAN.STO.INE.MT.A': 'pob_reg_II_m',
+    'F049.POBAT.STO.INE.MT.A': 'pob_reg_III_m',
+    'F049.POBCO.STO.INE.MT.A': 'pob_reg_IV_m',
+    'F049.POBVA.STO.INE.MT.A': 'pob_reg_V_m',
+    'F049.POBRM.STO.INE.MT.A': 'pob_reg_RM_m',
+    'F049.POBLI.STO.INE.MT.A': 'pob_reg_VI_m',
+    'F049.POBML.STO.INE.MT.A': 'pob_reg_VII_m',
+    'F049.POBBI.STO.INE.MT.A': 'pob_reg_VIII_m',
+    'F049.POBNB.STO.INE.MT.A': 'pob_reg_XVI_m',
+    'F049.POBAR.STO.INE.MT.A': 'pob_reg_IX_m',
+    'F049.POBLR.STO.INE.MT.A': 'pob_reg_XIV_m',
+    'F049.POBLL.STO.INE.MT.A': 'pob_reg_X_m',
+    'F049.POBAI.STO.INE.MT.A': 'pob_reg_XI_m',
+    'F049.POBMA.STO.INE.MT.A': 'pob_reg_XII_m',
+    // Hombres
+    'F049.POBAP.STO.INE.HT.A': 'pob_reg_XV_h',
+    'F049.POBTA.STO.INE.HT.A': 'pob_reg_I_h',
+    'F049.POBAN.STO.INE.HT.A': 'pob_reg_II_h',
+    'F049.POBAT.STO.INE.HT.A': 'pob_reg_III_h',
+    'F049.POBCO.STO.INE.HT.A': 'pob_reg_IV_h',
+    'F049.POBVA.STO.INE.HT.A': 'pob_reg_V_h',
+    'F049.POBRM.STO.INE.HT.A': 'pob_reg_RM_h',
+    'F049.POBLI.STO.INE.HT.A': 'pob_reg_VI_h',
+    'F049.POBML.STO.INE.HT.A': 'pob_reg_VII_h',
+    'F049.POBBI.STO.INE.HT.A': 'pob_reg_VIII_h',
+    'F049.POBNB.STO.INE.HT.A': 'pob_reg_XVI_h',
+    'F049.POBAR.STO.INE.HT.A': 'pob_reg_IX_h',
+    'F049.POBLR.STO.INE.HT.A': 'pob_reg_XIV_h',
+    'F049.POBLL.STO.INE.HT.A': 'pob_reg_X_h',
+    'F049.POBAI.STO.INE.HT.A': 'pob_reg_XI_h',
+    'F049.POBMA.STO.INE.HT.A': 'pob_reg_XII_h'
 };
 
 // Cache para datos del BC
 let bcchDataCache = null;
+
+const staticKeyAliases = {
+    pib_total: 'pib_nominal',
+    inversion: 'fbkf_nominal',
+    existencias: 'existencias_nominal',
+    exportaciones: 'export_nominal',
+    importaciones: 'import_nominal'
+};
+
+const buildLatestEntry = (series) => {
+    const valid = (series || []).filter((entry) => entry && entry.value !== null && entry.value !== undefined);
+    for (let i = valid.length - 1; i >= 0; i -= 1) {
+        if (valid[i].value !== null && valid[i].value !== undefined) return valid[i];
+    }
+    return null;
+};
+
+const normalizeStaticPayload = (payload) => {
+    if (!payload || !payload.series) return payload;
+    const normalized = {};
+
+    Object.entries(payload.series).forEach(([key, data]) => {
+        const mappedKey = staticKeyAliases[key] || key;
+        normalized[mappedKey] = {
+            data: Array.isArray(data) ? data : [],
+            latest: buildLatestEntry(data)
+        };
+    });
+
+    return normalized;
+};
 
 const loadBcchData = async () => {
     if (bcchDataCache) return bcchDataCache;
@@ -315,15 +403,16 @@ const loadBcchData = async () => {
     const apiUrl = '/api/bcch-bundle';
 
     try {
-        // Intento 1: Archivo estático (Rápido y confiable)
+        // Intento 1: Archivo estático (Rapido y confiable)
         const response = await fetch(staticUrl);
         if (response.ok) {
-            bcchDataCache = await response.json();
+            const payload = await response.json();
+            bcchDataCache = normalizeStaticPayload(payload) || payload;
             return bcchDataCache;
         }
         throw new Error('Static data not found');
     } catch (staticError) {
-        console.warn('Statid data not found, trying API bundle...');
+        console.warn('Static data not found, trying API bundle...');
         try {
             // Intento 2: API Bundle (Lento, puede dar timeout)
             const response = await fetch(apiUrl);
@@ -345,6 +434,7 @@ export const getSeries = async (seriesId, options = {}) => {
     const key = SERIES_KEY_MAP[seriesId];
 
     if (bcchData && key && bcchData[key]) {
+        if (Array.isArray(bcchData[key])) return bcchData[key];
         return bcchData[key].data || [];
     }
 
