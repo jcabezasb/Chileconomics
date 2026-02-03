@@ -309,27 +309,31 @@ let bcchDataCache = null;
 const loadBcchData = async () => {
     if (bcchDataCache) return bcchDataCache;
 
-    const isLocal = typeof window !== 'undefined' && window.location?.hostname === 'localhost';
-    const dataUrl = isLocal ? '/data/bcch_series.json' : '/api/bcch-bundle';
+    // Priorizamos el archivo estático generado por GitHub Actions porque es mucho más rápido
+    // que el endpoint de Vercel que consulta 28 series en tiempo real.
+    const staticUrl = '/data/bcch_series.json';
+    const apiUrl = '/api/bcch-bundle';
 
     try {
-        const response = await fetch(dataUrl);
-        if (!response.ok) throw new Error('Failed to load BCCH data');
-        bcchDataCache = await response.json();
-        return bcchDataCache;
-    } catch (error) {
-        console.warn('Could not load BCCH data:', error);
-        if (dataUrl !== '/data/bcch_series.json') {
-            try {
-                const fallback = await fetch('/data/bcch_series.json');
-                if (!fallback.ok) throw new Error('Failed to load BCCH data');
-                bcchDataCache = await fallback.json();
-                return bcchDataCache;
-            } catch (fallbackError) {
-                console.warn('Could not load fallback BCCH data:', fallbackError);
-            }
+        // Intento 1: Archivo estático (Rápido y confiable)
+        const response = await fetch(staticUrl);
+        if (response.ok) {
+            bcchDataCache = await response.json();
+            return bcchDataCache;
         }
-        return null;
+        throw new Error('Static data not found');
+    } catch (staticError) {
+        console.warn('Statid data not found, trying API bundle...');
+        try {
+            // Intento 2: API Bundle (Lento, puede dar timeout)
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error('API failed');
+            bcchDataCache = await response.json();
+            return bcchDataCache;
+        } catch (apiError) {
+            console.error('All data sources failed:', apiError);
+            return null;
+        }
     }
 };
 
