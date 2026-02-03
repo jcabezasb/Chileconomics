@@ -771,23 +771,17 @@ function App() {
                     </span>
                 </button>
                 <h1 className="hero-title">CHILECONOMICS</h1>
-                <p
-                    style={{ maxWidth: '720px', margin: '0.2rem auto 0', fontSize: '1rem', color: 'var(--text-secondary)' }}
-                >
+                <p className="hero-subtitle">
                     Dashboard de indicadores macroeconomicos de Chile con foco en lectura rapida, contexto regional y comparaciones historicas.
                 </p>
             </header>
 
-            <section style={{ padding: '0.25rem 0 2rem', textAlign: 'center' }}>
-                <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-                    <p
-                        style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}
-                    >
+            <section className="intro-section">
+                <div className="intro-content">
+                    <p className="intro-title">
                         Proyecto de visualizacion economica para explorar el pulso del pais en un solo vistazo.
                     </p>
-                    <p
-                        style={{ marginTop: '0.6rem', color: 'var(--text-secondary)' }}
-                    >
+                    <p className="intro-text">
                         Aqui puedes revisar PIB, mercado laboral, precios, sector externo y dinamicas regionales. En una siguiente etapa,
                         los datos vendran de fuentes oficiales para mantener el tablero actualizado.
                     </p>
@@ -800,70 +794,41 @@ function App() {
                 style={{ paddingBottom: '4rem' }}
             >
                 {/* Main Grid: 3 columns - [PIB Overview] | Charts (2x2) */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr',
-                    gridTemplateRows: '1fr 1fr',
-                    gap: '1rem',
-                    height: '550px'
-                }}>
+                <div className="overview-grid">
                     {/* Column 1: PIB Structure (UNIFIED BOX) */}
-                    <div style={{
-                        background: 'var(--bg-card)',
-                        padding: '1.25rem',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gridRow: 'span 2'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Estructura del PIB Nacional</h3>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Muestra de oferta y demanda final</div>
+                    <div className="overview-pib">
+                        <div className="overview-pib-header">
+                            <h3 className="overview-pib-title">Estructura del PIB Nacional</h3>
+                            <div className="overview-pib-subtitle">Muestra de oferta y demanda final</div>
                         </div>
 
-                        <div style={{
-                            display: 'flex',
-                            gap: '1.5rem',
-                            flex: 1,
-                            minHeight: 0
-                        }}>
+                        <div className="overview-pib-body">
                             {/* Chart Area */}
-                            <div style={{ flex: 0.95, position: 'relative' }}>
+                            <div className="overview-pib-chart">
                                 <PIBComparisonChart data={pibCompositionData} theme={theme} />
                             </div>
 
                             {/* Components List Area (Table-like density) */}
-                            <div style={{ flex: 2.05, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', marginBottom: '0.6rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>Ano</span>
+                            <div className="overview-pib-table">
+                                <div className="overview-pib-controls">
+                                    <div className="overview-pib-control">
+                                        <span className="overview-pib-label">Ano</span>
                                         <select
                                             className="period-select"
                                             value={selectedYear}
                                             onChange={(event) => setSelectedYear(event.target.value)}
-                                            style={{
-                                                fontSize: '0.65rem',
-                                                padding: '0.25rem 0.45rem',
-                                                borderRadius: '6px'
-                                            }}
                                         >
                                             {periodYears.map((year) => (
                                                 <option key={year} value={year}>{year}</option>
                                             ))}
                                         </select>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>Trim.</span>
+                                    <div className="overview-pib-control">
+                                        <span className="overview-pib-label">Trim.</span>
                                         <select
                                             className="period-select"
                                             value={selectedQuarter}
                                             onChange={(event) => setSelectedQuarter(event.target.value)}
-                                            style={{
-                                                fontSize: '0.65rem',
-                                                padding: '0.25rem 0.45rem',
-                                                borderRadius: '6px'
-                                            }}
                                         >
                                             {periodQuarters.map((quarter) => (
                                                 <option key={quarter} value={quarter}>{quarter}</option>
@@ -871,43 +836,23 @@ function App() {
                                         </select>
                                     </div>
                                 </div>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1.9fr 1.15fr 0.9fr 1fr',
-                                    padding: '0 0.8rem 0.5rem 0.8rem',
-                                    fontSize: '0.65rem',
-                                    color: 'var(--text-muted)',
-                                    fontWeight: 700,
-                                    borderBottom: '1px solid var(--border)',
-                                    marginBottom: '0.5rem',
-                                    letterSpacing: '0.05em'
-                                }}>
+                                <div className="pib-table-header">
                                     <span>COMPONENTE</span>
-                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>VALOR</span>
-                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>%PIB</span>
-                                    <span style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>TREND</span>
+                                    <span className="pib-col-value">VALOR</span>
+                                    <span className="pib-col-share">%PIB</span>
+                                    <span className="pib-col-trend">TREND</span>
                                 </div>
-                                <div style={{ display: 'grid', gridAutoRows: '1fr', gap: '0.35rem', overflowY: 'auto', paddingRight: '4px', flex: 1, height: '100%' }}>
+                                <div className="pib-table-rows">
                                     {sideIndicators.map(ind => (
-                                        <div key={ind.id} style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1.9fr 1.15fr 0.9fr 1fr',
-                                            padding: '0.6rem 0.8rem',
-                                            borderRadius: '6px',
-                                            background: 'rgba(255,255,255,0.015)',
-                                            border: '1px solid transparent',
-                                            alignItems: 'center',
-                                            transition: 'background 0.2s ease',
-                                            height: '100%'
-                                        }}>
-                                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{ind.title}</span>
-                                            <span style={{ fontSize: '0.78rem', fontWeight: 700, textAlign: 'center', color: 'var(--text-primary)', fontFamily: 'monospace', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>
+                                        <div key={ind.id} className="pib-table-row">
+                                            <span className="pib-col-name">{ind.title}</span>
+                                            <span className="pib-col-value">
                                                 {ind.value.split(' ')[0]}
                                             </span>
-                                            <span style={{ fontSize: '0.72rem', fontWeight: 800, textAlign: 'center', color: 'var(--accent)', borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>
+                                            <span className="pib-col-share">
                                                 {ind.weight}%
                                             </span>
-                                            <div style={{ display: 'flex', justifyContent: 'center', opacity: 0.8, borderLeft: '1px solid var(--border)', padding: '0 0.6rem' }}>
+                                            <div className="pib-col-trend">
                                                 <svg width="34" height="12" viewBox="0 0 40 16">
                                                     <path
                                                         d={buildSparklinePaths(ind.history || [], 40, 16).linePath}
@@ -923,12 +868,7 @@ function App() {
                             </div>
                         </div>
 
-                        <p style={{
-                            margin: '1rem 0 0 0',
-                            fontSize: '0.65rem',
-                            color: 'var(--text-muted)',
-                            fontStyle: 'italic'
-                        }}>
+                        <p className="overview-pib-footnote">
                             Datos Nacionales: Estimación basada en cuentas nacionales trimestrales.
                         </p>
                     </div>
@@ -949,25 +889,19 @@ function App() {
                 ref={(el) => { revealElementsRef.current[1] = el; }}
                 style={{ padding: '4rem 0' }}
             >
-                <div style={{
-                    background: 'var(--bg-card)',
-                    padding: '2rem',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border)',
-                    boxShadow: 'var(--shadow-lg)'
-                }}>
-                    <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '1.6rem', marginBottom: '0.5rem', fontWeight: 700 }}>Análisis Geográfico y Demográfico</h2>
-                        <p style={{ color: 'var(--text-secondary)', maxWidth: '650px', margin: '0 auto', fontSize: '1rem' }}>
+                <div className="regional-card">
+                    <div className="regional-header">
+                        <h2 className="regional-title">Análisis Geográfico y Demográfico</h2>
+                        <p className="regional-subtitle">
                             {selectedRegion
                                 ? `Explorando datos detallados de la ${selectedRegion}.`
                                 : "Visión general de Chile. Selecciona una región en el mapa para ver estadísticas locales."}
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '3rem', minHeight: '550px', flexWrap: 'wrap' }}>
+                    <div className="regional-layout">
                         {/* Mapa (Columna Izquierda) */}
-                        <div style={{ flex: '1.2', minWidth: '400px', position: 'relative' }}>
+                        <div className="regional-map">
                             <MacroMap
                                 selectedRegion={selectedRegion}
                                 onRegionSelect={(regionName) => {
@@ -977,55 +911,38 @@ function App() {
                         </div>
 
                         {/* Fichas de Datos (Columna Derecha) */}
-                        <div style={{ flex: '1', minWidth: '350px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                                <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent)' }}></span>
+                        <div className="regional-cards">
+                            <h3 className="regional-highlight">
+                                <span className="regional-dot"></span>
                                 {selectedRegion || "Chile (Nacional)"}
                             </h3>
 
                             {/* Ficha 1: Detalle PIB Real */}
-                            <div style={{
-                                background: 'var(--bg-app)',
-                                padding: '1.5rem',
-                                borderRadius: '16px',
-                                border: '1px solid var(--border)',
-                                boxShadow: 'var(--shadow-sm)'
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                            <div className="regional-pib-card">
+                                <div className="regional-pib-header">
                                     <div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>PIB Real (Cuentas Nacionales)</div>
-                                        <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '0.2rem 0' }}>
+                                        <div className="regional-pib-label">PIB Real (Cuentas Nacionales)</div>
+                                        <div className="regional-pib-value">
                                             {selectedRegion ? (sideIndicators[0].value) : (realPibData ? formatNumber(realPibData[realPibData.length - 1].value, 0) + ' MM' : '...')}
                                         </div>
-                                        <div style={{
-                                            fontSize: '0.95rem',
-                                            fontWeight: 700,
-                                            color: (selectedRegion ? sideIndicators[0].trend : (realPibData ? 'up' : 'neutral')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.4rem'
+                                        <div className="regional-pib-trend" style={{
+                                            color: (selectedRegion ? sideIndicators[0].trend : (realPibData ? 'up' : 'neutral')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
                                         }}>
                                             {selectedRegion ? sideIndicators[0].variation : (realPibData ? '+2.4%' : '')} YoY
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}> (Último dato)</span>
+                                            <span className="regional-pib-trend-note"> (Último dato)</span>
                                         </div>
                                     </div>
 
                                     {/* Selectores de Tiempo para el Gráfico */}
-                                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                    <div className="regional-range">
                                         {['1y', '2y', '5y', 'all'].map((range) => (
                                             <button
                                                 key={range}
                                                 onClick={() => setRegionalTimeRange(range)}
+                                                className="regional-range-button"
                                                 style={{
-                                                    padding: '0.25rem 0.5rem',
-                                                    fontSize: '0.65rem',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid var(--border)',
                                                     background: regionalTimeRange === range ? 'var(--accent)' : 'transparent',
-                                                    color: regionalTimeRange === range ? 'white' : 'var(--text-secondary)',
-                                                    cursor: 'pointer',
-                                                    fontWeight: 600,
-                                                    transition: 'all 0.2s'
+                                                    color: regionalTimeRange === range ? 'white' : 'var(--text-secondary)'
                                                 }}
                                             >
                                                 {range.toUpperCase()}
@@ -1035,7 +952,7 @@ function App() {
                                 </div>
 
                                 {/* Gráfico de Trayectoria */}
-                                <div style={{ marginTop: '1.2rem', height: '140px' }}>
+                                <div className="regional-pib-chart">
                                         <TrendChart
                                          data={(() => {
                                              const raw = selectedRegion
@@ -1054,20 +971,11 @@ function App() {
                             </div>
 
                             {/* Ficha 2: Población INE */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div style={{
-                                    background: 'var(--bg-app)',
-                                    padding: '1.2rem',
-                                    borderRadius: '16px',
-                                    border: '1px solid var(--border)',
-                                    gridColumn: 'span 2',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                }}>
+                            <div className="regional-pop-grid">
+                                <div className="regional-pop-total">
                                     <div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>Población Total (INE)</div>
-                                        <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>
+                                        <div className="regional-pop-label">Población Total (INE)</div>
+                                        <div className="regional-pop-value">
                                             {(() => {
                                                 const id = selectedRegion ? getRegionId(selectedRegion) : null;
                                                 const series = id ? regionalData[id]?.pob?.total : populationData?.total;
@@ -1075,18 +983,18 @@ function App() {
                                             })()}
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Fuente: INE Cine</div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--trend-up)' }}>Actualizado 2024</div>
+                                    <div className="regional-pop-meta">
+                                        <div className="regional-pop-source">Fuente: INE Cine</div>
+                                        <div className="regional-pop-updated">Actualizado 2024</div>
                                     </div>
                                 </div>
 
-                                <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></span>
+                                <div className="regional-pop-card">
+                                    <div className="regional-pop-card-label">
+                                        <span className="regional-pop-dot" style={{ background: '#3b82f6' }}></span>
                                         Hombres
                                     </div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.3rem' }}>
+                                    <div className="regional-pop-card-value">
                                         {(() => {
                                             const id = selectedRegion ? getRegionId(selectedRegion) : null;
                                             const series = id ? regionalData[id]?.pob?.hombres : populationData?.hombres;
@@ -1095,12 +1003,12 @@ function App() {
                                     </div>
                                 </div>
 
-                                <div style={{ background: 'var(--bg-app)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ec4899' }}></span>
+                                <div className="regional-pop-card">
+                                    <div className="regional-pop-card-label">
+                                        <span className="regional-pop-dot" style={{ background: '#ec4899' }}></span>
                                         Mujeres
                                     </div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '0.3rem' }}>
+                                    <div className="regional-pop-card-value">
                                         {(() => {
                                             const id = selectedRegion ? getRegionId(selectedRegion) : null;
                                             const series = id ? regionalData[id]?.pob?.mujeres : populationData?.mujeres;

@@ -45,6 +45,184 @@ h6 {
     margin: 0;
 }
 
+.hero-subtitle {
+    max-width: 720px;
+    margin: 0.2rem auto 0;
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.intro-section {
+    padding: 0.25rem 0 2rem;
+    text-align: center;
+}
+
+.intro-content {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.intro-title {
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.intro-text {
+    margin-top: 0.6rem;
+    color: var(--text-secondary);
+}
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1rem;
+    height: 550px;
+}
+
+.overview-pib {
+    background: var(--bg-card);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    grid-row: span 2;
+}
+
+.overview-pib-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.overview-pib-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.overview-pib-subtitle {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.overview-pib-body {
+    display: flex;
+    gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.overview-pib-chart {
+    flex: 0.95;
+    position: relative;
+}
+
+.overview-pib-table {
+    flex: 2.05;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+}
+
+.overview-pib-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.overview-pib-control {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.overview-pib-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.pib-table-header {
+    display: grid;
+    grid-template-columns: 1.9fr 1.15fr 0.9fr 1fr;
+    padding: 0 0.8rem 0.5rem 0.8rem;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.pib-table-rows {
+    display: grid;
+    grid-auto-rows: 1fr;
+    gap: 0.35rem;
+    overflow-y: auto;
+    padding-right: 4px;
+    flex: 1;
+    height: 100%;
+}
+
+.pib-table-row {
+    display: grid;
+    grid-template-columns: 1.9fr 1.15fr 0.9fr 1fr;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid transparent;
+    align-items: center;
+    transition: background 0.2s ease;
+    height: 100%;
+}
+
+.pib-col-name {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.pib-col-value,
+.pib-col-share,
+.pib-col-trend {
+    text-align: center;
+    border-left: 1px solid var(--border);
+    padding: 0 0.6rem;
+}
+
+.pib-col-value {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
+.pib-col-share {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.pib-table-row .pib-col-trend {
+    display: flex;
+    justify-content: center;
+    opacity: 0.8;
+}
+
+.overview-pib-footnote {
+    margin: 1rem 0 0 0;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 .reveal {
     opacity: 0;
     transform: translateY(8px);
@@ -97,6 +275,9 @@ p {
     background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-primary);
+    font-size: 0.65rem;
+    padding: 0.25rem 0.45rem;
+    border-radius: 6px;
 }
 
 .period-select option {
@@ -128,4 +309,413 @@ p {
     background: var(--text-primary);
     border: 1px solid var(--border);
     cursor: pointer;
+}
+
+.regional-card {
+    background: var(--bg-card);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+}
+
+.regional-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+
+.regional-title {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.regional-subtitle {
+    color: var(--text-secondary);
+    max-width: 650px;
+    margin: 0 auto;
+    font-size: 1rem;
+}
+
+.regional-layout {
+    display: flex;
+    gap: 3rem;
+    min-height: 550px;
+    flex-wrap: wrap;
+}
+
+.regional-map {
+    flex: 1.2;
+    min-width: 400px;
+    position: relative;
+}
+
+.regional-cards {
+    flex: 1;
+    min-width: 350px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.regional-highlight {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.regional-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.regional-pib-card {
+    background: var(--bg-app);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.regional-pib-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.regional-pib-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.regional-pib-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0.2rem 0;
+}
+
+.regional-pib-trend {
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.regional-pib-trend-note {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.regional-range {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.regional-range-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.regional-pib-chart {
+    margin-top: 1.2rem;
+    height: 140px;
+}
+
+.regional-pop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.regional-pop-total {
+    background: var(--bg-app);
+    padding: 1.2rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.regional-pop-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.2rem;
+}
+
+.regional-pop-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.regional-pop-meta {
+    text-align: right;
+}
+
+.regional-pop-source {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.regional-pop-updated {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--trend-up);
+}
+
+.regional-pop-card {
+    background: var(--bg-app);
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+}
+
+.regional-pop-card-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.regional-pop-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.regional-pop-card-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 0.3rem;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 0.85rem;
+    }
+
+    .hero-header {
+        min-height: 54vh;
+        padding: 1.2rem 0 0.6rem;
+        gap: 0.2rem;
+    }
+
+    .hero-title {
+        font-size: clamp(2.1rem, 8vw, 3.2rem);
+        letter-spacing: 0.12em;
+    }
+
+    .hero-subtitle {
+        font-size: 0.9rem;
+        max-width: 26rem;
+    }
+
+    .intro-section {
+        padding: 0.25rem 0 1.5rem;
+    }
+
+    .intro-content {
+        max-width: 28rem;
+    }
+
+    .intro-title {
+        font-size: 0.95rem;
+    }
+
+    .intro-text {
+        font-size: 0.85rem;
+        margin-top: 0.45rem;
+    }
+
+    .overview-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        gap: 0.85rem;
+        height: auto;
+    }
+
+    .overview-pib {
+        padding: 1rem;
+        border-radius: 10px;
+        grid-row: auto;
+    }
+
+    .overview-pib-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .overview-pib-title {
+        font-size: 0.95rem;
+    }
+
+    .overview-pib-subtitle {
+        font-size: 0.65rem;
+    }
+
+    .overview-pib-body {
+        flex-direction: column;
+        gap: 0.9rem;
+    }
+
+    .overview-pib-table {
+        overflow: visible;
+    }
+
+    .overview-pib-controls {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .pib-table-header {
+        grid-template-columns: 1.6fr 1fr 0.8fr;
+        padding: 0 0.6rem 0.4rem 0.6rem;
+        font-size: 0.6rem;
+    }
+
+    .pib-table-row {
+        grid-template-columns: 1.6fr 1fr 0.8fr;
+        padding: 0.5rem 0.6rem;
+    }
+
+    .pib-table-header .pib-col-trend,
+    .pib-table-row .pib-col-trend {
+        display: none;
+    }
+
+    .pib-col-value,
+    .pib-col-share {
+        border-left: none;
+        text-align: right;
+        padding: 0 0.2rem;
+    }
+
+    .pib-col-name {
+        font-size: 0.7rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .overview-pib-footnote {
+        margin-top: 0.6rem;
+    }
+
+    .regional-card {
+        padding: 1.2rem;
+        border-radius: 14px;
+    }
+
+    .regional-header {
+        margin-bottom: 1.4rem;
+    }
+
+    .regional-title {
+        font-size: 1.2rem;
+    }
+
+    .regional-subtitle {
+        font-size: 0.85rem;
+    }
+
+    .regional-layout {
+        flex-direction: column;
+        gap: 1.4rem;
+        min-height: auto;
+    }
+
+    .regional-map {
+        min-width: 0;
+        width: 100%;
+        min-height: 260px;
+    }
+
+    .regional-cards {
+        min-width: 0;
+        gap: 1rem;
+    }
+
+    .regional-highlight {
+        font-size: 1.05rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .regional-pib-card {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+
+    .regional-pib-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.45rem;
+    }
+
+    .regional-pib-value {
+        font-size: 1.6rem;
+    }
+
+    .regional-pib-trend {
+        font-size: 0.8rem;
+    }
+
+    .regional-range-button {
+        padding: 0.3rem 0.55rem;
+        font-size: 0.6rem;
+        min-height: 32px;
+    }
+
+    .regional-pib-chart {
+        margin-top: 0.85rem;
+        height: 110px;
+    }
+
+    .regional-pop-grid {
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+    }
+
+    .regional-pop-total {
+        grid-column: span 1;
+        padding: 0.9rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .regional-pop-value {
+        font-size: 1.2rem;
+    }
+
+    .regional-pop-meta {
+        text-align: left;
+    }
+
+    .regional-pop-card {
+        padding: 0.8rem;
+    }
+
+    .regional-pop-card-value {
+        font-size: 0.95rem;
+    }
 }

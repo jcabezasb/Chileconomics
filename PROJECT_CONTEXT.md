@@ -29,6 +29,18 @@ Estamos en una fase de **Rediseño Estructural**:
 - **Tooltip PIB**: Título "Composicion" y valores con 1 decimal.
 - **Tabla componentes**: Layout en grilla, columnas alineadas y separadores verticales; encabezados abreviados (VALOR, %PIB, TREND, VAR.%).
 
+## 📱 En curso: Vista móvil compacta (branch `mobile-compact-ui`)
+- **Estado**: Cambios locales listos en `src/App.jsx` y `src/styles/global.css` para un layout móvil compacto.
+- **Qué incluye**:
+  - Reflow del overview a 1 columna en <=768px.
+  - Tabla PIB comprimida (menos columnas) y tipografía más pequeña.
+  - Sección regional en columna, mapa full-width y cards con menor altura.
+  - Ajustes de hero/intro y densidad general.
+- **Próximos pasos**:
+  1) Probar en móvil real usando `npm run dev -- --host`.
+  2) Ajustar tamaños si hace falta (compacto vs. respirado).
+  3) Commit y push del branch; luego merge a `main` cuando se apruebe.
+
 ## 🚀 Hoja de Ruta (Futuro)
 1.  **Conexión Real de Componentes**: Mapear series específicas del BCCH para Consumo, Inversión y Gasto para eliminar los cálculos por pesos fijos.
 2.  **Mercado Laboral**: Implementar una sección de empleo con datos del INE (Desempleo regional).
