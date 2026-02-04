@@ -101,7 +101,7 @@ def fetch_series(siete, series_id, desde=None):
     kwargs = {}
     if desde:
         kwargs["desde"] = desde
-    
+
     df = siete.cuadro(series=[series_id], nombres=["value"], **kwargs)
     
     if df is None or df.empty:
@@ -123,8 +123,16 @@ def fetch_series(siete, series_id, desde=None):
             value = None
         
         records.append({"date": date, "value": value})
-    
-    return records
+
+    records = [record for record in records if record.get("date")]
+    start_index = next(
+        (i for i, record in enumerate(records) if record.get("value") is not None),
+        None,
+    )
+    if start_index is None:
+        return []
+
+    return records[start_index:]
 
 def sync_data():
     """Descarga todas las series configuradas y las guarda en un JSON."""
@@ -147,9 +155,15 @@ def sync_data():
     for key, config in SERIES_CONFIG.items():
         print(f"Obteniendo serie: {config['name']} ({config['id']})")
         try:
-            records = fetch_series(siete, config["id"], config.get("desde"))
+            records = fetch_series(siete, config["id"])
             all_data["series"][key] = records
-            print(f"   OK: {len(records)} registros. Ultimo: {records[-1]['date'] if records else 'N/A'} = {records[-1]['value'] if records else 'N/A'}")
+            start_date = records[0]["date"] if records else "N/A"
+            start_value = records[0]["value"] if records else "N/A"
+            end_date = records[-1]["date"] if records else "N/A"
+            end_value = records[-1]["value"] if records else "N/A"
+            print(
+                f"   OK: {len(records)} registros. Inicio: {start_date} = {start_value}. Ultimo: {end_date} = {end_value}"
+            )
         except Exception as e:
             print(f"   ERROR: {str(e)}")
 

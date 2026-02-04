@@ -21,8 +21,8 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
     // Custom projection config for Chile's long shape
     // Centers and zooms to fit Chile reasonably well
     const projectionConfig = {
-        scale: 567, // Reduced another 10%
-        center: [-70, -38] // Centered vertically
+        scale: 640,
+        center: [-70, -38]
     };
 
     // Animation keyframes
@@ -48,59 +48,77 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
         .domain([0, 10])
         .range(["#fee2e2", "#ef4444"]);
 
-    return (
-        <div className="macro-map-container" style={{ position: 'relative', width: "100%", height: "100%", overflow: "hidden" }}>
-            <style>{pulseKeyframes}</style>
-            <ComposableMap
-                projection="geoMercator"
-                projectionConfig={projectionConfig}
-                width={200} // Compact width
-                height={500} // Proportional height
-                style={{ width: "100%", height: "100%", maxHeight: "400px" }}
-            >
-                <ZoomableGroup center={[-70, -38]} zoom={1} minZoom={1} maxZoom={4}>
-                    <Geographies geography={CHILE_TOPO_URL}>
-                        {({ geographies }) =>
-                            geographies.map((geo) => {
-                                const regionName = geo.properties.Region || geo.properties.name;
-                                const isSelected = selectedRegion === regionName;
-                                return (
-                                    <Geography
-                                        key={geo.rsmKey}
-                                        geography={geo}
-                                        onClick={() => {
-                                            if (onRegionSelect) onRegionSelect(regionName);
-                                        }}
-                                        style={{
-                                            default: {
-                                                fill: isSelected ? "var(--map-fill-selected)" : "var(--map-fill)",
-                                                stroke: "var(--map-stroke)",
-                                                strokeWidth: 0.5,
-                                                outline: "none",
-                                                transition: "all 0.3s ease",
-                                                animation: isPulseActive ? `neonPulse 1.5s ease-in-out` : 'none'
-                                            },
-                                            hover: {
-                                                fill: isSelected ? "var(--map-fill-selected)" : "var(--map-fill-hover)",
-                                                stroke: "var(--map-stroke)",
-                                                strokeWidth: 0.5,
-                                                outline: "none",
-                                                cursor: "pointer",
-                                                filter: "drop-shadow(0 0 5px var(--map-fill-hover))" // Neon glow effect
-                                            },
-                                            pressed: {
-                                                fill: "var(--map-fill-selected)",
-                                                outline: "none"
-                                            }
-                                        }}
-                                    />
-                                );
-                            })
-                        }
-                    </Geographies>
-                </ZoomableGroup>
-            </ComposableMap>
+    const mapDimensions = {
+        width: 240,
+        height: 620
+    };
 
+    return (
+        <div className="macro-map-container">
+            <style>{pulseKeyframes}</style>
+            <div
+                className="macro-map-frame"
+                style={{ width: `${mapDimensions.width}px`, height: `${mapDimensions.height}px` }}
+            >
+                <ComposableMap
+                    projection="geoMercator"
+                    projectionConfig={projectionConfig}
+                    width={mapDimensions.width} // Compact width
+                    height={mapDimensions.height} // Proportional height
+                    style={{ width: "100%", height: "100%" }}
+                >
+                    <ZoomableGroup
+                        center={[-70, -38]}
+                        zoom={1}
+                        minZoom={1}
+                        maxZoom={4}
+                        translateExtent={[
+                            [0, 0],
+                            [mapDimensions.width, mapDimensions.height]
+                        ]}
+                    >
+                        <Geographies geography={CHILE_TOPO_URL}>
+                            {({ geographies }) =>
+                                geographies.map((geo) => {
+                                    const regionName = geo.properties.Region || geo.properties.name;
+                                    const isSelected = selectedRegion === regionName;
+                                    return (
+                                        <Geography
+                                            key={geo.rsmKey}
+                                            geography={geo}
+                                            onClick={() => {
+                                                if (onRegionSelect) onRegionSelect(regionName);
+                                            }}
+                                            style={{
+                                                default: {
+                                                fill: isSelected ? "var(--map-invert-selected, var(--map-fill-selected))" : "var(--map-invert-fill, var(--map-fill))",
+                                                stroke: "var(--map-invert-stroke, var(--map-stroke))",
+                                                strokeWidth: 0.8,
+                                                    outline: "none",
+                                                    transition: "all 0.3s ease",
+                                                    animation: isPulseActive ? `neonPulse 1.5s ease-in-out` : 'none'
+                                                },
+                                                hover: {
+                                                fill: isSelected ? "var(--map-invert-selected, var(--map-fill-selected))" : "var(--map-invert-hover, var(--map-fill-hover))",
+                                                stroke: "var(--map-invert-stroke, var(--map-stroke))",
+                                                strokeWidth: 0.8,
+                                                    outline: "none",
+                                                    cursor: "pointer",
+                                                    filter: "drop-shadow(0 0 5px var(--map-fill-hover))" // Neon glow effect
+                                                },
+                                                pressed: {
+                                                fill: "var(--map-invert-selected, var(--map-fill-selected))",
+                                                    outline: "none"
+                                                }
+                                            }}
+                                        />
+                                    );
+                                })
+                            }
+                        </Geographies>
+                    </ZoomableGroup>
+                </ComposableMap>
+            </div>
         </div>
     );
 };
