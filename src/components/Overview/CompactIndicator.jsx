@@ -2,14 +2,24 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // Mini sparkline SVG component
+const getTrendFromHistory = (history, fallback = 'up') => {
+    if (!history || history.length < 2) return fallback;
+    const first = history[0];
+    const last = history[history.length - 1];
+    if (first === null || last === null) return fallback;
+    if (Number.isNaN(first) || Number.isNaN(last)) return fallback;
+    return last >= first ? 'up' : 'down';
+};
+
 const MiniSparkline = ({ history, trend }) => {
-    const color = trend === 'up' ? 'var(--trend-up)' : trend === 'down' ? 'var(--trend-down)' : 'var(--text-secondary)';
+    const trendFromHistory = getTrendFromHistory(history, trend);
+    const color = trendFromHistory === 'up' ? 'var(--trend-up)' : trendFromHistory === 'down' ? 'var(--trend-down)' : 'var(--text-secondary)';
 
     // Si no hay history o es corta, usar un path estático como fallback
     if (!history || history.length < 2) {
-        const points = trend === 'up'
+        const points = trendFromHistory === 'up'
             ? "M0,20 L10,18 L20,22 L30,15 L40,18 L50,12 L60,14 L70,8 L80,10 L90,5 L100,3"
-            : trend === 'down'
+            : trendFromHistory === 'down'
                 ? "M0,5 L10,8 L20,6 L30,12 L40,10 L50,15 L60,13 L70,18 L80,16 L90,20 L100,22"
                 : "M0,12 L10,10 L20,14 L30,12 L40,13 L50,11 L60,13 L70,12 L80,14 L90,11 L100,13";
         return (

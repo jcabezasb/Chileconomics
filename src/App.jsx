@@ -50,6 +50,15 @@ function App() {
             .filter(entry => !Number.isNaN(entry.value))
     );
 
+    const getTrendFromHistory = (history, fallback = 'up') => {
+        if (!history || history.length < 2) return fallback;
+        const first = history[0];
+        const last = history[history.length - 1];
+        if (first === null || last === null) return fallback;
+        if (Number.isNaN(first) || Number.isNaN(last)) return fallback;
+        return last >= first ? 'up' : 'down';
+    };
+
     const getQuarterFromDate = (dateStr) => {
         if (!dateStr || dateStr.length < 7) return null;
         const month = Number(dateStr.slice(5, 7));
@@ -87,7 +96,8 @@ function App() {
         const start = Math.max(0, index - historyPoints + 1);
         const history = valid.slice(start, index + 1).map(entry => entry.value);
         const prior = index - 1 >= 0 ? valid[index - 1] : null;
-        const trend = prior ? (latest.value >= prior.value ? 'up' : 'down') : 'up';
+        const fallbackTrend = prior ? (latest.value >= prior.value ? 'up' : 'down') : 'up';
+        const trend = getTrendFromHistory(history, fallbackTrend);
         return {
             value: latest.value,
             variation,
@@ -407,6 +417,31 @@ function App() {
         }).format(value);
     };
 
+    const formatShortDate = (date) => {
+        if (!date) return '';
+        const parts = date.split('-');
+        if (parts.length < 2) return '';
+        const year = parts[0];
+        const month = parts[1];
+        const day = parts[2] || '01';
+        if (!year || !month) return '';
+        const yy = year.slice(-2);
+        const mm = String(month).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        return `${dd}/${mm}/${yy}`;
+    };
+
+    const formatQuarterLabel = (date) => {
+        if (!date) return '';
+        const parts = date.split('-');
+        if (parts.length < 2) return '';
+        const year = parts[0];
+        const month = Number(parts[1]);
+        if (!year || !month) return '';
+        const quarter = Math.ceil(month / 3);
+        return `T${quarter}-${year}`;
+    };
+
     const buildValueLabel = (value, unit, decimals) => {
         const formatted = formatNumber(value, decimals);
         return unit ? `${formatted} ${unit}` : formatted;
@@ -568,7 +603,8 @@ function App() {
             }
 
             const variationLabel = variationValue === null ? '' : buildPercentLabel(variationValue, 1);
-            const trend = variationValue === null ? spec.trend : variationValue >= 0 ? 'up' : 'down';
+            const baseTrend = variationValue === null ? spec.trend : variationValue >= 0 ? 'up' : 'down';
+            const trend = getTrendFromHistory(history, baseTrend);
 
             return {
                 id: spec.id,
@@ -721,6 +757,16 @@ function App() {
         .filter(ind => chartOrder.includes(ind.id))
         .sort((a, b) => chartOrder.indexOf(a.id) - chartOrder.indexOf(b.id));
 
+    const regionalPibRaw = selectedRegion
+        ? (regionalData[getRegionId(selectedRegion)]?.pib?.history || [])
+        : (realPibData || []);
+    const regionalPibLimitMap = { '1y': 4, '2y': 8, '5y': 20, 'all': null };
+    const regionalPibLimit = regionalPibLimitMap[regionalTimeRange];
+    const regionalPibChartData = regionalPibLimit ? regionalPibRaw.slice(-regionalPibLimit) : regionalPibRaw;
+    const regionalPibStartLabel = formatQuarterLabel(regionalPibChartData[0]?.date) || formatShortDate(regionalPibChartData[0]?.date);
+    const regionalPibEndLabel = formatQuarterLabel(regionalPibChartData[regionalPibChartData.length - 1]?.date)
+        || formatShortDate(regionalPibChartData[regionalPibChartData.length - 1]?.date);
+
     return (
         <div className="container">
             <header className="hero-header" style={{ position: 'relative' }}>
@@ -857,7 +903,7 @@ function App() {
                                                     <path
                                                         d={buildSparklinePaths(ind.history || [], 40, 16).linePath}
                                                         fill="none"
-                                                        stroke={ind.trend === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'}
+                                                        stroke={getTrendFromHistory(ind.history || [], ind.trend) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'}
                                                         strokeWidth="2"
                                                     />
                                                 </svg>
@@ -953,20 +999,24 @@ function App() {
 
                                 {/* Gráfico de Trayectoria */}
                                 <div className="regional-pib-chart">
-                                        <TrendChart
-                                         data={(() => {
-                                             const raw = selectedRegion
-                                                 ? (regionalData[getRegionId(selectedRegion)]?.pib?.history || [])
-                                                 : (realPibData || []);
-
-                                            const limitMap = { '1y': 4, '2y': 8, '5y': 20, 'all': null };
-                                            const limit = limitMap[regionalTimeRange];
-                                            return limit ? raw.slice(-limit) : raw;
-                                        })()}
+                                    <TrendChart
+                                        data={regionalPibChartData}
                                         color="#f97316"
                                         height={120}
                                         valueFormatter={(val) => formatNumber(val, 0) + ' MM'}
                                     />
+                                    {(regionalPibStartLabel || regionalPibEndLabel) ? (
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            marginTop: '0.25rem',
+                                            fontSize: '0.65rem',
+                                            color: 'var(--text-secondary)'
+                                        }}>
+                                            <span>{regionalPibStartLabel}</span>
+                                            <span>{regionalPibEndLabel}</span>
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
 

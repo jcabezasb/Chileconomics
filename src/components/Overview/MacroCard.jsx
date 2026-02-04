@@ -6,8 +6,8 @@ import { getChartData } from '../../services/api';
 const MacroCard = ({ indicator }) => {
     const [chartData, setChartData] = useState([]);
     const defaultRangeByIndicator = {
-        ipc: '3y',
-        desempleo: '3y',
+        ipc: '1y',
+        desempleo: '1y',
         dolar: '1y',
         cobre: '1y'
     };
@@ -68,6 +68,20 @@ const MacroCard = ({ indicator }) => {
         return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(value);
     };
 
+    const formatStartDate = (date) => {
+        if (!date) return '';
+        const parts = date.split('-');
+        if (parts.length < 2) return '';
+        const year = parts[0];
+        const month = parts[1];
+        const day = parts[2] || '01';
+        if (!year || !month) return '';
+        const yy = year.slice(-2);
+        const dd = String(day).padStart(2, '0');
+        const mm = String(month).padStart(2, '0');
+        return `${dd}/${mm}/${yy}`;
+    };
+
     useEffect(() => {
         setTimeRange(defaultRangeByIndicator[indicator.id] || '1y');
     }, [indicator.id]);
@@ -94,6 +108,7 @@ const MacroCard = ({ indicator }) => {
 
     const rangePoints = getRangePoints();
     const filteredChartData = rangePoints ? chartData.slice(-rangePoints) : chartData;
+    const chartStartDate = formatStartDate(filteredChartData[0]?.date);
 
     return (
             <div style={{
@@ -116,24 +131,30 @@ const MacroCard = ({ indicator }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
                 <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {rangeOptions.map((option) => (
-                        <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => setTimeRange(option.id)}
-                            style={{
-                                fontSize: '0.6rem',
-                                padding: '0.2rem 0.4rem',
-                                borderRadius: '999px',
-                                border: '1px solid var(--border)',
-                                background: timeRange === option.id ? 'var(--bg-app)' : 'transparent',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {option.label}
-                        </button>
-                    ))}
+                    {rangeOptions.map((option) => {
+                        const isActive = timeRange === option.id;
+                        return (
+                            <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => setTimeRange(option.id)}
+                                aria-pressed={isActive}
+                                style={{
+                                    fontSize: '0.6rem',
+                                    padding: '0.2rem 0.4rem',
+                                    borderRadius: '999px',
+                                    border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                                    background: isActive ? 'rgba(14, 165, 233, 0.18)' : 'transparent',
+                                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    fontWeight: isActive ? 700 : 500,
+                                    boxShadow: isActive ? '0 0 0 1px rgba(14, 165, 233, 0.18)' : 'none'
+                                }}
+                            >
+                                {option.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -157,6 +178,17 @@ const MacroCard = ({ indicator }) => {
                 averageFormatter={formatAverage}
                 valueFormatter={formatTooltipValue}
             />
+            {chartStartDate ? (
+                <span style={{
+                    position: 'absolute',
+                    left: '0.85rem',
+                    bottom: '0.7rem',
+                    fontSize: '0.65rem',
+                    color: 'var(--text-secondary)'
+                }}>
+                    {chartStartDate}
+                </span>
+            ) : null}
             {indicator.period ? (
                 <span style={{
                     position: 'absolute',

@@ -30,6 +30,7 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
     const averageLabel = averageFormatter
         ? averageFormatter(average)
         : new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(average);
+    const animateChart = true;
     const renderTooltip = ({ active, payload, label }) => {
         if (!active || !payload || !payload.length) return null;
         const point = payload[0]?.payload || {};
@@ -52,7 +53,10 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
     };
 
     return (
-        <div style={{ width: '100%', height: height, marginTop: '1rem', display: 'flex', alignItems: 'stretch' }}>
+        <div
+            className="trend-chart"
+            style={{ width: '100%', height: height, marginTop: '1rem', display: 'flex', alignItems: 'stretch' }}
+        >
             <div style={{ flex: 1, minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data}>
@@ -87,6 +91,9 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                             activeDot={false}
                             connectNulls
                             filter={`url(#${glowId})`}
+                            isAnimationActive={animateChart}
+                            animationDuration={220}
+                            animationEasing="ease-out"
                         />
                     </AreaChart>
                 </ResponsiveContainer>
