@@ -157,6 +157,13 @@ function App() {
         return years.sort((a, b) => Number(b) - Number(a));
     }, [availablePeriods]);
 
+    useEffect(() => {
+        if (!periodYears.length) return;
+        if (!selectedYear || !periodYears.includes(selectedYear)) {
+            setSelectedYear(periodYears[0]);
+        }
+    }, [periodYears, selectedYear]);
+
     const periodQuarters = useMemo(() => {
         if (!selectedYear) return [];
         const quarters = Array.from(
@@ -911,23 +918,8 @@ function App() {
         <div className={`container ${hasScrolled ? 'has-scrolled' : 'intro-only'}`}>
             <header className="hero-header" style={{ position: 'relative' }}>
                 <button
+                    className="theme-toggle"
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    style={{
-                        position: 'absolute',
-                        top: '0.5rem',
-                        right: 0,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.4rem 0.7rem',
-                        borderRadius: '999px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg-card)',
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.7rem',
-                        cursor: 'pointer',
-                        boxShadow: 'var(--shadow-sm)'
-                    }}
                     aria-label="Alternar modo oscuro"
                 >
                     <span style={{ fontWeight: 600 }}>{theme === 'dark' ? 'Modo oscuro' : 'Modo claro'}</span>
@@ -958,7 +950,7 @@ function App() {
                 </button>
                 <h1 className="hero-title">CHILECONOMICS</h1>
                 <p className="hero-subtitle">
-                    Economia y datos.
+                    ECONOMÍA. DATOS.
                 </p>
             </header>
 
@@ -977,7 +969,7 @@ function App() {
                                 <button
                                     className="overview-pib-tooltip"
                                     type="button"
-                                    aria-label="Explicación de la composición del PIB"
+                                    aria-label="Explicación del PIB corriente"
                                     aria-expanded={showPibInfo}
                                     onClick={() => setShowPibInfo((prev) => !prev)}
                                 >
@@ -985,7 +977,8 @@ function App() {
                                 </button>
                                 {showPibInfo ? (
                                     <div className="overview-pib-info-box">
-                                        Distribución de la demanda final y su aporte al PIB corriente.
+                                        El PIB mide el valor total de los bienes y servicios finales producidos en el país.
+                                        "Corriente" significa que está expresado a precios del periodo, sin ajuste por inflación.
                                     </div>
                                 ) : null}
                             </div>

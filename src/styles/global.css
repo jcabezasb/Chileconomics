@@ -27,13 +27,14 @@ h6 {
 }
 
 .hero-header {
-    height: 70vh;
+    height: 100vh;
+    min-height: 100vh;
     padding: 1.75rem 0 1rem;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.6rem;
     justify-content: center;
     transition: height 0.55s ease, padding 0.55s ease;
 }
@@ -41,13 +42,6 @@ h6 {
 .intro-only .hero-header {
     height: 100vh;
     padding: 2.5rem 0;
-}
-
-.intro-only .hero-header button,
-.intro-only .hero-subtitle {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(8px);
 }
 
 .hero-header button,
@@ -65,9 +59,33 @@ h6 {
 
 .hero-subtitle {
     max-width: 720px;
-    margin: 0.2rem auto 0;
-    font-size: 1rem;
+    margin: 2.1rem auto 0;
+    font-size: 1.35rem;
+    letter-spacing: 0.14em;
+    font-weight: 600;
     color: var(--text-secondary);
+}
+
+.overview-section {
+    padding-top: 1.2rem;
+}
+
+.theme-toggle {
+    position: fixed;
+    top: 1.1rem;
+    right: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    z-index: 20;
 }
 
 .intro-section {
@@ -123,14 +141,14 @@ h6 {
 }
 
 .overview-pib-tooltip {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text-secondary);
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -145,12 +163,12 @@ h6 {
     position: absolute;
     right: 0;
     top: calc(100% + 0.6rem);
-    width: 240px;
+    width: 280px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 0.6rem 0.7rem;
-    font-size: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    font-size: 0.78rem;
     color: var(--text-secondary);
     box-shadow: var(--shadow-md);
     z-index: 5;
@@ -201,7 +219,7 @@ h6 {
 }
 
 .overview-pib-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
     font-weight: 600;
 }
@@ -358,9 +376,9 @@ p {
     background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text-primary);
-    font-size: 0.65rem;
-    padding: 0.25rem 0.45rem;
-    border-radius: 6px;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.55rem;
+    border-radius: 7px;
     outline: none;
     box-shadow: 0 0 0 1px var(--border) inset;
     background-clip: padding-box;
@@ -455,6 +473,13 @@ p {
     box-sizing: border-box;
     display: flex;
     align-items: stretch;
+}
+
+.macro-map-frame {
+    width: 100%;
+    max-width: 260px;
+    height: 620px;
+    margin: 0 auto;
 }
 
 .macro-map-frame {
@@ -711,9 +736,10 @@ p {
     }
 
     .hero-header {
-        min-height: 54vh;
+        height: 100vh;
+        min-height: 100vh;
         padding: 1.2rem 0 0.6rem;
-        gap: 0.2rem;
+        gap: 0.45rem;
     }
 
     .hero-title {
@@ -722,8 +748,20 @@ p {
     }
 
     .hero-subtitle {
-        font-size: 0.9rem;
+        font-size: 1.1rem;
         max-width: 26rem;
+        margin-top: 1.5rem;
+    }
+
+    .overview-section {
+        padding-top: 0.9rem;
+    }
+
+    .theme-toggle {
+        top: 0.85rem;
+        right: 0.85rem;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.65rem;
     }
 
     .intro-section {
@@ -761,6 +799,14 @@ p {
         align-items: flex-start;
         gap: 0.35rem;
         margin-bottom: 0.85rem;
+        position: relative;
+        padding-right: 2.4rem;
+    }
+
+    .overview-pib-info {
+        position: absolute;
+        top: 0;
+        right: 0;
     }
 
     .overview-pib-title {
@@ -841,16 +887,24 @@ p {
         flex-direction: column;
         gap: 1.4rem;
         min-height: auto;
+        align-items: stretch;
     }
 
     .regional-map {
         min-width: 0;
         width: 100%;
         min-height: 260px;
+        flex: 1 1 auto;
+    }
+
+    .macro-map-frame {
+        max-width: 100%;
+        height: 360px;
     }
 
     .regional-cards {
         min-width: 0;
+        width: 100%;
         gap: 1rem;
     }
 

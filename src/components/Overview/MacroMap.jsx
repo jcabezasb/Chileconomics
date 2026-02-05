@@ -56,10 +56,7 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
     return (
         <div className="macro-map-container">
             <style>{pulseKeyframes}</style>
-            <div
-                className="macro-map-frame"
-                style={{ width: `${mapDimensions.width}px`, height: `${mapDimensions.height}px` }}
-            >
+            <div className="macro-map-frame">
                 <ComposableMap
                     projection="geoMercator"
                     projectionConfig={projectionConfig}
