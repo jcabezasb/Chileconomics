@@ -167,50 +167,54 @@ export const getKeyIndicators = async () => {
             : null;
 
         if (ipcLatest && dolarLatest && cobreLatest && desempleoLatest) {
-            return [
-                {
-                    id: 'ipc',
-                    title: 'IPC (12 meses)',
-                    value: `${formatNumber(ipcLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
-                    variation: ipcDelta === null
-                        ? ''
-                        : `${ipcDelta >= 0 ? '+' : ''}${formatNumber(ipcDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
-                    trend: ipcDelta === null ? 'neutral' : (ipcDelta >= 0 ? 'up' : 'down'),
-                    period: formatMonthLabel(ipcLatest.date),
-                    description: 'Inflacion anual'
-                },
-                {
-                    id: 'dolar',
-                    title: 'Dolar Obs.',
-                    value: `$${formatNumber(dolarLatest.value, { maximumFractionDigits: 0 })}`,
-                    variation: dolarDelta === null
-                        ? ''
-                        : `${dolarDelta >= 0 ? '+' : ''}$${formatNumber(Math.abs(dolarDelta), { maximumFractionDigits: 0 })}`,
-                    trend: dolarDelta === null ? 'neutral' : (dolarDelta >= 0 ? 'up' : 'down'),
-                    period: formatDayLabel(dolarLatest.date) || 'Hoy',
-                    description: 'Tipo de cambio USD/CLP'
-                },
-                {
-                    id: 'cobre',
-                    title: 'Cobre',
-                    value: `$${formatNumber(cobreLatest.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                    variation: cobreDelta === null
-                        ? ''
-                        : `${cobreDelta >= 0 ? '+' : ''}${formatNumber(cobreDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
-                    trend: cobreDelta === null ? 'neutral' : (cobreDelta >= 0 ? 'up' : 'down'),
-                    period: formatDayLabel(cobreLatest.date) || 'Hoy',
-                    description: 'USD/Libra Bolsa Metales'
-                },
-                {
-                    id: 'desempleo',
-                    title: 'Desempleo',
-                    value: `${formatNumber(desempleoLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
-                    variation: desempleoDelta === null
-                        ? ''
-                        : `${desempleoDelta >= 0 ? '+' : ''}${formatNumber(desempleoDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp`,
-                    trend: desempleoDelta === null ? 'neutral' : (desempleoDelta >= 0 ? 'up' : 'down'),
-                    period: formatMonthLabel(desempleoLatest.date),
-                    description: 'Tasa de desocupacion nacional'
+                return [
+                    {
+                        id: 'ipc',
+                        title: 'IPC',
+                        subtitle: 'Var. % en 12 meses',
+                        value: `${formatNumber(ipcLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                        variation: ipcDelta === null
+                            ? ''
+                            : `${ipcDelta >= 0 ? '+' : ''}${formatNumber(ipcDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                        trend: ipcDelta === null ? 'neutral' : (ipcDelta >= 0 ? 'up' : 'down'),
+                        period: formatMonthLabel(ipcLatest.date),
+                        description: 'Inflacion anual'
+                    },
+                    {
+                        id: 'dolar',
+                        title: 'Tipo de cambio',
+                        subtitle: 'CLP/USD',
+                        value: `$${formatNumber(dolarLatest.value, { maximumFractionDigits: 0 })}`,
+                        variation: dolarDelta === null
+                            ? ''
+                            : `${dolarDelta >= 0 ? '+' : ''}$${formatNumber(Math.abs(dolarDelta), { maximumFractionDigits: 0 })}`,
+                        trend: dolarDelta === null ? 'neutral' : (dolarDelta >= 0 ? 'up' : 'down'),
+                        period: formatDayLabel(dolarLatest.date) || 'Hoy',
+                        description: 'Tipo de cambio USD/CLP'
+                    },
+                    {
+                        id: 'cobre',
+                        title: 'Cobre',
+                        subtitle: 'USD por libra',
+                        value: `$${formatNumber(cobreLatest.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        variation: cobreDelta === null
+                            ? ''
+                            : `${cobreDelta >= 0 ? '+' : ''}${formatNumber(cobreDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                        trend: cobreDelta === null ? 'neutral' : (cobreDelta >= 0 ? 'up' : 'down'),
+                        period: formatDayLabel(cobreLatest.date) || 'Hoy',
+                        description: 'USD/Libra Bolsa Metales'
+                    },
+                    {
+                        id: 'desempleo',
+                        title: 'Desempleo',
+                        subtitle: '% de FT',
+                        value: `${formatNumber(desempleoLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+                        variation: desempleoDelta === null
+                            ? ''
+                            : `${desempleoDelta >= 0 ? '+' : ''}${formatNumber(desempleoDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp`,
+                        trend: desempleoDelta === null ? 'neutral' : (desempleoDelta >= 0 ? 'up' : 'down'),
+                        period: formatMonthLabel(desempleoLatest.date),
+                        description: 'Tasa de desocupacion nacional'
                 }
             ];
         }

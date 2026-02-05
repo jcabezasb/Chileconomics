@@ -129,7 +129,14 @@ const MacroCard = ({ indicator }) => {
             }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
+                <div>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
+                    {indicator.subtitle ? (
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                            ({indicator.subtitle})
+                        </div>
+                    ) : null}
+                </div>
                 <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {rangeOptions.map((option) => {
                         const isActive = timeRange === option.id;
@@ -160,13 +167,21 @@ const MacroCard = ({ indicator }) => {
 
             {/* Main Value */}
             <div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '1.7rem', fontWeight: 700, color: 'var(--text-primary)' }}>{indicator.value}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: "flex-start", alignItems: "center", marginTop: "0.1rem" }}>
-                    <span style={{ fontSize: '0.75rem', color: indicator.trend === 'up' ? 'var(--trend-up)' : indicator.trend === 'down' ? 'var(--trend-down)' : 'var(--text-secondary)' }}>
-                        {indicator.variation}
-                    </span>
+                    {indicator.variation ? (
+                        <span style={{
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            color: indicator.trend === 'up'
+                                ? 'var(--trend-up)'
+                                : indicator.trend === 'down'
+                                    ? 'var(--trend-down)'
+                                    : 'var(--text-secondary)'
+                        }}>
+                            ({indicator.variation})
+                        </span>
+                    ) : null}
                 </div>
             </div>
 

@@ -43,6 +43,7 @@ function App() {
     const [selectedDate, setSelectedDate] = useState(null);
     const [regionalTimeRange, setRegionalTimeRange] = useState('1a');
     const [hasScrolled, setHasScrolled] = useState(false);
+    const [showPibInfo, setShowPibInfo] = useState(false);
 
     const normalizeSeries = (series) => (
         (series || [])
@@ -58,6 +59,14 @@ function App() {
         if (first === null || last === null) return fallback;
         if (Number.isNaN(first) || Number.isNaN(last)) return fallback;
         return last >= first ? 'up' : 'down';
+    };
+
+    const getSparklineTrend = (history) => {
+        if (!history || history.length < 2) return 'neutral';
+        const valid = history
+            .filter((value) => value !== null && value !== undefined && !Number.isNaN(value));
+        if (valid.length < 2) return 'neutral';
+        return valid[valid.length - 1] >= valid[0] ? 'up' : 'down';
     };
 
     const getQuarterFromDate = (dateStr) => {
@@ -949,28 +958,13 @@ function App() {
                 </button>
                 <h1 className="hero-title">CHILECONOMICS</h1>
                 <p className="hero-subtitle">
-                    Dashboard de indicadores macroeconomicos de Chile con foco en lectura rapida, contexto regional y comparaciones historicas.
+                    Economia y datos.
                 </p>
             </header>
 
             <section
-                className="intro-section reveal reveal-delay-1"
+                className="overview-section reveal reveal-delay-1"
                 ref={(el) => { revealElementsRef.current[0] = el; }}
-            >
-                <div className="intro-content">
-                    <p className="intro-title">
-                        Proyecto de visualizacion economica para explorar el pulso del pais en un solo vistazo.
-                    </p>
-                    <p className="intro-text">
-                        Aqui puedes revisar PIB, mercado laboral, precios, sector externo y dinamicas regionales. En una siguiente etapa,
-                        los datos vendran de fuentes oficiales para mantener el tablero actualizado.
-                    </p>
-                </div>
-            </section>
-
-            <section
-                className="overview-section reveal reveal-delay-2"
-                ref={(el) => { revealElementsRef.current[1] = el; }}
                 style={{ paddingBottom: '4rem' }}
             >
                 {/* Main Grid: 3 columns - [PIB Overview] | Charts (2x2) */}
@@ -978,8 +972,23 @@ function App() {
                     {/* Column 1: PIB Structure (UNIFIED BOX) */}
                     <div className="overview-pib">
                         <div className="overview-pib-header">
-                            <h3 className="overview-pib-title">Estructura del PIB Nacional</h3>
-                            <div className="overview-pib-subtitle">Muestra de oferta y demanda final</div>
+                            <h3 className="overview-pib-title">Composición del PIB corriente</h3>
+                            <div className="overview-pib-info">
+                                <button
+                                    className="overview-pib-tooltip"
+                                    type="button"
+                                    aria-label="Explicación de la composición del PIB"
+                                    aria-expanded={showPibInfo}
+                                    onClick={() => setShowPibInfo((prev) => !prev)}
+                                >
+                                    ?
+                                </button>
+                                {showPibInfo ? (
+                                    <div className="overview-pib-info-box">
+                                        Distribución de la demanda final y su aporte al PIB corriente.
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
 
                         <div className="overview-pib-body">
@@ -992,7 +1001,7 @@ function App() {
                             <div className="overview-pib-table">
                                 <div className="overview-pib-controls">
                                     <div className="overview-pib-control">
-                                        <span className="overview-pib-label">Ano</span>
+                                        <span className="overview-pib-label">Año</span>
                                         <select
                                             className="period-select"
                                             value={selectedYear}
@@ -1037,7 +1046,7 @@ function App() {
                                                     <path
                                                         d={buildSparklinePaths(ind.history || [], 40, 16).linePath}
                                                         fill="none"
-                                                        stroke={getTrendFromHistory(ind.history || [], ind.trend) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'}
+                                                        stroke={getSparklineTrend(ind.history || []) === 'up' ? 'var(--trend-up-neon)' : 'var(--trend-down-neon)'}
                                                         strokeWidth="2"
                                                     />
                                                 </svg>
@@ -1049,7 +1058,7 @@ function App() {
                         </div>
 
                         <p className="overview-pib-footnote">
-                            Datos Nacionales: Estimación basada en cuentas nacionales trimestrales.
+                            Datos: Banco Central de Chile. <em>PIB corriente, referencia 2018.</em>
                         </p>
                     </div>
 
@@ -1065,8 +1074,8 @@ function App() {
 
             {/* SECCIÓN RELEVADA: Geográfico / Regional */}
             <section
-                className="regional-section reveal reveal-delay-3"
-                ref={(el) => { revealElementsRef.current[2] = el; }}
+                className="regional-section reveal reveal-delay-2"
+                ref={(el) => { revealElementsRef.current[1] = el; }}
                 style={{ padding: '4rem 0' }}
             >
                 <div className="regional-card">

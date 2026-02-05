@@ -33,6 +33,8 @@
   --trend-down: #ef4444;
   /* Red 500 */
   --trend-neutral: #64748b;
+  --trend-up-neon: #22f4a0;
+  --trend-down-neon: #ff4d6d;
 
   /* Spacing */
   --spacing-sm: 0.5rem;
@@ -106,6 +108,8 @@
   --growth-neg: #ff4a7a;
   --growth-neg-soft: rgba(255, 45, 94, 0.55);
   --growth-neg-fade: rgba(255, 45, 94, 0.08);
+  --trend-up-neon: #2bffb8;
+  --trend-down-neon: #ff4a7a;
 }
 
 [data-theme="light"] {
