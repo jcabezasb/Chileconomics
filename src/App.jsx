@@ -41,7 +41,8 @@ function App() {
     const [selectedYear, setSelectedYear] = useState('');
     const [selectedQuarter, setSelectedQuarter] = useState('');
     const [selectedDate, setSelectedDate] = useState(null);
-    const [regionalTimeRange, setRegionalTimeRange] = useState('1y');
+    const [regionalTimeRange, setRegionalTimeRange] = useState('1a');
+    const [hasScrolled, setHasScrolled] = useState(false);
 
     const normalizeSeries = (series) => (
         (series || [])
@@ -323,6 +324,24 @@ function App() {
                 'RM': '13', 'VI': '06', 'VII': '07', 'XVI': '16', 'VIII': '08', 'IX': '09',
                 'XIV': '14', 'X': '10', 'XI': '11', 'XII': '12'
             };
+            const laborSeriesMap = {
+                XV: { ftr: 'F049.FTR.STO.INE9.RAP.M', ocu: 'F049.OCU.PMT.INE9.25.M', des: 'F049.DES.TAS.INE9.25.M' },
+                I: { ftr: 'F049.FTR.STO.INE9.RTA.M', ocu: 'F049.OCU.PMT.INE9.11.M', des: 'F049.DES.TAS.INE9.11.M' },
+                II: { ftr: 'F049.FTR.STO.INE9.RAN.M', ocu: 'F049.OCU.PMT.INE9.12.M', des: 'F049.DES.TAS.INE9.12.M' },
+                III: { ftr: 'F049.FTR.STO.INE9.RAT.M', ocu: 'F049.OCU.PMT.INE9.13.M', des: 'F049.DES.TAS.INE9.13.M' },
+                IV: { ftr: 'F049.FTR.STO.INE9.RCO.M', ocu: 'F049.OCU.PMT.INE9.14.M', des: 'F049.DES.TAS.INE9.14.M' },
+                V: { ftr: 'F049.FTR.STO.INE9.RVA.M', ocu: 'F049.OCU.PMT.INE9.15.M', des: 'F049.DES.TAS.INE9.15.M' },
+                RM: { ftr: 'F049.FTR.STO.INE9.RRM.M', ocu: 'F049.OCU.PMT.INE9.23.M', des: 'F049.DES.TAS.INE9.23.M' },
+                VI: { ftr: 'F049.FTR.STO.INE9.RLI.M', ocu: 'F049.OCU.PMT.INE9.16.M', des: 'F049.DES.TAS.INE9.16.M' },
+                VII: { ftr: 'F049.FTR.STO.INE9.RML.M', ocu: 'F049.OCU.PMT.INE9.17.M', des: 'F049.DES.TAS.INE9.17.M' },
+                VIII: { ftr: 'F049.FTR.STO.INE9.RBI.M', ocu: 'F049.OCU.PMT.INE9.18N.M', des: 'F049.DES.TAS.INE9.18N.M' },
+                XVI: { ftr: 'F049.FTR.STO.INE9.RNB.M', ocu: 'F049.OCU.PMT.INE9.26.M', des: 'F049.DES.TAS.INE9.26.M' },
+                IX: { ftr: 'F049.FTR.STO.INE9.RAR.M', ocu: 'F049.OCU.PMT.INE9.19.M', des: 'F049.DES.TAS.INE9.19.M' },
+                XIV: { ftr: 'F049.FTR.STO.INE9.RLR.M', ocu: 'F049.OCU.PMT.INE9.24.M', des: 'F049.DES.TAS.INE9.24.M' },
+                X: { ftr: 'F049.FTR.STO.INE9.RLL.M', ocu: 'F049.OCU.PMT.INE9.20.M', des: 'F049.DES.TAS.INE9.20.M' },
+                XI: { ftr: 'F049.FTR.STO.INE9.RAI.M', ocu: 'F049.OCU.PMT.INE9.21.M', des: 'F049.DES.TAS.INE9.21.M' },
+                XII: { ftr: 'F049.FTR.STO.INE9.RMA.M', ocu: 'F049.OCU.PMT.INE9.22.M', des: 'F049.DES.TAS.INE9.22.M' }
+            };
             const regions = Object.keys(regionToCode);
             const data = {};
 
@@ -342,12 +361,29 @@ function App() {
                 const pobMSeriesId = pobSeriesId.replace('.AT.A', '.MT.A');
                 const pobHSeriesId = pobSeriesId.replace('.AT.A', '.HT.A');
 
-                const [pibSeries, pobSeries, pobMSeries, pobHSeries] = await Promise.all([
+                const laborIds = laborSeriesMap[regId] || {};
+                const [pibSeries, pobSeries, pobMSeries, pobHSeries, laborFtrSeries, laborOcuSeries, laborDesSeries] = await Promise.all([
                     getSeries(pibSeriesId),
                     getSeries(pobSeriesId),
                     getSeries(pobMSeriesId),
-                    getSeries(pobHSeriesId)
+                    getSeries(pobHSeriesId),
+                    laborIds.ftr ? getSeries(laborIds.ftr) : Promise.resolve([]),
+                    laborIds.ocu ? getSeries(laborIds.ocu) : Promise.resolve([]),
+                    laborIds.des ? getSeries(laborIds.des) : Promise.resolve([])
                 ]);
+
+                const regionEntry = {
+                    pob: {
+                        total: pobSeries || [],
+                        mujeres: pobMSeries || [],
+                        hombres: pobHSeries || []
+                    },
+                    labor: {
+                        ftr: laborFtrSeries || [],
+                        ocu: laborOcuSeries || [],
+                        des: laborDesSeries || []
+                    }
+                };
 
                 if (pibSeries && pibSeries.length) {
                     const valid = pibSeries.filter(entry => entry && entry.value !== null);
@@ -359,16 +395,11 @@ function App() {
                         const variation = previousValue ? ((latestValue - previousValue) / previousValue) * 100 : null;
                         const history = valid.map(v => ({ date: v.date, value: v.value }));
 
-                        data[regId] = {
-                            pib: { value: latestValue, variation, history, date: latest.date },
-                            pob: {
-                                total: pobSeries || [],
-                                mujeres: pobMSeries || [],
-                                hombres: pobHSeries || []
-                            }
-                        };
+                        regionEntry.pib = { value: latestValue, variation, history, date: latest.date };
                     }
                 }
+
+                data[regId] = regionEntry;
             }));
 
             if (isActive) setRegionalData(data);
@@ -391,6 +422,16 @@ function App() {
     }, [theme]);
 
     useEffect(() => {
+        const handleScroll = () => {
+            setHasScrolled(window.scrollY > 20);
+        };
+
+        handleScroll();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    useEffect(() => {
         const elements = revealElementsRef.current.filter(Boolean);
         if (!elements.length) return undefined;
 
@@ -399,6 +440,8 @@ function App() {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('is-visible');
+                    } else {
+                        entry.target.classList.remove('is-visible');
                     }
                 });
             },
@@ -440,6 +483,18 @@ function App() {
         if (!year || !month) return '';
         const quarter = Math.ceil(month / 3);
         return `T${quarter}-${year}`;
+    };
+
+    const formatMonthLabel = (date) => {
+        if (!date) return '';
+        const parts = date.split('-');
+        if (parts.length < 2) return '';
+        const year = parts[0];
+        const month = Number(parts[1]);
+        const monthShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        const label = monthShort[month - 1];
+        if (!label || !year) return '';
+        return `${label}-${year}`;
     };
 
     const buildValueLabel = (value, unit, decimals) => {
@@ -760,15 +815,91 @@ function App() {
     const regionalPibRaw = selectedRegion
         ? (regionalData[getRegionId(selectedRegion)]?.pib?.history || [])
         : (realPibData || []);
-    const regionalPibLimitMap = { '1y': 4, '2y': 8, '5y': 20, 'all': null };
+    const regionalPibLimitMap = { '1a': 4, '2a': 8, '5a': 20, 'all': null };
     const regionalPibLimit = regionalPibLimitMap[regionalTimeRange];
     const regionalPibChartData = regionalPibLimit ? regionalPibRaw.slice(-regionalPibLimit) : regionalPibRaw;
     const regionalPibStartLabel = formatQuarterLabel(regionalPibChartData[0]?.date) || formatShortDate(regionalPibChartData[0]?.date);
     const regionalPibEndLabel = formatQuarterLabel(regionalPibChartData[regionalPibChartData.length - 1]?.date)
         || formatShortDate(regionalPibChartData[regionalPibChartData.length - 1]?.date);
 
+    const laborRegionId = selectedRegion ? getRegionId(selectedRegion) : null;
+    const laborRangeMap = { '1a': 12, '2a': 24, '5a': 60, 'all': null };
+    const laborRangeLimit = laborRangeMap[regionalTimeRange];
+    const buildLaborChartData = (series, limit = laborRangeLimit) => {
+        if (!series || !series.length) return [];
+        const cleaned = series
+            .filter((entry) => entry && entry.value !== null && entry.value !== undefined)
+            .map((entry) => ({ date: entry.date, value: entry.value }));
+        const effectiveLimit = limit === undefined ? 48 : limit;
+        return effectiveLimit ? cleaned.slice(-effectiveLimit) : cleaned;
+    };
+    const nationalLaborSeries = useMemo(() => {
+        const ftrMap = new Map();
+        const ocuMap = new Map();
+
+        Object.values(regionalData).forEach((region) => {
+            (region?.labor?.ftr || []).forEach((entry) => {
+                if (!entry || entry.value === null || entry.value === undefined) return;
+                const current = ftrMap.get(entry.date) || 0;
+                ftrMap.set(entry.date, current + Number(entry.value));
+            });
+            (region?.labor?.ocu || []).forEach((entry) => {
+                if (!entry || entry.value === null || entry.value === undefined) return;
+                const current = ocuMap.get(entry.date) || 0;
+                ocuMap.set(entry.date, current + Number(entry.value));
+            });
+        });
+
+        const buildSeries = (map) => Array.from(map.entries())
+            .sort((a, b) => (a[0] || '').localeCompare(b[0] || ''))
+            .map(([date, value]) => ({ date, value }));
+
+        const ftrSeries = buildSeries(ftrMap);
+        const ocuSeries = buildSeries(ocuMap);
+        const ocuLookup = new Map(ocuSeries.map((entry) => [entry.date, entry.value]));
+        const desSeries = ftrSeries
+            .map((entry) => {
+                const ocuValue = ocuLookup.get(entry.date);
+                if (!ocuValue || !entry.value) return null;
+                const rate = (1 - (ocuValue / entry.value)) * 100;
+                return { date: entry.date, value: rate };
+            })
+            .filter(Boolean);
+
+        return { ftr: ftrSeries, ocu: ocuSeries, des: desSeries };
+    }, [regionalData]);
+    const laborFtrSeries = laborRegionId ? regionalData[laborRegionId]?.labor?.ftr : nationalLaborSeries.ftr;
+    const laborOcuSeries = laborRegionId ? regionalData[laborRegionId]?.labor?.ocu : nationalLaborSeries.ocu;
+    const laborDesSeries = laborRegionId ? regionalData[laborRegionId]?.labor?.des : nationalLaborSeries.des;
+    const laborCards = [
+        {
+            id: 'labor-ftr',
+            title: 'Fuerza de trabajo',
+            series: laborFtrSeries,
+            color: '#38bdf8',
+            unit: 'mil personas',
+            formatter: (val) => `${formatNumber(val, 1)} mil`
+        },
+        {
+            id: 'labor-ocu',
+            title: 'Ocupados',
+            series: laborOcuSeries,
+            color: '#22c55e',
+            unit: 'mil personas',
+            formatter: (val) => `${formatNumber(val, 1)} mil`
+        },
+        {
+            id: 'labor-des',
+            title: 'Tasa de desocupacion',
+            series: laborDesSeries,
+            color: '#facc15',
+            unit: '%',
+            formatter: (val) => `${formatNumber(val, 1)}%`
+        }
+    ];
+
     return (
-        <div className="container">
+        <div className={`container ${hasScrolled ? 'has-scrolled' : 'intro-only'}`}>
             <header className="hero-header" style={{ position: 'relative' }}>
                 <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -822,7 +953,10 @@ function App() {
                 </p>
             </header>
 
-            <section className="intro-section">
+            <section
+                className="intro-section reveal reveal-delay-1"
+                ref={(el) => { revealElementsRef.current[0] = el; }}
+            >
                 <div className="intro-content">
                     <p className="intro-title">
                         Proyecto de visualizacion economica para explorar el pulso del pais en un solo vistazo.
@@ -835,8 +969,8 @@ function App() {
             </section>
 
             <section
-                className="overview-section reveal"
-                ref={(el) => { revealElementsRef.current[0] = el; }}
+                className="overview-section reveal reveal-delay-2"
+                ref={(el) => { revealElementsRef.current[1] = el; }}
                 style={{ paddingBottom: '4rem' }}
             >
                 {/* Main Grid: 3 columns - [PIB Overview] | Charts (2x2) */}
@@ -931,8 +1065,8 @@ function App() {
 
             {/* SECCIÓN RELEVADA: Geográfico / Regional */}
             <section
-                className="regional-section reveal"
-                ref={(el) => { revealElementsRef.current[1] = el; }}
+                className="regional-section reveal reveal-delay-3"
+                ref={(el) => { revealElementsRef.current[2] = el; }}
                 style={{ padding: '4rem 0' }}
             >
                 <div className="regional-card">
@@ -963,108 +1097,151 @@ function App() {
                                 {selectedRegion || "Chile (Nacional)"}
                             </h3>
 
-                            {/* Ficha 1: Detalle PIB Real */}
-                            <div className="regional-pib-card">
-                                <div className="regional-pib-header">
-                                    <div>
-                                        <div className="regional-pib-label">PIB Real (Cuentas Nacionales)</div>
-                                        <div className="regional-pib-value">
-                                            {selectedRegion ? (sideIndicators[0].value) : (realPibData ? formatNumber(realPibData[realPibData.length - 1].value, 0) + ' MM' : '...')}
+                            <div className="regional-metrics-grid">
+                                <div className="regional-metrics-left">
+                                    {/* Ficha 1: Detalle PIB Real */}
+                                    <div className="regional-pib-card">
+                                        <div className="regional-pib-header">
+                                            <div>
+                                                <div className="regional-pib-label">PIB Real (Cuentas Nacionales)</div>
+                                                <div className="regional-pib-value">
+                                                    {selectedRegion ? (sideIndicators[0].value) : (realPibData ? formatNumber(realPibData[realPibData.length - 1].value, 0) + ' MM' : '...')}
+                                                </div>
+                                                <div className="regional-pib-trend" style={{
+                                                    color: (selectedRegion ? sideIndicators[0].trend : (realPibData ? 'up' : 'neutral')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
+                                                }}>
+                                                    {selectedRegion ? sideIndicators[0].variation : (realPibData ? '+2.4%' : '')} YoY
+                                                    <span className="regional-pib-trend-note"> (Último dato)</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Selectores de Tiempo para el Gráfico */}
+                                            <div className="regional-range">
+                                                {['1a', '2a', '5a', 'all'].map((range) => (
+                                                    <button
+                                                        key={range}
+                                                        onClick={() => setRegionalTimeRange(range)}
+                                                        className="regional-range-button"
+                                                        style={{
+                                                            background: regionalTimeRange === range ? 'var(--accent)' : 'transparent',
+                                                            color: regionalTimeRange === range ? 'white' : 'var(--text-secondary)'
+                                                        }}
+                                                    >
+                                                        {range === 'all' ? 'Todo' : range.toUpperCase()}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="regional-pib-trend" style={{
-                                            color: (selectedRegion ? sideIndicators[0].trend : (realPibData ? 'up' : 'neutral')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
-                                        }}>
-                                            {selectedRegion ? sideIndicators[0].variation : (realPibData ? '+2.4%' : '')} YoY
-                                            <span className="regional-pib-trend-note"> (Último dato)</span>
+
+                                        {/* Gráfico de Trayectoria */}
+                                        <div className="regional-pib-chart">
+                                            <TrendChart
+                                                data={regionalPibChartData}
+                                                color="#f97316"
+                                                height={120}
+                                                valueFormatter={(val) => formatNumber(val, 0) + ' MM'}
+                                            />
+                                            {(regionalPibStartLabel || regionalPibEndLabel) ? (
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    marginTop: '0.25rem',
+                                                    fontSize: '0.65rem',
+                                                    color: 'var(--text-secondary)'
+                                                }}>
+                                                    <span>{regionalPibStartLabel}</span>
+                                                    <span>{regionalPibEndLabel}</span>
+                                                </div>
+                                            ) : null}
                                         </div>
                                     </div>
 
-                                    {/* Selectores de Tiempo para el Gráfico */}
-                                    <div className="regional-range">
-                                        {['1y', '2y', '5y', 'all'].map((range) => (
-                                            <button
-                                                key={range}
-                                                onClick={() => setRegionalTimeRange(range)}
-                                                className="regional-range-button"
-                                                style={{
-                                                    background: regionalTimeRange === range ? 'var(--accent)' : 'transparent',
-                                                    color: regionalTimeRange === range ? 'white' : 'var(--text-secondary)'
-                                                }}
-                                            >
-                                                {range.toUpperCase()}
-                                            </button>
-                                        ))}
+                                    {/* Ficha 2: Población INE */}
+                                    <div className="regional-pop-grid">
+                                        <div className="regional-pop-total">
+                                            <div>
+                                                <div className="regional-pop-label">Población Total (INE)</div>
+                                                <div className="regional-pop-value">
+                                                    {(() => {
+                                                        const id = selectedRegion ? getRegionId(selectedRegion) : null;
+                                                        const series = id ? regionalData[id]?.pob?.total : populationData?.total;
+                                                        return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                                    })()}
+                                                </div>
+                                            </div>
+                                            <div className="regional-pop-meta">
+                                                <div className="regional-pop-source">Fuente: INE Cine</div>
+                                                <div className="regional-pop-updated">Actualizado 2024</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="regional-pop-card">
+                                            <div className="regional-pop-card-label">
+                                                <span className="regional-pop-dot" style={{ background: '#3b82f6' }}></span>
+                                                Hombres
+                                            </div>
+                                            <div className="regional-pop-card-value">
+                                                {(() => {
+                                                    const id = selectedRegion ? getRegionId(selectedRegion) : null;
+                                                    const series = id ? regionalData[id]?.pob?.hombres : populationData?.hombres;
+                                                    return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                                })()}
+                                            </div>
+                                        </div>
+
+                                        <div className="regional-pop-card">
+                                            <div className="regional-pop-card-label">
+                                                <span className="regional-pop-dot" style={{ background: '#ec4899' }}></span>
+                                                Mujeres
+                                            </div>
+                                            <div className="regional-pop-card-value">
+                                                {(() => {
+                                                    const id = selectedRegion ? getRegionId(selectedRegion) : null;
+                                                    const series = id ? regionalData[id]?.pob?.mujeres : populationData?.mujeres;
+                                                    return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                                })()}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Gráfico de Trayectoria */}
-                                <div className="regional-pib-chart">
-                                    <TrendChart
-                                        data={regionalPibChartData}
-                                        color="#f97316"
-                                        height={120}
-                                        valueFormatter={(val) => formatNumber(val, 0) + ' MM'}
-                                    />
-                                    {(regionalPibStartLabel || regionalPibEndLabel) ? (
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            marginTop: '0.25rem',
-                                            fontSize: '0.65rem',
-                                            color: 'var(--text-secondary)'
-                                        }}>
-                                            <span>{regionalPibStartLabel}</span>
-                                            <span>{regionalPibEndLabel}</span>
+                                {/* Ficha 3: Empleo Regional */}
+                                <div className="regional-labor-grid">
+                                    {laborCards.map((card) => {
+                                        const latest = card.series && card.series.length
+                                            ? card.series[card.series.length - 1]?.value
+                                            : null;
+                                        const chartData = buildLaborChartData(card.series);
+                                        const hasData = chartData.length > 0;
+
+                                    return (
+                                        <div key={card.id} className="regional-labor-card">
+                                            <div className="regional-labor-label">{card.title}</div>
+                                            <div className="regional-labor-value">
+                                                {latest !== null && latest !== undefined
+                                                    ? formatNumber(latest, 1)
+                                                    : '--'}
+                                                <span className="regional-labor-unit">{card.unit}</span>
+                                            </div>
+                                            {hasData ? (
+                                                <>
+                                                    <TrendChart
+                                                        data={chartData}
+                                                        color={card.color}
+                                                        height={70}
+                                                        valueFormatter={card.formatter}
+                                                    />
+                                                    <div className="regional-labor-range">
+                                                        <span>{formatMonthLabel(chartData[0]?.date)}</span>
+                                                        <span>{formatMonthLabel(chartData[chartData.length - 1]?.date)}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="regional-labor-empty">Sin datos disponibles.</div>
+                                            )}
                                         </div>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            {/* Ficha 2: Población INE */}
-                            <div className="regional-pop-grid">
-                                <div className="regional-pop-total">
-                                    <div>
-                                        <div className="regional-pop-label">Población Total (INE)</div>
-                                        <div className="regional-pop-value">
-                                            {(() => {
-                                                const id = selectedRegion ? getRegionId(selectedRegion) : null;
-                                                const series = id ? regionalData[id]?.pob?.total : populationData?.total;
-                                                return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
-                                            })()}
-                                        </div>
-                                    </div>
-                                    <div className="regional-pop-meta">
-                                        <div className="regional-pop-source">Fuente: INE Cine</div>
-                                        <div className="regional-pop-updated">Actualizado 2024</div>
-                                    </div>
-                                </div>
-
-                                <div className="regional-pop-card">
-                                    <div className="regional-pop-card-label">
-                                        <span className="regional-pop-dot" style={{ background: '#3b82f6' }}></span>
-                                        Hombres
-                                    </div>
-                                    <div className="regional-pop-card-value">
-                                        {(() => {
-                                            const id = selectedRegion ? getRegionId(selectedRegion) : null;
-                                            const series = id ? regionalData[id]?.pob?.hombres : populationData?.hombres;
-                                            return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
-                                        })()}
-                                    </div>
-                                </div>
-
-                                <div className="regional-pop-card">
-                                    <div className="regional-pop-card-label">
-                                        <span className="regional-pop-dot" style={{ background: '#ec4899' }}></span>
-                                        Mujeres
-                                    </div>
-                                    <div className="regional-pop-card-value">
-                                        {(() => {
-                                            const id = selectedRegion ? getRegionId(selectedRegion) : null;
-                                            const series = id ? regionalData[id]?.pob?.mujeres : populationData?.mujeres;
-                                            return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
-                                        })()}
-                                    </div>
+                                    );
+                                })}
                                 </div>
                             </div>
                         </div>

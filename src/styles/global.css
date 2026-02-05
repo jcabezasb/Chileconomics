@@ -27,7 +27,7 @@ h6 {
 }
 
 .hero-header {
-    min-height: 70vh;
+    height: 70vh;
     padding: 1.75rem 0 1rem;
     text-align: center;
     display: flex;
@@ -35,6 +35,24 @@ h6 {
     align-items: center;
     gap: 0.35rem;
     justify-content: center;
+    transition: height 0.55s ease, padding 0.55s ease;
+}
+
+.intro-only .hero-header {
+    height: 100vh;
+    padding: 2.5rem 0;
+}
+
+.intro-only .hero-header button,
+.intro-only .hero-subtitle {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+}
+
+.hero-header button,
+.hero-subtitle {
+    transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
 .hero-title {
@@ -411,12 +429,12 @@ p {
 }
 
 .regional-cards {
-    flex: 0 1 520px;
+    flex: 1 1 760px;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-width: 520px;
+    max-width: 860px;
 }
 
 .regional-highlight {
@@ -497,6 +515,20 @@ p {
     height: 140px;
 }
 
+.regional-metrics-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+    gap: 1.25rem;
+    align-items: stretch;
+}
+
+.regional-metrics-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+}
+
 .regional-pop-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -545,6 +577,72 @@ p {
     padding: 1rem;
     border-radius: 16px;
     border: 1px solid var(--border);
+}
+
+.regional-labor-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    height: 100%;
+    grid-auto-rows: 1fr;
+}
+
+.regional-labor-card {
+    background: var(--bg-app);
+    padding: 0.85rem 0.95rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.regional-labor-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.regional-labor-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-top: 0.35rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.regional-labor-card .trend-chart {
+    margin-top: 0.4rem !important;
+}
+
+.regional-labor-card .trend-chart > div:last-child {
+    width: 36px !important;
+}
+
+.regional-labor-unit {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.regional-labor-empty {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.regional-labor-range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.regional-labor-card .trend-chart {
+    margin-top: 0.4rem !important;
+    flex: 1;
+    align-items: stretch;
 }
 
 .regional-pop-card-label {
@@ -751,6 +849,11 @@ p {
         height: 110px;
     }
 
+    .regional-metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+
     .regional-pop-grid {
         grid-template-columns: 1fr;
         gap: 0.6rem;
@@ -778,5 +881,17 @@ p {
 
     .regional-pop-card-value {
         font-size: 0.95rem;
+    }
+
+    .regional-labor-grid {
+        gap: 0.8rem;
+    }
+
+    .regional-labor-card {
+        padding: 0.9rem;
+    }
+
+    .regional-labor-value {
+        font-size: 1.1rem;
     }
 }
