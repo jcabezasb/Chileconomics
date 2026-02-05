@@ -411,12 +411,12 @@ p {
 }
 
 .regional-cards {
-    flex: 1 1 0;
+    flex: 0 1 520px;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-width: 640px;
+    max-width: 520px;
 }
 
 .regional-highlight {
