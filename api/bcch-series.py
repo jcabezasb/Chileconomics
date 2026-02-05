@@ -6,6 +6,14 @@ from urllib.parse import parse_qs, urlparse
 import bcchapi
 
 
+def _block_production(handler):
+    if os.environ.get("VERCEL_ENV") == "production":
+        _build_response(handler, 403, {"error": "forbidden"})
+        return True
+
+    return False
+
+
 def _build_response(handler, status, payload):
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
@@ -57,6 +65,9 @@ def _normalize_dataframe(df):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if _block_production(self):
+            return
+
         query = parse_qs(urlparse(self.path).query)
         series = query.get("series", [None])[0]
         start = query.get("desde", [None])[0]

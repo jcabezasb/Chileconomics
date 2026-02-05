@@ -5,6 +5,14 @@ from http.server import BaseHTTPRequestHandler
 
 import bcchapi
 
+
+def _block_production(handler):
+    if os.environ.get("VERCEL_ENV") == "production":
+        _build_response(handler, 403, {"error": "forbidden"})
+        return True
+
+    return False
+
 SERIES_CONFIG = {
     "pib_real": {"id": "F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T", "name": "PIB Real Nacional"},
     "pib_nominal": {"id": "F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T", "name": "PIB Nominal Nacional"},
@@ -144,6 +152,9 @@ def _normalize_dataframe(df):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if _block_production(self):
+            return
+
         user = os.environ.get("BCCH_USER")
         password = os.environ.get("BCCH_PASSWORD")
 

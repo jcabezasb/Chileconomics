@@ -397,13 +397,11 @@ const normalizeStaticPayload = (payload) => {
 const loadBcchData = async () => {
     if (bcchDataCache) return bcchDataCache;
 
-    // Priorizamos el archivo estático generado por GitHub Actions porque es mucho más rápido
-    // que el endpoint de Vercel que consulta 28 series en tiempo real.
+    // Priorizamos el archivo estatico generado por GitHub Actions.
     const staticUrl = '/data/bcch_series.json';
-    const apiUrl = '/api/bcch-bundle';
 
     try {
-        // Intento 1: Archivo estático (Rapido y confiable)
+        // Intento 1: Archivo estatico (rapido y confiable)
         const response = await fetch(staticUrl);
         if (response.ok) {
             const payload = await response.json();
@@ -412,17 +410,8 @@ const loadBcchData = async () => {
         }
         throw new Error('Static data not found');
     } catch (staticError) {
-        console.warn('Static data not found, trying API bundle...');
-        try {
-            // Intento 2: API Bundle (Lento, puede dar timeout)
-            const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('API failed');
-            bcchDataCache = await response.json();
-            return bcchDataCache;
-        } catch (apiError) {
-            console.error('All data sources failed:', apiError);
-            return null;
-        }
+        console.warn('Static data not found:', staticError);
+        return null;
     }
 };
 
@@ -438,19 +427,10 @@ export const getSeries = async (seriesId, options = {}) => {
         return bcchData[key].data || [];
     }
 
-    // Fallback a la API si está disponible
-    const params = new URLSearchParams({ series: seriesId });
-    if (options.start) params.append("desde", options.start);
-    if (options.end) params.append("hasta", options.end);
-    if (options.frequency) params.append("frecuencia", options.frequency);
-    const payload = await fetchData(`/api/bcch-series?${params.toString()}`, []);
-    return payload || [];
+    return [];
 };
 
 export const getLatestSeries = async (seriesId, frequency) => {
     if (!seriesId) return null;
-    const params = new URLSearchParams({ series: seriesId, last: "1" });
-    if (frequency) params.append("frecuencia", frequency);
-    const payload = await fetchData(`/api/bcch-series?${params.toString()}`, null);
-    return payload?.latest ?? null;
+    return null;
 };
