@@ -339,6 +339,21 @@ h6 {
     }
 }
 
+@keyframes neonPulse {
+    0% {
+        fill: var(--map-fill);
+        filter: drop-shadow(0 0 0px transparent);
+    }
+    50% {
+        fill: var(--map-fill-hover);
+        filter: drop-shadow(0 0 8px var(--map-fill-hover));
+    }
+    100% {
+        fill: var(--map-fill);
+        filter: drop-shadow(0 0 0px transparent);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .trend-chart {
         animation: none;
@@ -480,9 +495,6 @@ p {
     max-width: 260px;
     height: 620px;
     margin: 0 auto;
-}
-
-.macro-map-frame {
     overflow: hidden;
     display: flex;
     align-items: center;

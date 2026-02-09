@@ -5,6 +5,8 @@ from urllib.parse import parse_qs, urlparse
 
 import bcchapi
 
+from bcch_shared import normalize_dataframe
+
 
 def _block_production(handler):
     if os.environ.get("VERCEL_ENV") == "production":
@@ -20,47 +22,6 @@ def _build_response(handler, status, payload):
     handler.send_header("Cache-Control", "s-maxage=300, stale-while-revalidate=600")
     handler.end_headers()
     handler.wfile.write(json.dumps(payload).encode("utf-8"))
-
-
-def _parse_float(value):
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _normalize_dataframe(df):
-    if df is None:
-        return []
-
-    if hasattr(df, "reset_index"):
-        df = df.reset_index()
-
-    records = []
-    for _, row in df.iterrows():
-        date = None
-        if "index" in row:
-            date = row["index"]
-        elif "fecha" in row:
-            date = row["fecha"]
-        elif "date" in row:
-            date = row["date"]
-
-        value = None
-        if "value" in row:
-            value = row["value"]
-        elif len(row) > 1:
-            value = row.iloc[1]
-
-        if date is not None and hasattr(date, "strftime"):
-            date = date.strftime("%Y-%m-%d")
-
-        records.append({
-            "date": date,
-            "value": _parse_float(value)
-        })
-
-    return records
 
 
 class handler(BaseHTTPRequestHandler):
@@ -97,7 +58,7 @@ class handler(BaseHTTPRequestHandler):
                 kwargs["frecuencia"] = frequency
 
             df = siete.cuadro(series=[series], nombres=["value"], **kwargs)
-            records = _normalize_dataframe(df)
+            records = normalize_dataframe(df)
             latest = None
             for entry in reversed(records):
                 if entry.get("value") is not None:

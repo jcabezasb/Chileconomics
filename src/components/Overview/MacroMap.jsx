@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
-import { scaleLinear } from "d3-scale";
 
 // URL for Chile TopoJSON (16 Regions)
 import chileTopo from "../../assets/chile.json";
@@ -25,29 +24,6 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
         center: [-70, -38]
     };
 
-    // Animation keyframes
-    const pulseKeyframes = `
-        @keyframes neonPulse {
-            0% { 
-                fill: var(--map-fill);
-                filter: drop-shadow(0 0 0px transparent);
-            }
-            50% { 
-                fill: var(--map-fill-hover);
-                filter: drop-shadow(0 0 8px var(--map-fill-hover));
-            }
-            100% { 
-                fill: var(--map-fill);
-                filter: drop-shadow(0 0 0px transparent);
-            }
-        }
-    `;
-
-    // Example color scale based on some mock data (e.g., Growth)
-    const colorScale = scaleLinear()
-        .domain([0, 10])
-        .range(["#fee2e2", "#ef4444"]);
-
     const mapDimensions = {
         width: 240,
         height: 620
@@ -55,7 +31,6 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
 
     return (
         <div className="macro-map-container">
-            <style>{pulseKeyframes}</style>
             <div className="macro-map-frame">
                 <ComposableMap
                     projection="geoMercator"

@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { buildMiniSparklinePath } from '../../utils/sparkline';
 
 // Mini sparkline SVG component
 const getTrendFromHistory = (history, fallback = 'up') => {
@@ -29,24 +30,13 @@ const MiniSparkline = ({ history, trend }) => {
         );
     }
 
-    // Generar path real basado en la historia
-    const min = Math.min(...history);
-    const max = Math.max(...history);
-    const range = max - min || 1;
-    const width = 100;
-    const height = 20;
-    const padding = 2.5;
-
-    const points = history.map((val, i) => {
-        const x = (i / (history.length - 1)) * width;
-        const y = (height + padding) - ((val - min) / range) * height;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' L ');
+    const sparkline = buildMiniSparklinePath(history);
+    if (!sparkline) return null;
 
     return (
-        <svg width="45" height="18" viewBox={`0 0 ${width} ${height + padding * 2}`} style={{ flexShrink: 0 }}>
+        <svg width="45" height="18" viewBox={sparkline.viewBox} style={{ flexShrink: 0 }}>
             <path
-                d={`M ${points}`}
+                d={sparkline.path}
                 fill="none"
                 stroke={color}
                 strokeWidth="2.5"

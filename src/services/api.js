@@ -1,3 +1,5 @@
+import { formatDayLabel, formatMonthLabelSpace, formatNumber } from '../utils/format';
+
 const mockIndicators = [
     {
         id: "imacec",
@@ -90,42 +92,6 @@ const mockChartData = (indicatorId) => {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-const formatNumber = (value, options = {}) => {
-    const { minimumFractionDigits = 0, maximumFractionDigits = 0 } = options;
-    return new Intl.NumberFormat('es-CL', {
-        minimumFractionDigits,
-        maximumFractionDigits
-    }).format(value);
-};
-
-const monthShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-
-const parseDateParts = (date) => {
-    if (!date) return null;
-    const [year, month, day] = date.split('-');
-    if (!year || !month) return null;
-    return {
-        year,
-        month: Number(month),
-        day: day ? Number(day) : null
-    };
-};
-
-const formatMonthLabel = (date) => {
-    const parts = parseDateParts(date);
-    if (!parts || !parts.month) return '';
-    const mon = monthShort[parts.month - 1] || '';
-    return `${mon} ${parts.year}`;
-};
-
-const formatDayLabel = (date) => {
-    const parts = parseDateParts(date);
-    if (!parts || !parts.day) return '';
-    const mon = monthShort[parts.month - 1] || '';
-    const day = String(parts.day).padStart(2, '0');
-    return `${day}-${mon}`;
-};
-
 const fetchData = async (url, fallback) => {
     try {
         const response = await fetch(`${API_BASE_URL}${url}`);
@@ -177,7 +143,7 @@ export const getKeyIndicators = async () => {
                             ? ''
                             : `${ipcDelta >= 0 ? '+' : ''}${formatNumber(ipcDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
                         trend: ipcDelta === null ? 'neutral' : (ipcDelta >= 0 ? 'up' : 'down'),
-                        period: formatMonthLabel(ipcLatest.date),
+                        period: formatMonthLabelSpace(ipcLatest.date),
                         description: 'Inflacion anual'
                     },
                     {
@@ -213,7 +179,7 @@ export const getKeyIndicators = async () => {
                             ? ''
                             : `${desempleoDelta >= 0 ? '+' : ''}${formatNumber(desempleoDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}pp`,
                         trend: desempleoDelta === null ? 'neutral' : (desempleoDelta >= 0 ? 'up' : 'down'),
-                        period: formatMonthLabel(desempleoLatest.date),
+                        period: formatMonthLabelSpace(desempleoLatest.date),
                         description: 'Tasa de desocupacion nacional'
                 }
             ];
@@ -415,6 +381,7 @@ const SERIES_KEY_MAP = {
 
 // Cache para datos del BC
 let bcchDataCache = null;
+let bcchDataPromise = null;
 
 const staticKeyAliases = {
     pib_total: 'pib_nominal',
@@ -432,15 +399,26 @@ const buildLatestEntry = (series) => {
     return null;
 };
 
+const coerceSeriesValues = (series) => {
+    if (!Array.isArray(series)) return [];
+    return series.map((entry) => {
+        if (!entry || entry.value === null || entry.value === undefined) return entry;
+        const numericValue = Number(entry.value);
+        if (Number.isNaN(numericValue)) return entry;
+        return { ...entry, value: numericValue };
+    });
+};
+
 const normalizeStaticPayload = (payload) => {
     if (!payload || !payload.series) return payload;
     const normalized = {};
 
     Object.entries(payload.series).forEach(([key, data]) => {
         const mappedKey = staticKeyAliases[key] || key;
+        const normalizedData = coerceSeriesValues(data);
         normalized[mappedKey] = {
-            data: Array.isArray(data) ? data : [],
-            latest: buildLatestEntry(data)
+            data: normalizedData,
+            latest: buildLatestEntry(normalizedData)
         };
     });
 
@@ -449,23 +427,30 @@ const normalizeStaticPayload = (payload) => {
 
 const loadBcchData = async () => {
     if (bcchDataCache) return bcchDataCache;
+    if (bcchDataPromise) return bcchDataPromise;
 
     // Priorizamos el archivo estatico generado por GitHub Actions.
     const staticUrl = '/data/bcch_series.json';
 
-    try {
-        // Intento 1: Archivo estatico (rapido y confiable)
-        const response = await fetch(staticUrl);
-        if (response.ok) {
-            const payload = await response.json();
-            bcchDataCache = normalizeStaticPayload(payload) || payload;
-            return bcchDataCache;
+    bcchDataPromise = (async () => {
+        try {
+            // Intento 1: Archivo estatico (rapido y confiable)
+            const response = await fetch(staticUrl);
+            if (response.ok) {
+                const payload = await response.json();
+                bcchDataCache = normalizeStaticPayload(payload) || payload;
+                return bcchDataCache;
+            }
+            throw new Error('Static data not found');
+        } catch (staticError) {
+            console.warn('Static data not found:', staticError);
+            return null;
+        } finally {
+            bcchDataPromise = null;
         }
-        throw new Error('Static data not found');
-    } catch (staticError) {
-        console.warn('Static data not found:', staticError);
-        return null;
-    }
+    })();
+
+    return bcchDataPromise;
 };
 
 export const getSeries = async (seriesId, options = {}) => {
