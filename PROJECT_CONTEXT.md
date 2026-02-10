@@ -47,6 +47,12 @@ Estamos en una fase de **Rediseño Estructural**:
 3.  **Comparativo Histórico**: Permitir ver la evolución de la estructura del PIB a través de los años (Cómo ha cambiado el peso de la inversión vs consumo).
 4.  **Exportaciones**: Detallar por rubro (Cobre, Litio, Agricultura) de forma interactiva.
 
+## 🧭 Pendiente: Sección Sector Externo (para retomar)
+- **Objetivo UI**: Bloques simples con Exportaciones, Importaciones, Saldo Cuenta Corriente, Terminos de Intercambio y TCR.
+- **Tablas**: Exportaciones e Importaciones con top rubros (si no hay series, usar mocks).
+- **Series BCCH necesarias**: saldo cuenta corriente (trimestral), terminos de intercambio (indice), TCR multilateral, exportaciones/importaciones por rubro.
+- **Pipeline**: Agregar series en `sync_bcch_data.py` y `api/bcch-bundle.py`, mapear IDs en `src/services/api.js`, regenerar `public/data/bcch_series.json`.
+
 ## 🧠 Guía para la IA Siguiente
 - **Estética**: Mantener el estilo "Glassmorphism" y modo oscuro. Usar paletas de colores sobrias (#6366f1, #10b981, #f43f5e).
 - **Precisión**: Siempre validar las transformaciones de datos YoY (Year-over-Year) para evitar ruido estacional.
