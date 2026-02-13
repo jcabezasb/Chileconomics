@@ -1,5 +1,13 @@
 import React from 'react';
 
+const SECTIONS = [
+    { id: 'datos', label: 'Datos' },
+    { id: 'blog', label: 'Blog' },
+    { id: 'videos', label: 'Videos' },
+    { id: 'contacto', label: 'Contacto' },
+    { id: 'desarrollo', label: 'En desarrollo' }
+];
+
 const TopNav = ({
     theme,
     onToggleTheme,
@@ -7,19 +15,12 @@ const TopNav = ({
     onSelectSection,
     isVisible
 }) => {
-    const sections = [
-        { id: 'datos', label: 'Datos' },
-        { id: 'blog', label: 'Blog' },
-        { id: 'videos', label: 'Videos' },
-        { id: 'contacto', label: 'Contacto' },
-        { id: 'desarrollo', label: 'En desarrollo' }
-    ];
 
     return (
         <div className={`top-nav ${isVisible ? 'is-visible' : ''}`}>
             <div className="top-nav-inner">
                 <nav className="top-nav-links" aria-label="Secciones">
-                    {sections.map((section) => {
+                    {SECTIONS.map((section) => {
                         const isActive = activeSection === section.id;
                         return (
                             <button
