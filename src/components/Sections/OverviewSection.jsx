@@ -122,10 +122,10 @@ const OverviewSection = ({
 
             {/* Columns 2-3: 4 Charts in 2x2 grid */}
             {chartIndicators.slice(0, 2).map(ind => (
-                <MacroCard key={ind.id} indicator={ind} />
+                <MacroCard key={ind.id} indicator={ind} theme={theme} />
             ))}
             {chartIndicators.slice(2, 4).map(ind => (
-                <MacroCard key={ind.id} indicator={ind} />
+                <MacroCard key={ind.id} indicator={ind} theme={theme} />
             ))}
         </div>
     </section>

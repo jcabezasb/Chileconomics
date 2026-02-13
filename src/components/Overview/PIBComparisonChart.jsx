@@ -36,7 +36,7 @@ const PIBComparisonChart = ({ data, theme }) => {
         if (active && payload && payload.length) {
             return (
                 <div style={{
-                    background: theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff',
+                    background: 'var(--bg-card)',
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
                     padding: '0.75rem',

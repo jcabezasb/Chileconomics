@@ -333,6 +333,7 @@ h6 {
         opacity: 0;
         transform: translateY(6px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -342,15 +343,17 @@ h6 {
 @keyframes neonPulse {
     0% {
         fill: var(--map-fill);
-        filter: drop-shadow(0 0 0px transparent);
+        filter: none;
     }
+
     50% {
         fill: var(--map-fill-hover);
-        filter: drop-shadow(0 0 8px var(--map-fill-hover));
+        filter: var(--map-glow-filter);
     }
+
     100% {
         fill: var(--map-fill);
-        filter: drop-shadow(0 0 0px transparent);
+        filter: none;
     }
 }
 
@@ -692,7 +695,7 @@ p {
     margin-top: 0.4rem !important;
 }
 
-.regional-labor-card .trend-chart > div:last-child {
+.regional-labor-card .trend-chart>div:last-child {
     width: 36px !important;
 }
 
@@ -994,10 +997,22 @@ p {
     }
 
     .regional-labor-card {
-        padding: 0.9rem;
+        padding: 1.05rem;
+        min-height: 190px;
+    }
+
+    .regional-labor-card .trend-chart {
+        height: 120px !important;
     }
 
     .regional-labor-value {
         font-size: 1.1rem;
     }
+}
+
+/* Hover effects for interactive indicators */
+.compact-indicator-item:hover {
+    background: var(--bg-hover) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 1px var(--accent) inset;
 }

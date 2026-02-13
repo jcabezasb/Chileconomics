@@ -62,8 +62,8 @@ const CompactIndicator = ({ indicator }) => {
 
     return (
         <div
+            className="compact-indicator-item"
             style={{
-                background: 'rgba(255,255,255,0.02)',
                 padding: '0.5rem 0.75rem',
                 borderRadius: '8px',
                 border: '1px solid var(--border)',
@@ -73,15 +73,8 @@ const CompactIndicator = ({ indicator }) => {
                 gap: '0.5rem',
                 transition: 'all 0.2s ease',
                 cursor: 'default',
-                height: '100%'
-            }}
-            onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                e.currentTarget.style.borderColor = 'var(--accent)';
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                e.currentTarget.style.borderColor = 'var(--border)';
+                height: '100%',
+                background: 'var(--bg-card)'
             }}
         >
             {/* Title */}

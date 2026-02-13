@@ -63,23 +63,23 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
                                             }}
                                             style={{
                                                 default: {
-                                                fill: isSelected ? "var(--map-invert-selected, var(--map-fill-selected))" : "var(--map-invert-fill, var(--map-fill))",
-                                                stroke: "var(--map-invert-stroke, var(--map-stroke))",
-                                                strokeWidth: 0.8,
+                                                    fill: isSelected ? "var(--map-invert-selected, var(--map-fill-selected))" : "var(--map-invert-fill, var(--map-fill))",
+                                                    stroke: "var(--map-invert-stroke, var(--map-stroke))",
+                                                    strokeWidth: 0.8,
                                                     outline: "none",
                                                     transition: "all 0.3s ease",
                                                     animation: isPulseActive ? `neonPulse 1.5s ease-in-out` : 'none'
                                                 },
                                                 hover: {
-                                                fill: isSelected ? "var(--map-invert-selected, var(--map-fill-selected))" : "var(--map-invert-hover, var(--map-fill-hover))",
-                                                stroke: "var(--map-invert-stroke, var(--map-stroke))",
-                                                strokeWidth: 0.8,
+                                                    fill: isSelected ? "var(--map-invert-selected, var(--map-fill-selected))" : "var(--map-invert-hover, var(--map-fill-hover))",
+                                                    stroke: "var(--map-invert-stroke, var(--map-stroke))",
+                                                    strokeWidth: 0.8,
                                                     outline: "none",
                                                     cursor: "pointer",
-                                                    filter: "drop-shadow(0 0 5px var(--map-fill-hover))" // Neon glow effect
+                                                    filter: "var(--map-hover-filter)" // Neon glow effect only in dark mode
                                                 },
                                                 pressed: {
-                                                fill: "var(--map-invert-selected, var(--map-fill-selected))",
+                                                    fill: "var(--map-invert-selected, var(--map-fill-selected))",
                                                     outline: "none"
                                                 }
                                             }}

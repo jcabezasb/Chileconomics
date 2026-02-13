@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import TrendChart from '../Charts/TrendChart';
 import { getChartData } from '../../services/api';
 
-const MacroCard = ({ indicator }) => {
+const MacroCard = ({ indicator, theme }) => {
     const [chartData, setChartData] = useState([]);
     const defaultRangeByIndicator = {
         ipc: '1y',
@@ -111,22 +111,22 @@ const MacroCard = ({ indicator }) => {
     const chartStartDate = formatStartDate(filteredChartData[0]?.date);
 
     return (
-            <div style={{
-                background: 'var(--bg-card)',
-                padding: '0.85rem',
-                paddingBottom: '1.7rem',
-                borderRadius: '10px',
-                boxShadow: 'var(--shadow-md)',
-                border: '1px solid var(--border)',
-                transition: 'transform 0.2s',
-                cursor: 'default',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                height: '100%', // Fill available space
-                boxSizing: 'border-box',
-                position: 'relative'
-            }}>
+        <div style={{
+            background: 'var(--bg-card)',
+            padding: '0.85rem',
+            paddingBottom: '1.7rem',
+            borderRadius: '10px',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--border)',
+            transition: 'transform 0.2s',
+            cursor: 'default',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: '100%', // Fill available space
+            boxSizing: 'border-box',
+            position: 'relative'
+        }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
                 <div>
@@ -151,7 +151,7 @@ const MacroCard = ({ indicator }) => {
                                     padding: '0.2rem 0.4rem',
                                     borderRadius: '999px',
                                     border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                                    background: isActive ? 'rgba(14, 165, 233, 0.18)' : 'transparent',
+                                    background: isActive ? 'var(--bg-hover)' : 'transparent',
                                     color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                                     cursor: 'pointer',
                                     fontWeight: isActive ? 700 : 500,
@@ -192,6 +192,7 @@ const MacroCard = ({ indicator }) => {
                 height={110}
                 averageFormatter={formatAverage}
                 valueFormatter={formatTooltipValue}
+                theme={theme}
             />
             {chartStartDate ? (
                 <span style={{

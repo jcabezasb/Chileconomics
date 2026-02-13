@@ -518,6 +518,7 @@ function App() {
 
             <RegionalSection
                 sectionRef={(el) => { revealElementsRef.current[1] = el; }}
+                theme={theme}
                 selectedRegion={selectedRegion}
                 setSelectedRegion={setSelectedRegion}
                 regionalData={regionalData}

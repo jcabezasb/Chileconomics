@@ -15,11 +15,12 @@ const formatTooltipDate = (date, fallback) => {
     return `${mon} ${year}`;
 };
 
-const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, valueFormatter }) => {
+const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, valueFormatter, theme = 'dark' }) => {
     if (!data || data.length === 0) return null;
 
     const gradientId = useId();
     const glowId = useId();
+    const isDark = theme === 'dark';
     const average = data.reduce((acc, item) => acc + (Number(item.value) || 0), 0) / data.length;
     const values = data.map((item) => Number(item.value)).filter((value) => !Number.isNaN(value));
     const minValue = values.length ? Math.min(...values) : 0;
@@ -38,7 +39,7 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
         const dateLabel = formatTooltipDate(point.date, label);
         return (
             <div style={{
-                background: 'rgba(15, 23, 42, 0.95)',
+                background: 'var(--bg-card)',
                 border: '1px solid var(--border)',
                 borderRadius: '8px',
                 padding: '0.5rem 0.6rem',
@@ -62,8 +63,8 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                     <AreaChart data={data}>
                         <defs>
                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                                <stop offset="95%" stopColor={color} stopOpacity={0.02} />
+                                <stop offset="5%" stopColor={color} stopOpacity={isDark ? 0.3 : 0.08} />
+                                <stop offset="95%" stopColor={color} stopOpacity={0.01} />
                             </linearGradient>
                             <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
                                 <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor={color} floodOpacity="0.45" />
@@ -73,8 +74,8 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                         <YAxis hide domain={chartDomain} />
                         <ReferenceLine
                             y={average}
-                            stroke="#ffffff"
-                            strokeOpacity={0.7}
+                            stroke={isDark ? "#ffffff" : "#000000"}
+                            strokeOpacity={isDark ? 0.7 : 0.15}
                             strokeDasharray="4 4"
                         />
                         <Tooltip content={renderTooltip} cursor={{ stroke: 'transparent' }} />
@@ -84,22 +85,22 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                             stroke={color}
                             fillOpacity={1}
                             fill={`url(#${gradientId})`}
-                            strokeWidth={2.4}
+                            strokeWidth={2}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             dot={false}
                             activeDot={false}
                             connectNulls
-                            filter={`url(#${glowId})`}
+                            filter={isDark ? `url(#${glowId})` : "none"}
                             isAnimationActive={animateChart}
-                            animationDuration={220}
+                            animationDuration={400}
                             animationEasing="ease-out"
                         />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
             <div style={{ width: '52px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <span style={{ fontSize: '0.65rem', color: 'rgba(255, 255, 255, 0.85)' }}>{averageLabel}</span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{averageLabel}</span>
             </div>
         </div>
     );

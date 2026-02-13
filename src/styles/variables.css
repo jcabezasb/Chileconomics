@@ -9,6 +9,13 @@
   --text-primary: #0b1220;
   --text-secondary: #56657a;
   --border: #e3e9f3;
+  --bg-hover: rgba(14, 165, 233, 0.08);
+  /* Light mode subtle blue */
+
+  /* Neon effect controls - Light (Flat) */
+  --map-glow-filter: none;
+  --map-hover-filter: none;
+  --chart-fill-opacity: 0.06;
 
   /* Brand Colors - Sophisticated Palette */
   --color-brand: #0f172a;
@@ -105,6 +112,15 @@
   --growth-neg: #ff4a7a;
   --growth-neg-soft: rgba(255, 45, 94, 0.55);
   --growth-neg-fade: rgba(255, 45, 94, 0.08);
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  /* Dark mode subtle white */
+
+  /* Neon effect controls - Dark (Vibrant) */
+  --map-glow-filter: drop-shadow(0 0 8px var(--map-fill-hover));
+  --map-hover-filter: drop-shadow(0 0 5px var(--map-fill-hover));
+  --chart-fill-opacity: 0.3;
+  /* This will be used in TrendChart gradient or opacity */
+
   --trend-up-neon: #2bffb8;
   --trend-down-neon: #ff4a7a;
 }

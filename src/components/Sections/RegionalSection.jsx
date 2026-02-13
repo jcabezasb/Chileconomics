@@ -19,7 +19,8 @@ const RegionalSection = ({
     populationData,
     laborCards,
     buildLaborChartData,
-    formatMonthLabelDash
+    formatMonthLabelDash,
+    theme
 }) => (
     <section
         className="regional-section reveal reveal-delay-2"
@@ -97,6 +98,7 @@ const RegionalSection = ({
                                         color="#f97316"
                                         height={120}
                                         valueFormatter={(val) => formatNumber(val, 0) + ' MM'}
+                                        theme={theme}
                                     />
                                     {(regionalPibStartLabel || regionalPibEndLabel) ? (
                                         <div style={{
@@ -187,6 +189,7 @@ const RegionalSection = ({
                                                     color={card.color}
                                                     height={70}
                                                     valueFormatter={card.formatter}
+                                                    theme={theme}
                                                 />
                                                 <div className="regional-labor-range">
                                                     <span>{formatMonthLabelDash(chartData[0]?.date)}</span>
