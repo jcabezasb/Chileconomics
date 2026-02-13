@@ -75,19 +75,30 @@ const RegionalSection = ({
 
                                     {/* Selectores de Tiempo para el Gráfico */}
                                     <div className="regional-range">
-                                        {['1a', '2a', '5a', 'all'].map((range) => (
-                                            <button
-                                                key={range}
-                                                onClick={() => setRegionalTimeRange(range)}
-                                                className="regional-range-button"
-                                                style={{
-                                                    background: regionalTimeRange === range ? 'var(--accent)' : 'transparent',
-                                                    color: regionalTimeRange === range ? 'white' : 'var(--text-secondary)'
-                                                }}
-                                            >
-                                                {range === 'all' ? 'Todo' : range.toUpperCase()}
-                                            </button>
-                                        ))}
+                                        {['1a', '2a', '5a', 'all'].map((range) => {
+                                            const isActive = regionalTimeRange === range;
+                                            const isLight = theme === 'light';
+                                            return (
+                                                <button
+                                                    key={range}
+                                                    onClick={() => setRegionalTimeRange(range)}
+                                                    className="regional-range-button"
+                                                    style={{
+                                                        background: isActive
+                                                            ? (isLight ? 'var(--bg-hover)' : 'var(--accent)')
+                                                            : 'transparent',
+                                                        color: isActive
+                                                            ? (isLight ? 'var(--text-primary)' : 'white')
+                                                            : 'var(--text-secondary)',
+                                                        border: isActive && isLight
+                                                            ? '1px solid rgba(37, 99, 235, 0.4)'
+                                                            : undefined
+                                                    }}
+                                                >
+                                                    {range === 'all' ? 'Todo' : range.toUpperCase()}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 

@@ -20,6 +20,7 @@ const OverviewSection = ({
     chartIndicators
 }) => (
     <section
+        id="datos"
         className="overview-section reveal reveal-delay-1"
         ref={sectionRef}
         style={{ paddingBottom: '4rem' }}

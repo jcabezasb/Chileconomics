@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import HeroHeader from './components/Sections/HeroHeader';
+import TopNav from './components/Sections/TopNav';
+import PlaceholderSection from './components/Sections/PlaceholderSection';
+import ContactSection from './components/Sections/ContactSection';
+import DevelopmentSection from './components/Sections/DevelopmentSection';
 import OverviewSection from './components/Sections/OverviewSection';
 import RegionalSection from './components/Sections/RegionalSection';
 import useBcchData from './hooks/useBcchData';
@@ -22,6 +26,7 @@ function App() {
     const [selectedRegion, setSelectedRegion] = useState(null);
     const [overviewView, setOverviewView] = useState('pib');
     const [growthMetric, setGrowthMetric] = useState('gdpGrowth');
+    const [activeSection, setActiveSection] = useState('datos');
     const [theme, setTheme] = useState(() => {
         const stored = localStorage.getItem('theme');
         if (stored === 'dark' || stored === 'light') return stored;
@@ -113,6 +118,7 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (activeSection !== 'datos') return undefined;
         const elements = revealElementsRef.current.filter(Boolean);
         if (!elements.length) return undefined;
 
@@ -132,7 +138,7 @@ function App() {
         elements.forEach((el) => observer.observe(el));
 
         return () => observer.disconnect();
-    }, []);
+    }, [activeSection]);
 
     const buildValueLabel = (value, unit, decimals) => {
         const formatted = formatNumber(value, decimals);
@@ -491,51 +497,112 @@ function App() {
         ]
     ), [laborFtrSeries, laborOcuSeries, laborDesSeries]);
 
+    const showTopNav = hasScrolled || activeSection !== 'datos';
+    const handleSectionSelect = (sectionId) => {
+        setActiveSection(sectionId);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const blogItems = [
+        {
+            title: 'Blog editorial',
+            badge: 'PROXIMAMENTE',
+            description: 'Publicaciones breves con contexto macro y lecturas semanales.'
+        }
+    ];
+
+    const videoItems = [
+        {
+            title: 'Videos explicativos',
+            badge: 'PROXIMAMENTE',
+            description: 'Series cortas y entrevistas para explicar datos con claridad.'
+        }
+    ];
+
+    const developmentItems = [
+        { id: 'dev-1', label: 'Definir plantilla de entradas para Blog', done: false },
+        { id: 'dev-2', label: 'Diseñar layout definitivo de Videos', done: false },
+        { id: 'dev-3', label: 'Integrar redes sociales en Contacto', done: false },
+        { id: 'dev-4', label: 'Mapa de secciones con ruteo real', done: false },
+        { id: 'dev-5', label: 'Iterar identidad visual para secciones nuevas', done: false }
+    ];
+
     return (
         <div className={`container ${hasScrolled ? 'has-scrolled' : 'intro-only'}`}>
-            <HeroHeader
+            <TopNav
                 theme={theme}
                 onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                activeSection={activeSection}
+                onSelectSection={handleSectionSelect}
+                isVisible={showTopNav}
             />
 
-            <OverviewSection
-                sectionRef={(el) => { revealElementsRef.current[0] = el; }}
-                pibCompositionData={pibCompositionData}
-                theme={theme}
-                showPibInfo={showPibInfo}
-                setShowPibInfo={setShowPibInfo}
-                periodYears={periodYears}
-                periodQuarters={periodQuarters}
-                selectedYear={selectedYear}
-                setSelectedYear={setSelectedYear}
-                selectedQuarter={selectedQuarter}
-                setSelectedQuarter={setSelectedQuarter}
-                sideIndicators={sideIndicators}
-                buildSparklinePaths={buildSparklinePaths}
-                getSparklineTrend={getSparklineTrend}
-                chartIndicators={chartIndicators}
-            />
+            {activeSection === 'datos' ? (
+                <>
+                    <HeroHeader />
 
-            <RegionalSection
-                sectionRef={(el) => { revealElementsRef.current[1] = el; }}
-                theme={theme}
-                selectedRegion={selectedRegion}
-                setSelectedRegion={setSelectedRegion}
-                regionalData={regionalData}
-                sideIndicators={sideIndicators}
-                realPibData={realPibData}
-                formatNumber={formatNumber}
-                regionalTimeRange={regionalTimeRange}
-                setRegionalTimeRange={setRegionalTimeRange}
-                regionalPibChartData={regionalPibChartData}
-                regionalPibStartLabel={regionalPibStartLabel}
-                regionalPibEndLabel={regionalPibEndLabel}
-                getRegionId={getRegionId}
-                populationData={populationData}
-                laborCards={laborCards}
-                buildLaborChartData={buildLaborChartData}
-                formatMonthLabelDash={formatMonthLabelDash}
-            />
+                    <OverviewSection
+                        sectionRef={(el) => { revealElementsRef.current[0] = el; }}
+                        pibCompositionData={pibCompositionData}
+                        theme={theme}
+                        showPibInfo={showPibInfo}
+                        setShowPibInfo={setShowPibInfo}
+                        periodYears={periodYears}
+                        periodQuarters={periodQuarters}
+                        selectedYear={selectedYear}
+                        setSelectedYear={setSelectedYear}
+                        selectedQuarter={selectedQuarter}
+                        setSelectedQuarter={setSelectedQuarter}
+                        sideIndicators={sideIndicators}
+                        buildSparklinePaths={buildSparklinePaths}
+                        getSparklineTrend={getSparklineTrend}
+                        chartIndicators={chartIndicators}
+                    />
+
+                    <RegionalSection
+                        sectionRef={(el) => { revealElementsRef.current[1] = el; }}
+                        theme={theme}
+                        selectedRegion={selectedRegion}
+                        setSelectedRegion={setSelectedRegion}
+                        regionalData={regionalData}
+                        sideIndicators={sideIndicators}
+                        realPibData={realPibData}
+                        formatNumber={formatNumber}
+                        regionalTimeRange={regionalTimeRange}
+                        setRegionalTimeRange={setRegionalTimeRange}
+                        regionalPibChartData={regionalPibChartData}
+                        regionalPibStartLabel={regionalPibStartLabel}
+                        regionalPibEndLabel={regionalPibEndLabel}
+                        getRegionId={getRegionId}
+                        populationData={populationData}
+                        laborCards={laborCards}
+                        buildLaborChartData={buildLaborChartData}
+                        formatMonthLabelDash={formatMonthLabelDash}
+                    />
+                </>
+            ) : null}
+
+            {activeSection === 'blog' ? (
+                <PlaceholderSection
+                    title="Blog"
+                    subtitle="Un espacio editorial para análisis, notas breves y lecturas en profundidad."
+                    items={blogItems}
+                />
+            ) : null}
+
+            {activeSection === 'videos' ? (
+                <PlaceholderSection
+                    title="Videos"
+                    subtitle="Contenido audiovisual para explicar los datos con claridad y contexto."
+                    items={videoItems}
+                />
+            ) : null}
+
+            {activeSection === 'contacto' ? <ContactSection /> : null}
+
+            {activeSection === 'desarrollo' ? (
+                <DevelopmentSection items={developmentItems} />
+            ) : null}
         </div>
     );
 }
