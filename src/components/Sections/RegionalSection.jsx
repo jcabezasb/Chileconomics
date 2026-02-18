@@ -63,7 +63,7 @@ const RegionalSection = ({
                                     <div>
                                         <div className="regional-pib-label">PIB Real (Cuentas Nacionales)</div>
                                         <div className="regional-pib-value">
-                                            {selectedRegion ? (sideIndicators[0].value) : (realPibData ? formatNumber(realPibData[realPibData.length - 1].value, 0) + ' MM' : '...')}
+                                            {selectedRegion ? (sideIndicators[0].value) : (realPibData ? formatNumber(realPibData[realPibData.length - 1].value, 1) + ' MM' : '...')}
                                         </div>
                                         <div className="regional-pib-trend" style={{
                                             color: (selectedRegion ? sideIndicators[0].trend : (realPibData ? 'up' : 'neutral')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
@@ -108,7 +108,7 @@ const RegionalSection = ({
                                         data={regionalPibChartData}
                                         color="#f97316"
                                         height={120}
-                                        valueFormatter={(val) => formatNumber(val, 0) + ' MM'}
+                                        valueFormatter={(val) => formatNumber(val, 1) + ' MM'}
                                         theme={theme}
                                     />
                                     {(regionalPibStartLabel || regionalPibEndLabel) ? (
@@ -135,7 +135,7 @@ const RegionalSection = ({
                                             {(() => {
                                                 const id = selectedRegion ? getRegionId(selectedRegion) : null;
                                                 const series = id ? regionalData[id]?.pob?.total : populationData?.total;
-                                                return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                                return series && series.length ? formatNumber(series[series.length - 1].value, 1) : '...';
                                             })()}
                                         </div>
                                     </div>
@@ -154,7 +154,7 @@ const RegionalSection = ({
                                         {(() => {
                                             const id = selectedRegion ? getRegionId(selectedRegion) : null;
                                             const series = id ? regionalData[id]?.pob?.hombres : populationData?.hombres;
-                                            return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                            return series && series.length ? formatNumber(series[series.length - 1].value, 1) : '...';
                                         })()}
                                     </div>
                                 </div>
@@ -168,7 +168,7 @@ const RegionalSection = ({
                                         {(() => {
                                             const id = selectedRegion ? getRegionId(selectedRegion) : null;
                                             const series = id ? regionalData[id]?.pob?.mujeres : populationData?.mujeres;
-                                            return series && series.length ? formatNumber(series[series.length - 1].value, 0) : '...';
+                                            return series && series.length ? formatNumber(series[series.length - 1].value, 1) : '...';
                                         })()}
                                     </div>
                                 </div>

@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import TrendChart from '../Charts/TrendChart';
 import { getChartData } from '../../services/api';
+import { formatNumber } from '../../utils/format';
+import DataTableModal from './DataTableModal';
 
-const MacroCard = ({ indicator, theme }) => {
+const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const [chartData, setChartData] = useState([]);
     const defaultRangeByIndicator = {
         ipc: '1y',
@@ -12,6 +14,12 @@ const MacroCard = ({ indicator, theme }) => {
         cobre: '1y'
     };
     const [timeRange, setTimeRange] = useState(defaultRangeByIndicator[indicator.id] || '1y');
+    const [customRange, setCustomRange] = useState({ start: '', end: '' });
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [rangeStep, setRangeStep] = useState({ start: 'year', end: 'year' });
+    const [showDataTable, setShowDataTable] = useState(false);
+    const [showDetailTable, setShowDetailTable] = useState(false);
+    const customRangeRef = useRef(null);
 
     useEffect(() => {
         getChartData(indicator.id).then(data => setChartData(data));
@@ -24,15 +32,15 @@ const MacroCard = ({ indicator, theme }) => {
     };
 
     const getChartColor = (trend) => {
-        if (trend === 'up') return "var(--trend-up)";
-        if (trend === 'down') return "var(--trend-down)";
-        return "var(--trend-neutral)";
+        if (trend === 'up') return 'var(--trend-up)';
+        if (trend === 'down') return 'var(--trend-down)';
+        return 'var(--trend-neutral)';
     };
 
     const formatAverage = (value) => {
         if (value === null || value === undefined || Number.isNaN(value)) return '';
         const formatter = new Intl.NumberFormat('es-CL', {
-            minimumFractionDigits: 0,
+            minimumFractionDigits: 1,
             maximumFractionDigits: 1
         });
 
@@ -43,10 +51,10 @@ const MacroCard = ({ indicator, theme }) => {
             return `${formatter.format(value)}%`;
         }
         if (indicator.id === 'dolar') {
-            return `$${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(value)}`;
+            return `$${formatter.format(value)}`;
         }
         if (indicator.id === 'cobre') {
-            return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`;
+            return `$${formatter.format(value)}`;
         }
         return formatter.format(value);
     };
@@ -60,12 +68,12 @@ const MacroCard = ({ indicator, theme }) => {
             return `${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}%`;
         }
         if (indicator.id === 'dolar') {
-            return `$${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 0 }).format(value)}`;
+            return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}`;
         }
         if (indicator.id === 'cobre') {
-            return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)}`;
+            return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}`;
         }
-        return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(value);
+        return new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
     };
 
     const formatStartDate = (date) => {
@@ -81,9 +89,31 @@ const MacroCard = ({ indicator, theme }) => {
         const mm = String(month).padStart(2, '0');
         return `${dd}/${mm}/${yy}`;
     };
+    const monthShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const formatMonthLabel = (value) => {
+        if (!value) return '';
+        const parts = value.split('-');
+        if (parts.length < 2) return value;
+        const year = parts[0];
+        const monthIndex = Number(parts[1]) - 1;
+        const mon = monthShort[monthIndex] || parts[1];
+        return `${mon} ${year}`;
+    };
+    const formatMonthOnly = (value) => {
+        if (!value) return '';
+        const parts = value.split('-');
+        if (parts.length < 2) return value;
+        const monthIndex = Number(parts[1]) - 1;
+        return monthShort[monthIndex] || parts[1];
+    };
 
     useEffect(() => {
         setTimeRange(defaultRangeByIndicator[indicator.id] || '1y');
+        setCustomRange({ start: '', end: '' });
+        setOpenDropdown(null);
+        setRangeStep({ start: 'year', end: 'year' });
+        setShowDataTable(false);
+        setShowDetailTable(false);
     }, [indicator.id]);
 
     const rangeOptions = [
@@ -91,6 +121,10 @@ const MacroCard = ({ indicator, theme }) => {
         { id: '2y', label: '2A' },
         { id: '5y', label: '5A' },
         { id: 'all', label: 'Todo' }
+    ];
+    const modalRangeOptions = [
+        ...rangeOptions,
+        { id: 'custom', label: 'Otro' }
     ];
 
     const getPointsPerYear = () => {
@@ -107,26 +141,289 @@ const MacroCard = ({ indicator, theme }) => {
     };
 
     const rangePoints = getRangePoints();
-    const filteredChartData = rangePoints ? chartData.slice(-rangePoints) : chartData;
+    const normalizeDate = (value) => {
+        if (!value) return '';
+        if (value.length === 7) return `${value}-01`;
+        return value;
+    };
+    const hasDailyDates = chartData.some((entry) => (entry.date || entry.name || '').length >= 10);
+    const useDailyPicker = hasDailyDates && chartData.length > 400;
+    const useMonthlyRange = !useDailyPicker;
+    const toMonthKey = (value) => (value ? value.slice(0, 7) : '');
+    const rawDates = chartData
+        .map((entry) => entry.date || entry.name || '')
+        .filter(Boolean)
+        .map((value) => (useDailyPicker ? normalizeDate(value) : toMonthKey(value)))
+        .filter(Boolean)
+        .sort();
+    const availableDateOptions = Array.from(new Set(rawDates));
+    const firstAvailableDate = availableDateOptions[0] || '';
+    const lastAvailableDate = availableDateOptions[availableDateOptions.length - 1] || '';
+    const dateStructure = availableDateOptions.reduce((acc, value) => {
+        const parts = value.split('-');
+        const year = parts[0];
+        const month = parts[1] || '01';
+        const day = parts[2] || '01';
+        if (!acc.years.includes(year)) acc.years.push(year);
+        if (!acc.monthsByYear[year]) acc.monthsByYear[year] = [];
+        if (!acc.monthsByYear[year].includes(month)) acc.monthsByYear[year].push(month);
+        const ymKey = `${year}-${month}`;
+        if (!acc.daysByYearMonth[ymKey]) acc.daysByYearMonth[ymKey] = [];
+        if (!acc.daysByYearMonth[ymKey].includes(day)) acc.daysByYearMonth[ymKey].push(day);
+        return acc;
+    }, { years: [], monthsByYear: {}, daysByYearMonth: {} });
+    dateStructure.years.sort();
+    Object.keys(dateStructure.monthsByYear).forEach((year) => {
+        dateStructure.monthsByYear[year].sort();
+    });
+    Object.keys(dateStructure.daysByYearMonth).forEach((key) => {
+        dateStructure.daysByYearMonth[key].sort();
+    });
+    const applyCustomRange = (data) => {
+        if (timeRange !== 'custom') return data;
+        const start = customRange.start;
+        const end = customRange.end;
+        if (!start && !end) return data;
+        return data.filter((entry) => {
+            const raw = entry.date || entry.name || '';
+            const entryDate = useMonthlyRange ? toMonthKey(raw) : normalizeDate(raw);
+            if (!entryDate) return false;
+            if (start && entryDate < start) return false;
+            if (end && entryDate > end) return false;
+            return true;
+        });
+    };
+    const baseChartData = rangePoints ? chartData.slice(-rangePoints) : chartData;
+    const filteredChartData = applyCustomRange(baseChartData);
     const chartStartDate = formatStartDate(filteredChartData[0]?.date);
+    const isInteractive = typeof onOpen === 'function';
+    const isModal = variant === 'modal';
+    const chartHeight = isModal ? 240 : 110;
+    const handleCardClick = () => {
+        if (isInteractive) onOpen(indicator);
+    };
+    const handleCardKeyDown = (event) => {
+        if (!isInteractive) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onOpen(indicator);
+        }
+    };
+
+    const parseParts = (value) => {
+        if (!value) return { year: '', month: '', day: '' };
+        const parts = value.split('-');
+        return {
+            year: parts[0] || '',
+            month: parts[1] || '01',
+            day: parts[2] || '01'
+        };
+    };
+    const buildValue = (parts) => {
+        if (!parts.year || !parts.month) return '';
+        if (useDailyPicker) return `${parts.year}-${parts.month}-${parts.day || '01'}`;
+        return `${parts.year}-${parts.month}`;
+    };
+    const startParts = parseParts(customRange.start);
+    const endParts = parseParts(customRange.end);
+    const startYearOptions = dateStructure.years;
+    const startMonthOptions = dateStructure.monthsByYear[startParts.year] || [];
+    const startDayOptions = dateStructure.daysByYearMonth[`${startParts.year}-${startParts.month}`] || [];
+    const endYearOptions = dateStructure.years;
+    const endMonthOptions = dateStructure.monthsByYear[endParts.year] || [];
+    const endDayOptions = dateStructure.daysByYearMonth[`${endParts.year}-${endParts.month}`] || [];
+    const updateStart = (parts) => {
+        const nextValue = buildValue(parts);
+        setCustomRange((prev) => ({
+            start: nextValue,
+            end: prev.end && prev.end < nextValue ? nextValue : prev.end
+        }));
+    };
+    const updateEnd = (parts) => {
+        const nextValue = buildValue(parts);
+        setCustomRange((prev) => ({
+            start: prev.start && prev.start > nextValue ? nextValue : prev.start,
+            end: nextValue
+        }));
+    };
+    const formatDisplayDate = (value) => {
+        if (!value) return 'Fecha';
+        if (useDailyPicker) return formatStartDate(value);
+        return formatMonthLabel(value);
+    };
+    const csvContent = useMemo(() => {
+        if (!filteredChartData.length) return '';
+        const header = 'fecha;valor';
+        const rows = filteredChartData.map((entry) => {
+            const dateValue = entry.date || entry.name || '';
+            const value = Number(entry.value);
+            const formattedValue = Number.isNaN(value) ? '' : formatNumber(value, 1);
+            return `${dateValue};${formattedValue}`;
+        });
+        return [header, ...rows].join('\n');
+    }, [filteredChartData]);
+    const handleDownloadCsv = () => {
+        if (!csvContent) return;
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${indicator.id || 'serie'}-datos.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+    const ipcDetailSeries = useMemo(() => {
+        if (indicator.id !== 'ipc' || !filteredChartData.length) return null;
+        const transable = filteredChartData.map((entry, index) => {
+            const base = Number(entry.value);
+            const mod = Math.sin(index / 6) * 0.15;
+            const value = Number.isNaN(base) ? null : Number((base * 0.55 + mod).toFixed(1));
+            return { ...entry, value };
+        });
+        const noTransable = filteredChartData.map((entry, index) => {
+            const base = Number(entry.value);
+            const mod = Math.cos(index / 5) * 0.12;
+            const value = Number.isNaN(base) ? null : Number((base * 0.45 + mod).toFixed(1));
+            return { ...entry, value };
+        });
+        return { transable, noTransable };
+    }, [indicator.id, filteredChartData]);
+    const detailCsvContent = useMemo(() => {
+        if (!ipcDetailSeries) return '';
+        const header = 'fecha;ipc_transable;ipc_no_transable';
+        const rows = ipcDetailSeries.transable.map((entry, index) => {
+            const dateValue = entry.date || entry.name || '';
+            const transableVal = ipcDetailSeries.transable[index]?.value;
+            const noTransableVal = ipcDetailSeries.noTransable[index]?.value;
+            return `${dateValue};${formatNumber(transableVal, 1)};${formatNumber(noTransableVal, 1)}`;
+        });
+        return [header, ...rows].join('\n');
+    }, [ipcDetailSeries]);
+    const handleDownloadDetailCsv = () => {
+        if (!detailCsvContent) return;
+        const blob = new Blob([detailCsvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'ipc-detalle-datos.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+    const ipcTopComponents = useMemo(() => {
+        if (indicator.id !== 'ipc') return [];
+        return [
+            { name: 'Alimentos', change: 1.2, weight: 0.28 },
+            { name: 'Vivienda y servicios', change: 0.9, weight: 0.22 },
+            { name: 'Transporte', change: 0.7, weight: 0.14 },
+            { name: 'Salud', change: 0.6, weight: 0.09 },
+            { name: 'Educacion', change: 0.5, weight: 0.06 }
+        ];
+    }, [indicator.id]);
+    const renderOptionGrid = (options, selectedValue, onSelect, formatLabel) => (
+        <div
+            style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                gap: '0.3rem',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                paddingRight: '0.15rem'
+            }}
+        >
+            {options.map((option) => (
+                <button
+                    key={`opt-${option}`}
+                    type="button"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(option);
+                    }}
+                    style={{
+                        padding: '0.35rem 0',
+                        borderRadius: '8px',
+                        border: '1px solid transparent',
+                        background: option === selectedValue ? 'var(--bg-hover)' : 'transparent',
+                        color: option === selectedValue ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        fontSize: '0.7rem',
+                        fontFamily: 'var(--font-sans)',
+                        cursor: 'pointer'
+                    }}
+                >
+                    {formatLabel ? formatLabel(option) : option}
+                </button>
+            ))}
+        </div>
+    );
+    const renderDayGrid = (parts, availableDays, onSelect) => {
+        if (!parts.year || !parts.month) return null;
+        const year = Number(parts.year);
+        const month = Number(parts.month);
+        if (Number.isNaN(year) || Number.isNaN(month)) return null;
+        const firstDay = new Date(year, month - 1, 1);
+        const startOffset = (firstDay.getDay() + 6) % 7;
+        const lastDay = new Date(year, month, 0).getDate();
+        const availableSet = new Set(availableDays);
+        const grid = [];
+        for (let i = 0; i < startOffset; i += 1) {
+            grid.push(null);
+        }
+        for (let day = 1; day <= lastDay; day += 1) {
+            const dayValue = String(day).padStart(2, '0');
+            const isAvailable = availableSet.has(dayValue);
+            grid.push({ day: dayValue, isAvailable });
+        }
+        return renderOptionGrid(
+            grid.filter((cell) => cell && cell.isAvailable).map((cell) => cell.day),
+            parts.day,
+            onSelect,
+            (value) => String(Number(value)).padStart(2, '0')
+        );
+    };
+
+    useEffect(() => {
+        if (timeRange !== 'custom' || customRange.start || customRange.end) return;
+        if (!chartData.length) return;
+        setCustomRange({ start: firstAvailableDate, end: lastAvailableDate });
+    }, [timeRange, customRange, chartData]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (customRangeRef.current && !customRangeRef.current.contains(event.target)) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
-        <div style={{
-            background: 'var(--bg-card)',
-            padding: '0.85rem',
-            paddingBottom: '1.7rem',
-            borderRadius: '10px',
-            boxShadow: 'var(--shadow-md)',
-            border: '1px solid var(--border)',
-            transition: 'transform 0.2s',
-            cursor: 'default',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            height: '100%', // Fill available space
-            boxSizing: 'border-box',
-            position: 'relative'
-        }}>
+        <div
+            role={isInteractive ? 'button' : undefined}
+            tabIndex={isInteractive ? 0 : undefined}
+            onClick={handleCardClick}
+            onKeyDown={handleCardKeyDown}
+            style={{
+                background: 'var(--bg-card)',
+                padding: isModal ? '1.2rem' : '0.85rem',
+                paddingBottom: isModal ? '2.2rem' : '1.7rem',
+                borderRadius: isModal ? '12px' : '10px',
+                boxShadow: isModal ? 'none' : 'var(--shadow-md)',
+                border: isModal ? 'none' : '1px solid var(--border)',
+                transition: 'transform 0.2s',
+                cursor: isInteractive ? 'pointer' : 'default',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                height: '100%',
+                boxSizing: 'border-box',
+                position: 'relative'
+            }}
+        >
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
                 <div>
@@ -137,14 +434,17 @@ const MacroCard = ({ indicator, theme }) => {
                         </div>
                     ) : null}
                 </div>
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {rangeOptions.map((option) => {
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {(isModal ? modalRangeOptions : rangeOptions).map((option) => {
                         const isActive = timeRange === option.id;
                         return (
                             <button
                                 key={option.id}
                                 type="button"
-                                onClick={() => setTimeRange(option.id)}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setTimeRange(option.id);
+                                }}
                                 aria-pressed={isActive}
                                 style={{
                                     fontSize: '0.6rem',
@@ -162,8 +462,112 @@ const MacroCard = ({ indicator, theme }) => {
                             </button>
                         );
                     })}
+                    {isModal ? (
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setShowDataTable(true);
+                            }}
+                            style={{
+                                fontSize: '0.6rem',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '999px',
+                                border: `1px solid ${showDataTable ? 'var(--accent)' : 'var(--border)'}`,
+                                background: showDataTable ? 'var(--bg-hover)' : 'transparent',
+                                color: showDataTable ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontWeight: 700
+                            }}
+                        >
+                            Datos
+                        </button>
+                    ) : null}
                 </div>
             </div>
+
+            {isModal && timeRange === 'custom' ? (
+                <div ref={customRangeRef} style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', marginBottom: '0.45rem', position: 'relative' }}>
+                    {['start', 'end'].map((kind) => {
+                        const parts = kind === 'start' ? startParts : endParts;
+                        const yearOptions = kind === 'start' ? startYearOptions : endYearOptions;
+                        const monthOptions = kind === 'start' ? startMonthOptions : endMonthOptions;
+                        const dayOptions = kind === 'start' ? startDayOptions : endDayOptions;
+                        const updateFn = kind === 'start' ? updateStart : updateEnd;
+                        const label = kind === 'start' ? 'Desde' : 'Hasta';
+                        return (
+                            <div key={kind} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', position: 'relative' }}>
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{label}</span>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setOpenDropdown(openDropdown === kind ? null : kind);
+                                        setRangeStep((prev) => ({ ...prev, [kind]: 'year' }));
+                                    }}
+                                    className="period-select"
+                                    style={{ minWidth: '180px', textAlign: 'left' }}
+                                >
+                                    {formatDisplayDate(kind === 'start' ? customRange.start : customRange.end)}
+                                </button>
+                                {openDropdown === kind ? (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 'calc(100% + 6px)',
+                                        left: 0,
+                                        background: 'var(--bg-card)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: '12px',
+                                        boxShadow: 'var(--shadow-md)',
+                                        padding: '0.6rem',
+                                        width: '260px',
+                                        maxHeight: '280px',
+                                        zIndex: 6
+                                    }}>
+                                        {rangeStep[kind] === 'year' ? (
+                                            <div>
+                                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Año</div>
+                                                {renderOptionGrid(yearOptions, parts.year, (year) => {
+                                                    const nextMonths = dateStructure.monthsByYear[year] || [];
+                                                    const nextMonth = kind === 'start' ? (nextMonths[0] || '01') : (nextMonths[nextMonths.length - 1] || '01');
+                                                    const nextDays = dateStructure.daysByYearMonth[`${year}-${nextMonth}`] || ['01'];
+                                                    const nextDay = kind === 'start' ? (nextDays[0] || '01') : (nextDays[nextDays.length - 1] || '01');
+                                                    updateFn({ year, month: nextMonth, day: nextDay });
+                                                    setRangeStep((prev) => ({ ...prev, [kind]: 'month' }));
+                                                })}
+                                            </div>
+                                        ) : null}
+                                        {rangeStep[kind] === 'month' ? (
+                                            <div>
+                                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Mes</div>
+                                                {renderOptionGrid(monthOptions, parts.month, (month) => {
+                                                    const nextDays = dateStructure.daysByYearMonth[`${parts.year}-${month}`] || ['01'];
+                                                    const nextDay = kind === 'start' ? (nextDays[0] || '01') : (nextDays[nextDays.length - 1] || '01');
+                                                    updateFn({ year: parts.year, month, day: nextDay });
+                                                    if (useDailyPicker) {
+                                                        setRangeStep((prev) => ({ ...prev, [kind]: 'day' }));
+                                                    } else {
+                                                        setOpenDropdown(null);
+                                                    }
+                                                }, (value) => formatMonthOnly(`${parts.year}-${value}`))}
+                                            </div>
+                                        ) : null}
+                                        {useDailyPicker && rangeStep[kind] === 'day' ? (
+                                            <div>
+                                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Día</div>
+                                                {renderDayGrid(parts, dayOptions, (day) => {
+                                                    updateFn({ year: parts.year, month: parts.month, day });
+                                                    setOpenDropdown(null);
+                                                })}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                ) : null}
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : null}
 
             {/* Main Value */}
             <div>
@@ -189,7 +593,7 @@ const MacroCard = ({ indicator, theme }) => {
             <TrendChart
                 data={filteredChartData}
                 color="var(--chart-neon)"
-                height={110}
+                height={chartHeight}
                 averageFormatter={formatAverage}
                 valueFormatter={formatTooltipValue}
                 theme={theme}
@@ -215,6 +619,115 @@ const MacroCard = ({ indicator, theme }) => {
                 }}>
                     {indicator.period}
                 </span>
+            ) : null}
+            {isModal && indicator.id === 'ipc' && ipcDetailSeries ? (
+                <div style={{ marginTop: '1.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Detalle IPC (mock)</span>
+                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Transables vs no transables</span>
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setShowDetailTable(true);
+                                }}
+                                style={{
+                                    fontSize: '0.6rem',
+                                    padding: '0.2rem 0.55rem',
+                                    borderRadius: '999px',
+                                    border: `1px solid ${showDetailTable ? 'var(--accent)' : 'var(--border)'}`,
+                                    background: showDetailTable ? 'var(--bg-hover)' : 'transparent',
+                                    color: showDetailTable ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    fontWeight: 700
+                                }}
+                            >
+                                Datos
+                            </button>
+                        </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>IPC transable</span>
+                            <TrendChart
+                                data={ipcDetailSeries.transable}
+                                color="var(--trend-up)"
+                                height={160}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                            />
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>IPC no transable</span>
+                            <TrendChart
+                                data={ipcDetailSeries.noTransable}
+                                color="var(--trend-down)"
+                                height={160}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Componentes con mayor alza (mock)</span>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Top 5 contribuciones</span>
+                        </div>
+                        <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.8fr 0.8fr', padding: '0.45rem 0.7rem', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', background: 'color-mix(in srgb, var(--bg-card) 80%, transparent)' }}>
+                                <span>Componente</span>
+                                <span style={{ textAlign: 'right' }}>Variacion</span>
+                                <span style={{ textAlign: 'right' }}>Peso</span>
+                            </div>
+                            {ipcTopComponents.map((item) => (
+                                <div key={item.name} style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.8fr 0.8fr', padding: '0.4rem 0.7rem', borderTop: '1px solid var(--border)', fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                                    <span>{item.name}</span>
+                                    <span style={{ textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>
+                                        {formatNumber(item.change, 1)}pp
+                                    </span>
+                                    <span style={{ textAlign: 'right' }}>{formatNumber(item.weight * 100, 1)}%</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+            {isModal && showDataTable ? (
+                <DataTableModal
+                    title="Datos del grafico"
+                    columns={[
+                        { key: 'date', label: 'Fecha' },
+                        { key: 'value', label: 'Valor', align: 'right', emphasis: true }
+                    ]}
+                    rows={filteredChartData.map((entry, index) => ({
+                        id: `${entry.date || entry.name}-${index}`,
+                        date: formatStartDate(entry.date || entry.name),
+                        value: formatTooltipValue(entry.value)
+                    }))}
+                    onClose={() => setShowDataTable(false)}
+                    onDownload={handleDownloadCsv}
+                />
+            ) : null}
+            {isModal && showDetailTable && ipcDetailSeries ? (
+                <DataTableModal
+                    title="Datos IPC transable/no transable"
+                    columns={[
+                        { key: 'date', label: 'Fecha' },
+                        { key: 'transable', label: 'Transable', align: 'right', emphasis: true },
+                        { key: 'noTransable', label: 'No transable', align: 'right', emphasis: true }
+                    ]}
+                    rows={ipcDetailSeries.transable.map((entry, index) => ({
+                        id: `detail-${entry.date || entry.name}-${index}`,
+                        date: formatStartDate(entry.date || entry.name),
+                        transable: formatNumber(entry.value, 1),
+                        noTransable: formatNumber(ipcDetailSeries.noTransable[index]?.value, 1)
+                    }))}
+                    onClose={() => setShowDetailTable(false)}
+                    onDownload={handleDownloadDetailCsv}
+                />
             ) : null}
         </div>
     );

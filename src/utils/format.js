@@ -22,7 +22,7 @@ export const formatNumber = (value, optionsOrDecimals = 1) => {
         return formatter.format(value);
     }
     const options = optionsOrDecimals || {};
-    const minimumFractionDigits = options.minimumFractionDigits ?? 0;
+    const minimumFractionDigits = options.minimumFractionDigits ?? 1;
     const maximumFractionDigits = options.maximumFractionDigits ?? minimumFractionDigits;
     const formatter = getNumberFormatter(minimumFractionDigits, maximumFractionDigits);
     return formatter.format(value);

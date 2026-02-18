@@ -29,7 +29,7 @@ const PIBComparisonChart = ({ data, theme }) => {
     const glowStyle = () => ({});
 
     const formatYAxis = (value) => {
-        return `${(value / 1000).toFixed(0)}k`;
+        return `${(value / 1000).toFixed(1)}k`;
     };
 
     const CustomTooltip = ({ active, payload }) => {

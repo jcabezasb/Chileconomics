@@ -141,12 +141,12 @@ function App() {
     }, [activeSection]);
 
     const buildValueLabel = (value, unit, decimals) => {
-        const formatted = formatNumber(value, decimals);
+        const formatted = formatNumber(value, 1);
         return unit ? `${formatted} ${unit}` : formatted;
     };
 
     const buildPercentLabel = (value, decimals = 1) => {
-        const formatted = formatNumber(value, decimals);
+        const formatted = formatNumber(value, 1);
         return `${value >= 0 ? '+' : ''}${formatted}%`;
     };
 
@@ -377,7 +377,7 @@ function App() {
     const growthAverage = useMemo(() => {
         if (!regionGrowthData.length) return 0;
         const sum = regionGrowthData.reduce((acc, item) => acc + (Number(item[growthMetric]) || 0), 0);
-        return Number((sum / regionGrowthData.length).toFixed(2));
+        return Number((sum / regionGrowthData.length).toFixed(1));
     }, [regionGrowthData, growthMetric]);
 
     const getOverviewButtonStyle = (id) => {

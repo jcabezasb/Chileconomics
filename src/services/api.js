@@ -85,7 +85,7 @@ const mockChartData = (indicatorId) => {
         if (indicatorId === "imacec") val += (i * 0.05);
         return {
             name: m,
-            value: Number(val.toFixed(2))
+            value: Number(val.toFixed(1))
         };
     });
 };
@@ -150,10 +150,10 @@ export const getKeyIndicators = async () => {
                         id: 'dolar',
                         title: 'Tipo de cambio',
                         subtitle: 'CLP/USD',
-                        value: `$${formatNumber(dolarLatest.value, { maximumFractionDigits: 0 })}`,
+                        value: `$${formatNumber(dolarLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
                         variation: dolarDelta === null
                             ? ''
-                            : `${dolarDelta >= 0 ? '+' : ''}$${formatNumber(Math.abs(dolarDelta), { maximumFractionDigits: 0 })}`,
+                            : `${dolarDelta >= 0 ? '+' : ''}$${formatNumber(Math.abs(dolarDelta), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
                         trend: dolarDelta === null ? 'neutral' : (dolarDelta >= 0 ? 'up' : 'down'),
                         period: formatDayLabel(dolarLatest.date) || 'Hoy',
                         description: 'Tipo de cambio USD/CLP'
@@ -162,7 +162,7 @@ export const getKeyIndicators = async () => {
                         id: 'cobre',
                         title: 'Cobre',
                         subtitle: 'USD por libra',
-                        value: `$${formatNumber(cobreLatest.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        value: `$${formatNumber(cobreLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
                         variation: cobreDelta === null
                             ? ''
                             : `${cobreDelta >= 0 ? '+' : ''}${formatNumber(cobreDelta, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,

@@ -15,14 +15,28 @@ const formatTooltipDate = (date, fallback) => {
     return `${mon} ${year}`;
 };
 
-const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, valueFormatter, theme = 'dark' }) => {
+const TrendChart = ({
+    data,
+    color = "#2563eb",
+    height = 60,
+    averageFormatter,
+    valueFormatter,
+    theme = 'dark',
+    series
+}) => {
     if (!data || data.length === 0) return null;
 
     const gradientId = useId();
     const glowId = useId();
     const isDark = theme === 'dark';
-    const average = data.reduce((acc, item) => acc + (Number(item.value) || 0), 0) / data.length;
-    const values = data.map((item) => Number(item.value)).filter((value) => !Number.isNaN(value));
+    const seriesList = series && series.length
+        ? series
+        : [{ key: 'value', color }];
+    const primaryKey = seriesList[0].key;
+    const average = data.reduce((acc, item) => acc + (Number(item[primaryKey]) || 0), 0) / data.length;
+    const values = data
+        .flatMap((item) => seriesList.map((entry) => Number(item[entry.key])))
+        .filter((value) => !Number.isNaN(value));
     const minValue = values.length ? Math.min(...values) : 0;
     const maxValue = values.length ? Math.max(...values) : 0;
     const range = maxValue - minValue;
@@ -30,12 +44,12 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
     const chartDomain = [minValue - padding, maxValue + padding];
     const averageLabel = averageFormatter
         ? averageFormatter(average)
-        : new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(average);
+        : new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(average);
     const animateChart = true;
     const renderTooltip = ({ active, payload, label }) => {
         if (!active || !payload || !payload.length) return null;
         const point = payload[0]?.payload || {};
-        const formattedValue = valueFormatter ? valueFormatter(point.value) : averageLabel;
+        const formattedValue = valueFormatter ? valueFormatter(point[primaryKey]) : averageLabel;
         const dateLabel = formatTooltipDate(point.date, label);
         return (
             <div style={{
@@ -48,6 +62,18 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                 fontSize: '0.75rem'
             }}>
                 <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{formattedValue}</div>
+                {seriesList.length > 1 ? (
+                    <div style={{ display: 'grid', gap: '0.2rem' }}>
+                        {seriesList.map((entry) => (
+                            <div key={entry.key} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>{entry.label || entry.key}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                                    {valueFormatter ? valueFormatter(point[entry.key]) : averageLabel}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
                 <div style={{ color: 'var(--text-secondary)' }}>{dateLabel}</div>
             </div>
         );
@@ -58,9 +84,9 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
             className="trend-chart"
             style={{ width: '100%', height: height, marginTop: '1rem', display: 'flex', alignItems: 'stretch' }}
         >
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data}>
+                    <AreaChart data={data} margin={{ right: 42 }}>
                         <defs>
                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={color} stopOpacity={isDark ? 0.3 : 0.08} />
@@ -74,33 +100,49 @@ const TrendChart = ({ data, color = "#2563eb", height = 60, averageFormatter, va
                         <YAxis hide domain={chartDomain} />
                         <ReferenceLine
                             y={average}
-                            stroke={isDark ? "#ffffff" : "#000000"}
-                            strokeOpacity={isDark ? 0.7 : 0.15}
-                            strokeDasharray="4 4"
+                            stroke={isDark ? "#ffffff" : "#0b1220"}
+                            strokeOpacity={isDark ? 0.85 : 0.3}
+                            strokeWidth={1.5}
+                            strokeDasharray="4 3"
                         />
                         <Tooltip content={renderTooltip} cursor={{ stroke: 'transparent' }} />
-                        <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke={color}
-                            fillOpacity={1}
-                            fill={`url(#${gradientId})`}
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            dot={false}
-                            activeDot={false}
-                            connectNulls
-                            filter={isDark ? `url(#${glowId})` : "none"}
-                            isAnimationActive={animateChart}
-                            animationDuration={400}
-                            animationEasing="ease-out"
-                        />
+                        {seriesList.map((entry, index) => (
+                            <Area
+                                key={entry.key}
+                                type="monotone"
+                                dataKey={entry.key}
+                                stroke={entry.color || color}
+                                fillOpacity={index === 0 ? 1 : 0}
+                                fill={index === 0 ? `url(#${gradientId})` : 'transparent'}
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                dot={false}
+                                activeDot={false}
+                                connectNulls
+                                filter={isDark ? `url(#${glowId})` : "none"}
+                                isAnimationActive={animateChart}
+                                animationDuration={400}
+                                animationEasing="ease-out"
+                            />
+                        ))}
                     </AreaChart>
                 </ResponsiveContainer>
-            </div>
-            <div style={{ width: '52px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{averageLabel}</span>
+                <div
+                    style={{
+                        position: 'absolute',
+                        right: 6,
+                        top: `${((chartDomain[1] - average) / (chartDomain[1] - chartDomain[0])) * 100}%`,
+                        transform: 'translateY(-50%)',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        pointerEvents: 'none',
+                        background: 'transparent'
+                    }}
+                >
+                    {averageLabel}
+                </div>
             </div>
         </div>
     );
