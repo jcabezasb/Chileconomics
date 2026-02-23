@@ -1,0 +1,116 @@
+.pib-modal {
+    width: min(980px, calc(100vw - 3rem));
+}
+
+.pib-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.pib-modal-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+}
+
+.pib-modal-control {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pib-modal-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.pib-modal-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pib-modal-subtitle {
+    margin: 0.4rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.pib-modal-download {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+}
+
+.pib-modal-download:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.pib-modal-chart {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0.8rem;
+    background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+    margin-bottom: 1rem;
+    height: 360px;
+    overflow-x: auto;
+}
+
+.pib-modal-chart-inner {
+    height: 100%;
+}
+
+.pib-modal-scroll {
+    border-top: 1px dashed var(--border);
+    padding-top: 1rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.pib-modal-section h4 {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pib-modal-section p {
+    margin: 0 0 0.7rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.pib-modal-section p:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .pib-modal-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .pib-modal-chart {
+        height: 280px;
+    }
+
+    .pib-modal-controls {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}

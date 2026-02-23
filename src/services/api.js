@@ -106,7 +106,7 @@ const fetchData = async (url, fallback) => {
 export const getKeyIndicators = async () => {
     const bcchData = await loadBcchData();
     if (bcchData) {
-        const ipcSeries = bcchData.ipc_index?.data || [];
+        const ipcSeries = bcchData.ipc_general?.data || bcchData.ipc_index?.data || [];
         const dolarSeries = bcchData.dolar?.data || [];
         const cobreSeries = bcchData.cobre?.data || [];
         const desempleoSeries = bcchData.desempleo?.data || [];
@@ -215,15 +215,19 @@ const buildYoYFromIndex = (series, lag = 12) => {
 export const getChartData = async (indicatorId) => {
     const bcchData = await loadBcchData();
     const keyMap = {
-        ipc: 'ipc_index',
+        ipc: ['ipc_general', 'ipc_index'],
         dolar: 'dolar',
         cobre: 'cobre',
         desempleo: 'desempleo'
     };
 
     const key = keyMap[indicatorId];
-    if (bcchData && key && bcchData[key]) {
-        const raw = bcchData[key].data || [];
+    const resolvedKey = Array.isArray(key)
+        ? key.find((candidate) => bcchData && bcchData[candidate])
+        : key;
+
+    if (bcchData && resolvedKey && bcchData[resolvedKey]) {
+        const raw = bcchData[resolvedKey].data || [];
         let series = raw;
 
         if (indicatorId === 'ipc') {
@@ -242,6 +246,32 @@ export const getChartData = async (indicatorId) => {
     return fetchData(`/api/chart?id=${encodeURIComponent(indicatorId)}`, mockChartData(indicatorId));
 };
 
+export const getIpcDetailSeries = async () => {
+    const bcchData = await loadBcchData();
+    if (!bcchData) return null;
+
+    const coreSeries = bcchData.ipc_core?.data || [];
+    const volatileSeries = bcchData.ipc_volatile?.data || [];
+
+    if (!coreSeries.length || !volatileSeries.length) return null;
+
+    const coreYoY = buildYoYFromIndex(coreSeries, 12);
+    const volatileYoY = buildYoYFromIndex(volatileSeries, 12);
+
+    return {
+        core: coreYoY.map((entry) => ({
+            name: formatChartLabel(entry.date),
+            date: entry.date,
+            value: entry.value
+        })),
+        volatile: volatileYoY.map((entry) => ({
+            name: formatChartLabel(entry.date),
+            date: entry.date,
+            value: entry.value
+        }))
+    };
+};
+
 // Mapeo de IDs de series a claves en el JSON
 const SERIES_KEY_MAP = {
     'F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T': 'pib_real',
@@ -254,6 +284,9 @@ const SERIES_KEY_MAP = {
     'F033.IBS.FLU.N.CLP.EP18.0.T': 'import_nominal',
     'F073.TCO.PRE.Z.D': 'dolar',
     'F074.IPC.IND.Z.EP23.C.M': 'ipc_index',
+    'G073.IPC.IND.2023.M': 'ipc_general',
+    'G073.IPCSV.IND.2023.M': 'ipc_core',
+    'G073.IPCV.IND.2023.M': 'ipc_volatile',
     'F019.PPB.PRE.100.D': 'cobre',
     'F049.DES.TAS.INE9.10.M': 'desempleo',
     // Población Nacional

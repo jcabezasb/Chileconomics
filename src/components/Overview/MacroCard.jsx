@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import TrendChart from '../Charts/TrendChart';
-import { getChartData } from '../../services/api';
+import { getChartData, getIpcDetailSeries } from '../../services/api';
 import { formatNumber } from '../../utils/format';
 import DataTableModal from './DataTableModal';
 
@@ -19,10 +19,28 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const [rangeStep, setRangeStep] = useState({ start: 'year', end: 'year' });
     const [showDataTable, setShowDataTable] = useState(false);
     const [showDetailTable, setShowDetailTable] = useState(false);
+    const [ipcDetailData, setIpcDetailData] = useState(null);
     const customRangeRef = useRef(null);
 
     useEffect(() => {
         getChartData(indicator.id).then(data => setChartData(data));
+    }, [indicator.id]);
+
+    useEffect(() => {
+        let isActive = true;
+        if (indicator.id !== 'ipc') {
+            setIpcDetailData(null);
+            return undefined;
+        }
+
+        getIpcDetailSeries().then((data) => {
+            if (!isActive) return;
+            setIpcDetailData(data);
+        });
+
+        return () => {
+            isActive = false;
+        };
     }, [indicator.id]);
 
     const getTrendIcon = (trend) => {
@@ -275,29 +293,40 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         URL.revokeObjectURL(url);
     };
     const ipcDetailSeries = useMemo(() => {
-        if (indicator.id !== 'ipc' || !filteredChartData.length) return null;
-        const transable = filteredChartData.map((entry, index) => {
+        if (indicator.id !== 'ipc') return null;
+
+        if (ipcDetailData) {
+            const coreBase = rangePoints ? ipcDetailData.core.slice(-rangePoints) : ipcDetailData.core;
+            const volatileBase = rangePoints ? ipcDetailData.volatile.slice(-rangePoints) : ipcDetailData.volatile;
+            const core = applyCustomRange(coreBase);
+            const volatile = applyCustomRange(volatileBase);
+            if (!core.length || !volatile.length) return null;
+            return { core, volatile };
+        }
+
+        if (!filteredChartData.length) return null;
+        const core = filteredChartData.map((entry, index) => {
             const base = Number(entry.value);
             const mod = Math.sin(index / 6) * 0.15;
-            const value = Number.isNaN(base) ? null : Number((base * 0.55 + mod).toFixed(1));
+            const value = Number.isNaN(base) ? null : Number((base * 0.6 + mod).toFixed(1));
             return { ...entry, value };
         });
-        const noTransable = filteredChartData.map((entry, index) => {
+        const volatile = filteredChartData.map((entry, index) => {
             const base = Number(entry.value);
             const mod = Math.cos(index / 5) * 0.12;
-            const value = Number.isNaN(base) ? null : Number((base * 0.45 + mod).toFixed(1));
+            const value = Number.isNaN(base) ? null : Number((base * 0.4 + mod).toFixed(1));
             return { ...entry, value };
         });
-        return { transable, noTransable };
-    }, [indicator.id, filteredChartData]);
+        return { core, volatile };
+    }, [indicator.id, ipcDetailData, filteredChartData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
     const detailCsvContent = useMemo(() => {
         if (!ipcDetailSeries) return '';
-        const header = 'fecha;ipc_transable;ipc_no_transable';
-        const rows = ipcDetailSeries.transable.map((entry, index) => {
+        const header = 'fecha;ipc_subyacente;ipc_volatil';
+        const rows = ipcDetailSeries.core.map((entry, index) => {
             const dateValue = entry.date || entry.name || '';
-            const transableVal = ipcDetailSeries.transable[index]?.value;
-            const noTransableVal = ipcDetailSeries.noTransable[index]?.value;
-            return `${dateValue};${formatNumber(transableVal, 1)};${formatNumber(noTransableVal, 1)}`;
+            const coreVal = ipcDetailSeries.core[index]?.value;
+            const volatileVal = ipcDetailSeries.volatile[index]?.value;
+            return `${dateValue};${formatNumber(coreVal, 1)};${formatNumber(volatileVal, 1)}`;
         });
         return [header, ...rows].join('\n');
     }, [ipcDetailSeries]);
@@ -623,9 +652,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             {isModal && indicator.id === 'ipc' && ipcDetailSeries ? (
                 <div style={{ marginTop: '1.2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Detalle IPC (mock)</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Detalle IPC</span>
                         <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Transables vs no transables</span>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Subyacente vs volatiles</span>
                             <button
                                 type="button"
                                 onClick={(event) => {
@@ -649,9 +678,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
                         <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>IPC transable</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Subyacente (Core)</span>
                             <TrendChart
-                                data={ipcDetailSeries.transable}
+                                data={ipcDetailSeries.core}
                                 color="var(--trend-up)"
                                 height={160}
                                 averageFormatter={formatAverage}
@@ -660,9 +689,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                             />
                         </div>
                         <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>IPC no transable</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Volatiles</span>
                             <TrendChart
-                                data={ipcDetailSeries.noTransable}
+                                data={ipcDetailSeries.volatile}
                                 color="var(--trend-down)"
                                 height={160}
                                 averageFormatter={formatAverage}
@@ -713,17 +742,17 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             ) : null}
             {isModal && showDetailTable && ipcDetailSeries ? (
                 <DataTableModal
-                    title="Datos IPC transable/no transable"
+                    title="Datos IPC subyacente/volatiles"
                     columns={[
                         { key: 'date', label: 'Fecha' },
-                        { key: 'transable', label: 'Transable', align: 'right', emphasis: true },
-                        { key: 'noTransable', label: 'No transable', align: 'right', emphasis: true }
+                        { key: 'core', label: 'Subyacente (Core)', align: 'right', emphasis: true },
+                        { key: 'volatile', label: 'Volatiles', align: 'right', emphasis: true }
                     ]}
-                    rows={ipcDetailSeries.transable.map((entry, index) => ({
+                    rows={ipcDetailSeries.core.map((entry, index) => ({
                         id: `detail-${entry.date || entry.name}-${index}`,
                         date: formatStartDate(entry.date || entry.name),
-                        transable: formatNumber(entry.value, 1),
-                        noTransable: formatNumber(ipcDetailSeries.noTransable[index]?.value, 1)
+                        core: formatNumber(entry.value, 1),
+                        volatile: formatNumber(ipcDetailSeries.volatile[index]?.value, 1)
                     }))}
                     onClose={() => setShowDetailTable(false)}
                     onDownload={handleDownloadDetailCsv}

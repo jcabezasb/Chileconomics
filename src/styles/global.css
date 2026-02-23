@@ -334,6 +334,26 @@ h6 {
     position: relative;
     display: flex;
     align-items: center;
+    gap: 0.5rem;
+}
+
+.overview-pib-detail {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 0.7rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+}
+
+.overview-pib-detail:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
 
 .overview-pib-tooltip {

@@ -49,6 +49,7 @@ function App() {
         pibCompositionData,
         populationData,
         realPibData,
+        nominalSeries,
         availablePeriods
     } = useBcchData(selectedDate);
 
@@ -553,6 +554,8 @@ function App() {
                         setSelectedYear={setSelectedYear}
                         selectedQuarter={selectedQuarter}
                         setSelectedQuarter={setSelectedQuarter}
+                        availablePeriods={availablePeriods}
+                        nominalSeries={nominalSeries}
                         sideIndicators={sideIndicators}
                         buildSparklinePaths={buildSparklinePaths}
                         getSparklineTrend={getSparklineTrend}

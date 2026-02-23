@@ -13,18 +13,25 @@ const PIBComparisonChart = ({ data, theme }) => {
         import: '#FF3D71'
     };
 
-    const importValue = data.import < 0 ? data.import : -Math.abs(data.import || 0);
+    const normalizeEntry = (entry) => {
+        const importValue = entry.import < 0 ? entry.import : -Math.abs(entry.import || 0);
+        return {
+            name: entry.name || 'Estructura',
+            consumo: entry.consumo,
+            inversion: entry.inversion,
+            gasto: entry.gasto,
+            export: entry.export,
+            import: importValue
+        };
+    };
 
-    const chartData = [
-        {
-            name: 'Estructura',
-            consumo: data.consumo,
-            inversion: data.inversion,
-            gasto: data.gasto,
-            export: data.export,
-            import: importValue, // Must be negative
-        }
-    ];
+    const chartData = Array.isArray(data)
+        ? data.map(normalizeEntry)
+        : [normalizeEntry(data)];
+
+    const barSize = chartData.length > 1
+        ? Math.max(28, Math.min(70, Math.round(320 / chartData.length)))
+        : 120;
 
     const glowStyle = () => ({});
 
@@ -69,7 +76,7 @@ const PIBComparisonChart = ({ data, theme }) => {
                 <BarChart
                     data={chartData}
                     margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
-                    barSize={120}
+                    barSize={barSize}
                     stackOffset="sign"
                 >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.4} />

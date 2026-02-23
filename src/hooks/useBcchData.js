@@ -145,7 +145,7 @@ const useBcchData = (selectedDate) => {
             }
 
             // IPC
-            const ipcSeries = await getSeries('F074.IPC.IND.Z.EP23.C.M');
+            const ipcSeries = await getSeries('G073.IPC.IND.2023.M');
             if (isActive && ipcSeries.length) {
                 const latest = ipcSeries[ipcSeries.length - 1];
                 const history = ipcSeries.slice(-10).map(v => v.value);

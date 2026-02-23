@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import MacroCard from '../Overview/MacroCard';
 import PIBComparisonChart from '../Overview/PIBComparisonChart';
 import IndicatorModal from '../Overview/IndicatorModal';
+import PibModal from '../Overview/PibModal';
 
 const OverviewSection = ({
     sectionRef,
@@ -15,12 +16,15 @@ const OverviewSection = ({
     setSelectedYear,
     selectedQuarter,
     setSelectedQuarter,
+    availablePeriods,
+    nominalSeries,
     sideIndicators,
     buildSparklinePaths,
     getSparklineTrend,
     chartIndicators
 }) => {
     const [activeIndicator, setActiveIndicator] = useState(null);
+    const [showPibModal, setShowPibModal] = useState(false);
 
     return (
         <section
@@ -36,6 +40,13 @@ const OverviewSection = ({
                     <div className="overview-pib-header">
                         <h3 className="overview-pib-title">Composición del PIB corriente</h3>
                         <div className="overview-pib-info">
+                            <button
+                                type="button"
+                                className="overview-pib-detail"
+                                onClick={() => setShowPibModal(true)}
+                            >
+                                Ver detalle
+                            </button>
                             <button
                                 className="overview-pib-tooltip"
                                 type="button"
@@ -148,6 +159,15 @@ const OverviewSection = ({
                     indicator={activeIndicator}
                     theme={theme}
                     onClose={() => setActiveIndicator(null)}
+                />
+            ) : null}
+            {showPibModal ? (
+                <PibModal
+                    data={pibCompositionData}
+                    theme={theme}
+                    availablePeriods={availablePeriods}
+                    nominalSeries={nominalSeries}
+                    onClose={() => setShowPibModal(false)}
                 />
             ) : null}
         </section>
