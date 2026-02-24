@@ -765,6 +765,13 @@ p {
     margin-bottom: 0.5rem;
 }
 
+.regional-pib-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.45rem;
+}
+
 .regional-pib-label {
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -806,6 +813,29 @@ p {
     transition: all 0.2s;
 }
 
+.regional-download {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+}
+
+.regional-download:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.regional-download[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .regional-pib-chart {
     margin-top: 1.2rem;
     height: 140px;
@@ -840,6 +870,13 @@ p {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.regional-pop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
 }
 
 .regional-pop-label {
@@ -890,6 +927,13 @@ p {
     border: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+}
+
+.regional-labor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
 }
 
 .regional-labor-label {
