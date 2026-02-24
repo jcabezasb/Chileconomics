@@ -18,7 +18,7 @@ const OverviewSection = ({
     setSelectedQuarter,
     availablePeriods,
     nominalSeries,
-    sideIndicators,
+    pibTableIndicators,
     buildSparklinePaths,
     getSparklineTrend,
     chartIndicators
@@ -106,7 +106,7 @@ const OverviewSection = ({
                                 <span className="pib-col-trend">TREND</span>
                             </div>
                             <div className="pib-table-rows">
-                                {sideIndicators.map(ind => (
+                                {pibTableIndicators.map(ind => (
                                     <div key={ind.id} className="pib-table-row">
                                         <span className="pib-col-name">{ind.title}</span>
                                         <span className="pib-col-value">

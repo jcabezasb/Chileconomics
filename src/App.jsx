@@ -311,6 +311,11 @@ function App() {
         [selectedRegion, baseIndicatorSpecs, regionalData]
     );
 
+    const pibTableIndicators = useMemo(
+        () => buildSideIndicators(null),
+        [baseIndicatorSpecs]
+    );
+
     const getRegionId = (name) => REGION_ID_BY_NAME[name];
 
     const regionGrowthData = useMemo(() => (
@@ -556,7 +561,7 @@ function App() {
                         setSelectedQuarter={setSelectedQuarter}
                         availablePeriods={availablePeriods}
                         nominalSeries={nominalSeries}
-                        sideIndicators={sideIndicators}
+                        pibTableIndicators={pibTableIndicators}
                         buildSparklinePaths={buildSparklinePaths}
                         getSparklineTrend={getSparklineTrend}
                         chartIndicators={chartIndicators}
