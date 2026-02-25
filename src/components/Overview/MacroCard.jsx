@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import TrendChart from '../Charts/TrendChart';
-import { getChartData, getIpcDetailSeries } from '../../services/api';
+import { getChartData, getFxDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../services/api';
 import { formatNumber } from '../../utils/format';
 import DataTableModal from './DataTableModal';
 
@@ -20,6 +20,8 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const [showDataTable, setShowDataTable] = useState(false);
     const [showDetailTable, setShowDetailTable] = useState(false);
     const [ipcDetailData, setIpcDetailData] = useState(null);
+    const [fxDetailData, setFxDetailData] = useState(null);
+    const [tcrDetailData, setTcrDetailData] = useState(null);
     const customRangeRef = useRef(null);
 
     useEffect(() => {
@@ -36,6 +38,40 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         getIpcDetailSeries().then((data) => {
             if (!isActive) return;
             setIpcDetailData(data);
+        });
+
+        return () => {
+            isActive = false;
+        };
+    }, [indicator.id]);
+
+    useEffect(() => {
+        let isActive = true;
+        if (indicator.id !== 'dolar') {
+            setFxDetailData(null);
+            return undefined;
+        }
+
+        getFxDetailSeries().then((data) => {
+            if (!isActive) return;
+            setFxDetailData(data);
+        });
+
+        return () => {
+            isActive = false;
+        };
+    }, [indicator.id]);
+
+    useEffect(() => {
+        let isActive = true;
+        if (indicator.id !== 'dolar') {
+            setTcrDetailData(null);
+            return undefined;
+        }
+
+        getTcrDetailSeries().then((data) => {
+            if (!isActive) return;
+            setTcrDetailData(data);
         });
 
         return () => {
@@ -319,6 +355,105 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         });
         return { core, volatile };
     }, [indicator.id, ipcDetailData, filteredChartData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
+    const fxDetailSeries = useMemo(() => {
+        if (indicator.id !== 'dolar' || !fxDetailData) return null;
+
+        const buildSeries = (series) => {
+            const base = rangePoints ? series.slice(-rangePoints) : series;
+            return applyCustomRange(base);
+        };
+
+        return {
+            cny: buildSeries(fxDetailData.cny || []),
+            eur: buildSeries(fxDetailData.eur || []),
+            ars: buildSeries(fxDetailData.ars || []),
+            jpy: buildSeries(fxDetailData.jpy || [])
+        };
+    }, [indicator.id, fxDetailData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
+    const fxHasData = Boolean(
+        fxDetailSeries
+        && (fxDetailSeries.cny.length || fxDetailSeries.eur.length || fxDetailSeries.ars.length || fxDetailSeries.jpy.length)
+    );
+    const tcrDetailSeries = useMemo(() => {
+        if (indicator.id !== 'dolar' || !tcrDetailData) return null;
+
+        const buildSeries = (series) => {
+            const base = rangePoints ? series.slice(-rangePoints) : series;
+            return applyCustomRange(base);
+        };
+
+        return {
+            tcr: buildSeries(tcrDetailData.tcr || []),
+            tcr5: buildSeries(tcrDetailData.tcr5 || [])
+        };
+    }, [indicator.id, tcrDetailData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
+    const tcrChartData = useMemo(() => {
+        if (!tcrDetailSeries) return [];
+        const dateMap = new Map();
+
+        const addSeries = (series, key) => {
+            (series || []).forEach((entry) => {
+                const dateKey = entry?.date || entry?.name || '';
+                if (!dateKey) return;
+                const current = dateMap.get(dateKey) || { date: dateKey };
+                current[key] = entry.value;
+                dateMap.set(dateKey, current);
+            });
+        };
+
+        addSeries(tcrDetailSeries.tcr, 'tcr');
+        addSeries(tcrDetailSeries.tcr5, 'tcr5');
+
+        return Array.from(dateMap.values())
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    }, [tcrDetailSeries]);
+    const fxTableData = useMemo(() => {
+        if (indicator.id !== 'dolar') return null;
+
+        const dateMap = new Map();
+        const addSeries = (series, key) => {
+            (series || []).forEach((entry) => {
+                const dateKey = entry?.date || entry?.name || '';
+                if (!dateKey) return;
+                const current = dateMap.get(dateKey) || { id: dateKey, date: dateKey };
+                current[key] = entry.value;
+                dateMap.set(dateKey, current);
+            });
+        };
+
+        addSeries(filteredChartData, 'usd');
+        if (fxDetailSeries) {
+            addSeries(fxDetailSeries.cny, 'cny');
+            addSeries(fxDetailSeries.eur, 'eur');
+            addSeries(fxDetailSeries.ars, 'ars');
+            addSeries(fxDetailSeries.jpy, 'jpy');
+        }
+
+        const rows = Array.from(dateMap.values())
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+            .map((row) => ({
+                id: row.id,
+                date: formatStartDate(row.date),
+                usd: row.usd !== undefined ? formatTooltipValue(row.usd) : '',
+                cny: row.cny !== undefined ? formatNumber(row.cny, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+                eur: row.eur !== undefined ? formatNumber(row.eur, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+                ars: row.ars !== undefined ? formatNumber(row.ars, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+                jpy: row.jpy !== undefined ? formatNumber(row.jpy, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+            }));
+
+        return {
+            columns: [
+                { key: 'date', label: 'Fecha' },
+                { key: 'usd', label: 'USD/CLP', align: 'right', emphasis: true },
+                { key: 'cny', label: 'CNY/CLP', align: 'right' },
+                { key: 'eur', label: 'EUR/CLP', align: 'right' },
+                { key: 'ars', label: 'ARS/CLP', align: 'right' },
+                { key: 'jpy', label: 'JPY/CLP', align: 'right' }
+            ],
+            rows
+        };
+    }, [indicator.id, filteredChartData, fxDetailSeries, formatStartDate, formatTooltipValue]);
+    const buildSeriesStartLabel = (series) => formatStartDate(series?.[0]?.date || series?.[0]?.name);
     const detailCsvContent = useMemo(() => {
         if (!ipcDetailSeries) return '';
         const header = 'fecha;ipc_subyacente;ipc_volatil';
@@ -619,36 +754,38 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             </div>
 
             {/* Sparkline Chart */}
-            <TrendChart
-                data={filteredChartData}
-                color="var(--chart-neon)"
-                height={chartHeight}
-                averageFormatter={formatAverage}
-                valueFormatter={formatTooltipValue}
-                theme={theme}
-            />
-            {chartStartDate ? (
-                <span style={{
-                    position: 'absolute',
-                    left: '0.85rem',
-                    bottom: '0.7rem',
-                    fontSize: '0.65rem',
-                    color: 'var(--text-secondary)'
-                }}>
-                    {chartStartDate}
-                </span>
-            ) : null}
-            {indicator.period ? (
-                <span style={{
-                    position: 'absolute',
-                    right: '0.85rem',
-                    bottom: '0.7rem',
-                    fontSize: '0.65rem',
-                    color: 'var(--text-secondary)'
-                }}>
-                    {indicator.period}
-                </span>
-            ) : null}
+            <div style={{ position: 'relative' }}>
+                <TrendChart
+                    data={filteredChartData}
+                    color="var(--chart-neon)"
+                    height={chartHeight}
+                    averageFormatter={formatAverage}
+                    valueFormatter={formatTooltipValue}
+                    theme={theme}
+                />
+                {chartStartDate ? (
+                    <span style={{
+                        position: 'absolute',
+                        left: '0.85rem',
+                        bottom: '0.35rem',
+                        fontSize: '0.65rem',
+                        color: 'var(--text-secondary)'
+                    }}>
+                        {chartStartDate}
+                    </span>
+                ) : null}
+                {indicator.period ? (
+                    <span style={{
+                        position: 'absolute',
+                        right: '0.85rem',
+                        bottom: '0.35rem',
+                        fontSize: '0.65rem',
+                        color: 'var(--text-secondary)'
+                    }}>
+                        {indicator.period}
+                    </span>
+                ) : null}
+            </div>
             {isModal && indicator.id === 'ipc' && ipcDetailSeries ? (
                 <div style={{ marginTop: '1.2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
@@ -724,14 +861,138 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                     </div>
                 </div>
             ) : null}
+            {isModal && indicator.id === 'dolar' && fxHasData ? (
+                <div style={{ marginTop: '1.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Detalle tipo de cambio</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>CLP vs monedas</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Yuan chino (CNY)</span>
+                            <TrendChart
+                                data={fxDetailSeries.cny}
+                                color="#22d3ee"
+                                height={150}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                            />
+                            {buildSeriesStartLabel(fxDetailSeries.cny) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(fxDetailSeries.cny)}
+                                </span>
+                            ) : null}
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Euro (EUR)</span>
+                            <TrendChart
+                                data={fxDetailSeries.eur}
+                                color="#60a5fa"
+                                height={150}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                            />
+                            {buildSeriesStartLabel(fxDetailSeries.eur) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(fxDetailSeries.eur)}
+                                </span>
+                            ) : null}
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Peso argentino (ARS)</span>
+                            <TrendChart
+                                data={fxDetailSeries.ars}
+                                color="#f97316"
+                                height={150}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                            />
+                            {buildSeriesStartLabel(fxDetailSeries.ars) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(fxDetailSeries.ars)}
+                                </span>
+                            ) : null}
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Yen japones (JPY)</span>
+                            <TrendChart
+                                data={fxDetailSeries.jpy}
+                                color="#22c55e"
+                                height={150}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                            />
+                            {buildSeriesStartLabel(fxDetailSeries.jpy) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(fxDetailSeries.jpy)}
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+            {isModal && indicator.id === 'dolar' && tcrChartData.length ? (
+                <div style={{ marginTop: '1.4rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Tipo de Cambio Real</span>
+                            <span
+                                title="Indice que mide la competitividad cambiaria ajustando por inflacion. Un valor mas alto indica tipo de cambio real mas depreciado."
+                                style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    border: '1px solid var(--border)',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.65rem',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'help'
+                                }}
+                            >
+                                ?
+                            </span>
+                        </div>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Indice promedio 1986=100</span>
+                    </div>
+                    <div style={{ padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.3rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#38bdf8' }}></span>
+                                TCR
+                            </span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f97316' }}></span>
+                                TCR-5
+                            </span>
+                        </div>
+                        <TrendChart
+                            data={tcrChartData}
+                            height={180}
+                            averageFormatter={formatAverage}
+                            valueFormatter={(val) => formatNumber(val, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                            theme={theme}
+                            series={[
+                                { key: 'tcr', color: '#38bdf8', label: 'TCR', fill: true, fillOpacity: 0.2 },
+                                { key: 'tcr5', color: '#f97316', label: 'TCR-5', fill: true, fillOpacity: 0.26 }
+                            ]}
+                        />
+                    </div>
+                </div>
+            ) : null}
             {isModal && showDataTable ? (
                 <DataTableModal
                     title="Datos del grafico"
-                    columns={[
+                    columns={fxTableData?.columns || [
                         { key: 'date', label: 'Fecha' },
                         { key: 'value', label: 'Valor', align: 'right', emphasis: true }
                     ]}
-                    rows={filteredChartData.map((entry, index) => ({
+                    rows={fxTableData?.rows || filteredChartData.map((entry, index) => ({
                         id: `${entry.date || entry.name}-${index}`,
                         date: formatStartDate(entry.date || entry.name),
                         value: formatTooltipValue(entry.value)

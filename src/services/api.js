@@ -272,6 +272,50 @@ export const getIpcDetailSeries = async () => {
     };
 };
 
+export const getFxDetailSeries = async () => {
+    const [cnySeries, eurSeries, arsSeries, jpySeries] = await Promise.all([
+        getSeries('F072.CLP.CNY.N.O.D'),
+        getSeries('F072.CLP.EUR.N.O.D'),
+        getSeries('F072.CLP.ARS.N.O.D'),
+        getSeries('F072.CLP.JPY.N.O.D')
+    ]);
+
+    const buildSeries = (series) => (series || [])
+        .filter((entry) => entry && entry.value !== null && entry.value !== undefined)
+        .map((entry) => ({
+            name: formatChartLabel(entry.date),
+            date: entry.date,
+            value: entry.value
+        }));
+
+    return {
+        cny: buildSeries(cnySeries),
+        eur: buildSeries(eurSeries),
+        ars: buildSeries(arsSeries),
+        jpy: buildSeries(jpySeries)
+    };
+};
+
+export const getTcrDetailSeries = async () => {
+    const [tcrSeries, tcr5Series] = await Promise.all([
+        getSeries('F073.TCR.IND.199101.M'),
+        getSeries('F073.TR5.IND.198601.M')
+    ]);
+
+    const buildSeries = (series) => (series || [])
+        .filter((entry) => entry && entry.value !== null && entry.value !== undefined)
+        .map((entry) => ({
+            name: formatChartLabel(entry.date),
+            date: entry.date,
+            value: entry.value
+        }));
+
+    return {
+        tcr: buildSeries(tcrSeries),
+        tcr5: buildSeries(tcr5Series)
+    };
+};
+
 // Mapeo de IDs de series a claves en el JSON
 const SERIES_KEY_MAP = {
     'F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T': 'pib_real',
@@ -283,6 +327,12 @@ const SERIES_KEY_MAP = {
     'F033.XBS.FLU.N.CLP.EP18.0.T': 'export_nominal',
     'F033.IBS.FLU.N.CLP.EP18.0.T': 'import_nominal',
     'F073.TCO.PRE.Z.D': 'dolar',
+    'F073.TCR.IND.199101.M': 'tcr',
+    'F073.TR5.IND.198601.M': 'tcr_5',
+    'F072.CLP.ARS.N.O.D': 'tc_ars',
+    'F072.CLP.CNY.N.O.D': 'tc_cny',
+    'F072.CLP.EUR.N.O.D': 'tc_eur',
+    'F072.CLP.JPY.N.O.D': 'tc_jpy',
     'F074.IPC.IND.Z.EP23.C.M': 'ipc_index',
     'G073.IPC.IND.2023.M': 'ipc_general',
     'G073.IPCSV.IND.2023.M': 'ipc_core',

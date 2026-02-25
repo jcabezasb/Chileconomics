@@ -26,14 +26,23 @@ const TrendChart = ({
 }) => {
     if (!data || data.length === 0) return null;
 
-    const gradientId = useId();
+    const gradientBaseId = useId();
     const glowId = useId();
     const isDark = theme === 'dark';
     const seriesList = series && series.length
         ? series
-        : [{ key: 'value', color }];
+        : [{ key: 'value', color, fill: true }];
+    const fillGradientIds = seriesList.map((_, index) => `${gradientBaseId}-fill-${index}`);
     const primaryKey = seriesList[0].key;
-    const average = data.reduce((acc, item) => acc + (Number(item[primaryKey]) || 0), 0) / data.length;
+    const seriesAverages = seriesList.map((entry) => {
+        const valuesForSeries = data
+            .map((item) => Number(item[entry.key]))
+            .filter((value) => !Number.isNaN(value));
+        const sum = valuesForSeries.reduce((acc, value) => acc + value, 0);
+        const average = valuesForSeries.length ? sum / valuesForSeries.length : 0;
+        return { key: entry.key, average, color: entry.color || color };
+    });
+    const average = seriesAverages[0]?.average || 0;
     const values = data
         .flatMap((item) => seriesList.map((entry) => Number(item[entry.key])))
         .filter((value) => !Number.isNaN(value));
@@ -88,23 +97,38 @@ const TrendChart = ({
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data} margin={{ right: 42 }}>
                         <defs>
-                            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={color} stopOpacity={isDark ? 0.3 : 0.08} />
-                                <stop offset="95%" stopColor={color} stopOpacity={0.01} />
-                            </linearGradient>
+                            {seriesList.map((entry, index) => (
+                                <linearGradient key={entry.key} id={fillGradientIds[index]} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={entry.color || color} stopOpacity={isDark ? (entry.fillOpacity ?? 0.22) : 0.08} />
+                                    <stop offset="95%" stopColor={entry.color || color} stopOpacity={0.01} />
+                                </linearGradient>
+                            ))}
                             <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
                                 <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor={color} floodOpacity="0.45" />
                                 <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor={color} floodOpacity="0.18" />
                             </filter>
                         </defs>
                         <YAxis hide domain={chartDomain} />
-                        <ReferenceLine
-                            y={average}
-                            stroke={isDark ? "#ffffff" : "#0b1220"}
-                            strokeOpacity={isDark ? 0.85 : 0.3}
-                            strokeWidth={1.5}
-                            strokeDasharray="4 3"
-                        />
+                        {seriesList.length > 1 ? (
+                            seriesAverages.map((entry) => (
+                                <ReferenceLine
+                                    key={`avg-${entry.key}`}
+                                    y={entry.average}
+                                    stroke={entry.color}
+                                    strokeOpacity={isDark ? 0.75 : 0.5}
+                                    strokeWidth={1.5}
+                                    strokeDasharray="4 3"
+                                />
+                            ))
+                        ) : (
+                            <ReferenceLine
+                                y={average}
+                                stroke={seriesList[0]?.color || (isDark ? "#ffffff" : "#0b1220")}
+                                strokeOpacity={isDark ? 0.85 : 0.45}
+                                strokeWidth={1.5}
+                                strokeDasharray="4 3"
+                            />
+                        )}
                         <Tooltip content={renderTooltip} cursor={{ stroke: 'transparent' }} />
                         {seriesList.map((entry, index) => (
                             <Area
@@ -112,8 +136,8 @@ const TrendChart = ({
                                 type="monotone"
                                 dataKey={entry.key}
                                 stroke={entry.color || color}
-                                fillOpacity={index === 0 ? 1 : 0}
-                                fill={index === 0 ? `url(#${gradientId})` : 'transparent'}
+                                fillOpacity={entry.fill ? 1 : 0}
+                                fill={entry.fill ? `url(#${fillGradientIds[index]})` : 'transparent'}
                                 strokeWidth={2}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -128,21 +152,44 @@ const TrendChart = ({
                         ))}
                     </AreaChart>
                 </ResponsiveContainer>
-                <div
-                    style={{
-                        position: 'absolute',
-                        right: 6,
-                        top: `${((chartDomain[1] - average) / (chartDomain[1] - chartDomain[0])) * 100}%`,
-                        transform: 'translateY(-50%)',
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        color: 'var(--text-secondary)',
-                        pointerEvents: 'none',
-                        background: 'transparent'
-                    }}
-                >
-                    {averageLabel}
-                </div>
+                {seriesList.length === 1 ? (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            right: 6,
+                            top: `${((chartDomain[1] - average) / (chartDomain[1] - chartDomain[0])) * 100}%`,
+                            transform: 'translateY(-50%)',
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            color: seriesList[0]?.color || 'var(--text-secondary)',
+                            pointerEvents: 'none',
+                            background: 'transparent'
+                        }}
+                    >
+                        {averageLabel}
+                    </div>
+                ) : (
+                    seriesAverages.map((entry) => (
+                        <div
+                            key={`avg-label-${entry.key}`}
+                            style={{
+                                position: 'absolute',
+                                right: 6,
+                                top: `${((chartDomain[1] - entry.average) / (chartDomain[1] - chartDomain[0])) * 100}%`,
+                                transform: 'translateY(-50%)',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                color: entry.color,
+                                pointerEvents: 'none',
+                                background: 'transparent'
+                            }}
+                        >
+                            {averageFormatter
+                                ? averageFormatter(entry.average)
+                                : new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(entry.average)}
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
