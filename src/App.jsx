@@ -20,6 +20,7 @@ import {
 } from './utils/format';
 import { buildSparklinePaths } from './utils/sparkline';
 import { getTrendFromHistory } from './utils/series';
+import { Analytics } from '@vercel/analytics/react';
 import './styles/global.css';
 
 function App() {
@@ -610,6 +611,7 @@ function App() {
             {activeSection === 'desarrollo' ? (
                 <DevelopmentSection items={developmentItems} />
             ) : null}
+            <Analytics />
         </div>
     );
 }
