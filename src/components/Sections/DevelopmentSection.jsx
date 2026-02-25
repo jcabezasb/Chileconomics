@@ -20,7 +20,7 @@ const DevelopmentSection = ({ items }) => (
                 </p>
             </article>
         </div>
-        <div className="development-panel is-hidden">
+        <div className="development-panel">
             {items.map((item) => (
                 <label key={item.id} className={`development-item ${item.done ? 'is-done' : ''}`}>
                     <input type="checkbox" checked={item.done} readOnly />

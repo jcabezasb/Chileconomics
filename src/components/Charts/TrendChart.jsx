@@ -54,6 +54,17 @@ const TrendChart = ({
     const averageLabel = averageFormatter
         ? averageFormatter(average)
         : new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(average);
+    const averageLabelBySeries = seriesAverages.map((entry) => (
+        averageFormatter
+            ? averageFormatter(entry.average)
+            : new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(entry.average)
+    ));
+    const longestAverageLabel = seriesList.length > 1
+        ? averageLabelBySeries.reduce((acc, label) => (label.length > acc.length ? label : acc), '')
+        : averageLabel;
+    const averageLabelWidth = Math.max(longestAverageLabel.length, 1) * 7;
+    const labelRightOffset = 8;
+    const rightMargin = Math.max(42, averageLabelWidth + labelRightOffset + 10);
     const animateChart = true;
     const renderTooltip = ({ active, payload, label }) => {
         if (!active || !payload || !payload.length) return null;
@@ -95,7 +106,7 @@ const TrendChart = ({
         >
             <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ right: 42 }}>
+                    <AreaChart data={data} margin={{ right: rightMargin }}>
                         <defs>
                             {seriesList.map((entry, index) => (
                                 <linearGradient key={entry.key} id={fillGradientIds[index]} x1="0" y1="0" x2="0" y2="1">
@@ -156,7 +167,7 @@ const TrendChart = ({
                     <div
                         style={{
                             position: 'absolute',
-                            right: 6,
+                            right: labelRightOffset,
                             top: `${((chartDomain[1] - average) / (chartDomain[1] - chartDomain[0])) * 100}%`,
                             transform: 'translateY(-50%)',
                             fontSize: '0.65rem',
@@ -174,7 +185,7 @@ const TrendChart = ({
                             key={`avg-label-${entry.key}`}
                             style={{
                                 position: 'absolute',
-                                right: 6,
+                                right: labelRightOffset,
                                 top: `${((chartDomain[1] - entry.average) / (chartDomain[1] - chartDomain[0])) * 100}%`,
                                 transform: 'translateY(-50%)',
                                 fontSize: '0.65rem',
@@ -184,9 +195,7 @@ const TrendChart = ({
                                 background: 'transparent'
                             }}
                         >
-                            {averageFormatter
-                                ? averageFormatter(entry.average)
-                                : new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(entry.average)}
+                            {averageLabelBySeries.find((label, index) => seriesAverages[index]?.key === entry.key) || ''}
                         </div>
                     ))
                 )}

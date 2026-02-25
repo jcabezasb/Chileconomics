@@ -247,8 +247,66 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             return true;
         });
     };
-    const baseChartData = rangePoints ? chartData.slice(-rangePoints) : chartData;
-    const filteredChartData = applyCustomRange(baseChartData);
+    const getSeriesFrequency = (series) => {
+        if (!series || !series.length) return 'monthly';
+        const sample = series.slice(0, Math.min(series.length, 24));
+        const hasNonFirstDay = sample.some((entry) => {
+            const raw = entry?.date || entry?.name || '';
+            const parts = raw.split('-');
+            if (parts.length < 3) return false;
+            return parts[2] !== '01';
+        });
+        return hasNonFirstDay ? 'daily' : 'monthly';
+    };
+    const computeRangeStartKey = (series, freq) => {
+        if (!series || !series.length) return '';
+        if (timeRange === 'all' || timeRange === 'custom') return '';
+        const years = Number(timeRange.replace('y', ''));
+        if (Number.isNaN(years)) return '';
+        const rawEnd = series[series.length - 1]?.date || series[series.length - 1]?.name || '';
+        if (!rawEnd) return '';
+        const endKey = freq === 'daily' ? normalizeDate(rawEnd) : toMonthKey(rawEnd);
+        if (!endKey) return '';
+        const parts = endKey.split('-');
+        const endYear = Number(parts[0]);
+        const endMonth = Number(parts[1] || '1');
+        const endDay = Number(parts[2] || '1');
+        const targetYear = endYear - years;
+        const targetMonth = String(endMonth).padStart(2, '0');
+        const targetDay = String(endDay).padStart(2, '0');
+        return freq === 'daily'
+            ? `${targetYear}-${targetMonth}-${targetDay}`
+            : `${targetYear}-${targetMonth}`;
+    };
+    const applyRangeWindow = (data, freq) => {
+        if (timeRange === 'all') return data;
+        if (timeRange === 'custom') return applyCustomRangeForSeries(data, freq);
+        const startKey = computeRangeStartKey(data, freq);
+        if (!startKey) return data;
+        return data.filter((entry) => {
+            const raw = entry.date || entry.name || '';
+            const entryKey = freq === 'daily' ? normalizeDate(raw) : toMonthKey(raw);
+            return entryKey && entryKey >= startKey;
+        });
+    };
+    const applyCustomRangeForSeries = (data, freq) => {
+        if (timeRange !== 'custom') return data;
+        const start = customRange.start;
+        const end = customRange.end;
+        if (!start && !end) return data;
+        const startKey = start ? (freq === 'daily' ? normalizeDate(start) : toMonthKey(start)) : '';
+        const endKey = end ? (freq === 'daily' ? normalizeDate(end) : toMonthKey(end)) : '';
+        return data.filter((entry) => {
+            const raw = entry.date || entry.name || '';
+            const entryKey = freq === 'daily' ? normalizeDate(raw) : toMonthKey(raw);
+            if (!entryKey) return false;
+            if (startKey && entryKey < startKey) return false;
+            if (endKey && entryKey > endKey) return false;
+            return true;
+        });
+    };
+    const mainSeriesFrequency = getSeriesFrequency(chartData);
+    const filteredChartData = applyRangeWindow(chartData, mainSeriesFrequency);
     const chartStartDate = formatStartDate(filteredChartData[0]?.date);
     const isInteractive = typeof onOpen === 'function';
     const isModal = variant === 'modal';
@@ -359,8 +417,8 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         if (indicator.id !== 'dolar' || !fxDetailData) return null;
 
         const buildSeries = (series) => {
-            const base = rangePoints ? series.slice(-rangePoints) : series;
-            return applyCustomRange(base);
+            const freq = getSeriesFrequency(series);
+            return applyRangeWindow(series, freq);
         };
 
         return {
@@ -378,15 +436,15 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         if (indicator.id !== 'dolar' || !tcrDetailData) return null;
 
         const buildSeries = (series) => {
-            const base = rangePoints ? series.slice(-rangePoints) : series;
-            return applyCustomRange(base);
+            const freq = getSeriesFrequency(series);
+            return applyRangeWindow(series, freq);
         };
 
         return {
             tcr: buildSeries(tcrDetailData.tcr || []),
             tcr5: buildSeries(tcrDetailData.tcr5 || [])
         };
-    }, [indicator.id, tcrDetailData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
+    }, [indicator.id, tcrDetailData, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
     const tcrChartData = useMemo(() => {
         if (!tcrDetailSeries) return [];
         const dateMap = new Map();
@@ -824,6 +882,11 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                                 valueFormatter={formatTooltipValue}
                                 theme={theme}
                             />
+                            {buildSeriesStartLabel(ipcDetailSeries.core) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(ipcDetailSeries.core)}
+                                </span>
+                            ) : null}
                         </div>
                         <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
                             <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Volatiles</span>
@@ -835,6 +898,11 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                                 valueFormatter={formatTooltipValue}
                                 theme={theme}
                             />
+                            {buildSeriesStartLabel(ipcDetailSeries.volatile) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(ipcDetailSeries.volatile)}
+                                </span>
+                            ) : null}
                         </div>
                     </div>
                     <div style={{ marginTop: '1rem' }}>
@@ -974,7 +1042,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                         <TrendChart
                             data={tcrChartData}
                             height={180}
-                            averageFormatter={formatAverage}
+                            averageFormatter={(val) => formatNumber(val, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                             valueFormatter={(val) => formatNumber(val, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                             theme={theme}
                             series={[
@@ -982,6 +1050,11 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                                 { key: 'tcr5', color: '#f97316', label: 'TCR-5', fill: true, fillOpacity: 0.26 }
                             ]}
                         />
+                        {buildSeriesStartLabel(tcrDetailSeries?.tcr) ? (
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                {buildSeriesStartLabel(tcrDetailSeries?.tcr)}
+                            </span>
+                        ) : null}
                     </div>
                 </div>
             ) : null}

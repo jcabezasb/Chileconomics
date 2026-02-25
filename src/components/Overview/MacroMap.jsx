@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 
 // URL for Chile TopoJSON (16 Regions)
@@ -9,13 +9,31 @@ const CHILE_TOPO_URL = chileTopo;
 
 const MacroMap = ({ onRegionSelect, selectedRegion }) => {
     const [isPulseActive, setIsPulseActive] = useState(false);
+    const [hasPulsed, setHasPulsed] = useState(false);
+    const containerRef = useRef(null);
+    const pulseTimerRef = useRef(null);
 
-    // Trigger pulse on mount
     useEffect(() => {
-        setIsPulseActive(true);
-        const timer = setTimeout(() => setIsPulseActive(false), 2000); // 2s duration
-        return () => clearTimeout(timer);
-    }, []);
+        if (!containerRef.current || hasPulsed) return undefined;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting || hasPulsed) return;
+                setIsPulseActive(true);
+                setHasPulsed(true);
+                if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+                pulseTimerRef.current = setTimeout(() => setIsPulseActive(false), 1300);
+            },
+            { threshold: 0.35 }
+        );
+
+        observer.observe(containerRef.current);
+
+        return () => {
+            observer.disconnect();
+            if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+        };
+    }, [hasPulsed]);
 
     // Custom projection config for Chile's long shape
     // Centers and zooms to fit Chile reasonably well
@@ -30,7 +48,7 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
     };
 
     return (
-        <div className="macro-map-container">
+        <div className="macro-map-container" ref={containerRef}>
             <div className="macro-map-frame">
                 <ComposableMap
                     projection="geoMercator"
@@ -58,6 +76,12 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
                                         <Geography
                                             key={geo.rsmKey}
                                             geography={geo}
+                                            onMouseEnter={() => {
+                                                if (isPulseActive) {
+                                                    setIsPulseActive(false);
+                                                    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+                                                }
+                                            }}
                                             onClick={() => {
                                                 if (onRegionSelect) onRegionSelect(regionName);
                                             }}
@@ -67,8 +91,9 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
                                                     stroke: "var(--map-invert-stroke, var(--map-stroke))",
                                                     strokeWidth: 0.8,
                                                     outline: "none",
-                                                    transition: "all 0.3s ease",
-                                                    animation: isPulseActive ? `neonPulse 1.5s ease-in-out` : 'none'
+                                                    transition: "fill 0.2s ease, stroke 0.2s ease",
+                                                    filter: isSelected ? "var(--map-hover-filter)" : "none",
+                                                    animation: isPulseActive ? `neonPulse 1.2s ease-in-out` : 'none'
                                                 },
                                                 hover: {
                                                     fill: isSelected ? "var(--map-invert-selected, var(--map-fill-selected))" : "var(--map-invert-hover, var(--map-fill-hover))",
@@ -80,7 +105,8 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
                                                 },
                                                 pressed: {
                                                     fill: "var(--map-invert-selected, var(--map-fill-selected))",
-                                                    outline: "none"
+                                                    outline: "none",
+                                                    filter: "var(--map-hover-filter)"
                                                 }
                                             }}
                                         />

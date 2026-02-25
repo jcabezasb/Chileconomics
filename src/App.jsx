@@ -526,11 +526,10 @@ function App() {
     ];
 
     const developmentItems = [
-        { id: 'dev-1', label: 'Definir plantilla de entradas para Blog', done: false },
-        { id: 'dev-2', label: 'Diseñar layout definitivo de Videos', done: false },
-        { id: 'dev-3', label: 'Integrar redes sociales en Contacto', done: false },
-        { id: 'dev-4', label: 'Mapa de secciones con ruteo real', done: false },
-        { id: 'dev-5', label: 'Iterar identidad visual para secciones nuevas', done: false }
+        { id: 'dev-1', label: 'Detalles en graficos', done: true },
+        { id: 'dev-2', label: 'Descarga de datos', done: true },
+        { id: 'dev-3', label: 'Correcciones y mejoras visuales', done: true },
+        { id: 'dev-4', label: 'Correo oficial', done: true }
     ];
 
     return (
