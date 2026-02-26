@@ -7,6 +7,7 @@ import ContactSection from './components/Sections/ContactSection';
 import DevelopmentSection from './components/Sections/DevelopmentSection';
 import OverviewSection from './components/Sections/OverviewSection';
 import RegionalSection from './components/Sections/RegionalSection';
+import BlogSection from './components/Sections/BlogSection';
 import useBcchData from './hooks/useBcchData';
 import {
     REGION_ID_BY_NAME,
@@ -511,14 +512,6 @@ function App() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const blogItems = [
-        {
-            title: 'Blog editorial',
-            badge: 'PROXIMAMENTE',
-            description: 'Publicaciones breves con contexto macro y lecturas semanales.'
-        }
-    ];
-
     const videoItems = [
         {
             title: 'Videos explicativos',
@@ -591,13 +584,7 @@ function App() {
                 </>
             ) : null}
 
-            {activeSection === 'blog' ? (
-                <PlaceholderSection
-                    title="Blog"
-                    subtitle="Un espacio editorial para análisis, notas breves y lecturas en profundidad."
-                    items={blogItems}
-                />
-            ) : null}
+            {activeSection === 'blog' ? <BlogSection /> : null}
 
             {activeSection === 'videos' ? (
                 <PlaceholderSection
