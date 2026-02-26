@@ -21,6 +21,7 @@ import {
 import { buildSparklinePaths } from './utils/sparkline';
 import { getTrendFromHistory } from './utils/series';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import './styles/global.css';
 
 function App() {
@@ -612,6 +613,7 @@ function App() {
                 <DevelopmentSection items={developmentItems} />
             ) : null}
             <Analytics />
+            <SpeedInsights />
         </div>
     );
 }
