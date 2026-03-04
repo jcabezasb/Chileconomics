@@ -182,6 +182,12 @@ const RegionalSection = ({
         series && series.length ? formatNumber(series[series.length - 1].value, 1) : '...'
     );
 
+    const formatLaborValue = (card, value) => {
+        if (value === null || value === undefined) return '--';
+        if (card.valueFormatter) return card.valueFormatter(value);
+        return formatNumber(value, 1);
+    };
+
     const populationHasData = Boolean(
         (populationSeries.total && populationSeries.total.length)
         || (populationSeries.hombres && populationSeries.hombres.length)
@@ -373,9 +379,7 @@ const RegionalSection = ({
                                                 </button>
                                             </div>
                                             <div className="regional-labor-value">
-                                                {latest !== null && latest !== undefined
-                                                    ? formatNumber(latest, 1)
-                                                    : '--'}
+                                                {formatLaborValue(card, latest)}
                                                 <span className="regional-labor-unit">{card.unit}</span>
                                             </div>
                                             {hasData ? (
@@ -384,6 +388,7 @@ const RegionalSection = ({
                                                         data={chartData}
                                                         color={card.color}
                                                         height={70}
+                                                        averageFormatter={card.averageFormatter}
                                                         valueFormatter={card.formatter}
                                                         theme={theme}
                                                     />
