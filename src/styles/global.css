@@ -1059,22 +1059,18 @@ h6 {
 
 @keyframes quizPriceRise {
     from {
-        transform: translateY(0);
         opacity: 0.6;
     }
     to {
-        transform: translateY(-8px);
         opacity: 1;
     }
 }
 
 @keyframes quizGapGrow {
     from {
-        transform: translateY(0) scaleX(0.3);
         opacity: 0.4;
     }
     to {
-        transform: translateY(-8px) scaleX(1);
         opacity: 0.9;
     }
 }

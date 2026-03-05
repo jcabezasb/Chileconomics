@@ -1230,27 +1230,15 @@ const QuizChart = ({ type }) => {
 
     const eqBase = lineIntersection(supplyStart, supplyEnd, demandStart, demandEnd);
 
-    const eqSupplyShift = lineIntersection(
-        { x: supplyStartX + shift, y: supplyStartY },
-        { x: supplyEndX + shift, y: supplyEndY },
-        demandStart,
-        demandEnd
-    );
-
-    const eqDemandShift = lineIntersection(
-        supplyStart,
-        supplyEnd,
-        { x: demandStartX + shift, y: demandStartY },
-        { x: demandEndX + shift, y: demandEndY }
-    );
-
     const xAtY = (p1, p2, y) => {
         if (p2.y === p1.y) return null;
         const t = (y - p1.y) / (p2.y - p1.y);
         return p1.x + t * (p2.x - p1.x);
     };
 
-    const priceY = eqBase ? Math.max(top + 8, eqBase.y - 18) : top + 28;
+    const minY = Math.min(supplyStartY, supplyEndY);
+    const maxY = Math.max(supplyStartY, supplyEndY);
+    const priceY = eqBase ? Math.min(maxY, Math.max(minY, eqBase.y - 18)) : minY + 12;
     const demandAtPriceX = xAtY(demandStart, demandEnd, priceY);
     const supplyAtPriceX = xAtY(supplyStart, supplyEnd, priceY);
     const gapLeft = demandAtPriceX !== null && supplyAtPriceX !== null
@@ -1268,9 +1256,6 @@ const QuizChart = ({ type }) => {
                 <path d={demandLine} className="quiz-demand" />
                 <path d={supplyLine} className="quiz-supply" />
                 <path d={supplyShift} className="quiz-supply quiz-shift" />
-                {eqSupplyShift ? (
-                    <circle cx={eqSupplyShift.x} cy={eqSupplyShift.y} r="4" className="quiz-eq" />
-                ) : null}
             </svg>
         );
     }
@@ -1285,8 +1270,6 @@ const QuizChart = ({ type }) => {
                 {gapLeft !== null && gapRight !== null ? (
                     <>
                         <line x1={left} y1={priceY} x2={right} y2={priceY} className="quiz-price" />
-                        <circle cx={gapLeft} cy={priceY} r="4" className="quiz-eq" />
-                        <circle cx={gapRight} cy={priceY} r="4" className="quiz-eq" />
                         <line x1={gapLeft} y1={priceY} x2={gapRight} y2={priceY} className="quiz-gap" />
                     </>
                 ) : null}
@@ -1301,9 +1284,6 @@ const QuizChart = ({ type }) => {
             <path d={supplyLine} className="quiz-supply" />
             <path d={demandLine} className="quiz-demand" />
             <path d={demandShift} className="quiz-demand quiz-shift" />
-            {eqDemandShift ? (
-                <circle cx={eqDemandShift.x} cy={eqDemandShift.y} r="4" className="quiz-eq" />
-            ) : null}
         </svg>
     );
 };
