@@ -7,6 +7,7 @@ import ContactSection from './components/Sections/ContactSection';
 import DevelopmentSection from './components/Sections/DevelopmentSection';
 import OverviewSection from './components/Sections/OverviewSection';
 import RegionalSection from './components/Sections/RegionalSection';
+import BlogSection from './components/Sections/BlogSection';
 import useBcchData from './hooks/useBcchData';
 import {
     REGION_ID_BY_NAME,
@@ -24,11 +25,40 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import './styles/global.css';
 
+const scaleLaborSeries = (series, factor) => {
+    if (!series) return [];
+    return series.map((entry) => {
+        if (!entry) return entry;
+        const value = entry.value;
+        if (value === null || value === undefined) return { ...entry, value };
+        return { ...entry, value: Number(value) * factor };
+    });
+};
+
+const normalizePath = (pathname) => {
+    if (!pathname) return '/';
+    if (pathname.length > 1 && pathname.endsWith('/')) {
+        return pathname.slice(0, -1);
+    }
+    return pathname;
+};
+
+const resolveSectionFromPath = (pathname) => {
+    const path = normalizePath(pathname);
+    if (path === '/blog') return 'blog';
+    if (path === '/videos') return 'videos';
+    if (path === '/contacto') return 'contacto';
+    if (path === '/desarrollo') return 'desarrollo';
+    return 'datos';
+};
+
 function App() {
     const [selectedRegion, setSelectedRegion] = useState(null);
     const [overviewView, setOverviewView] = useState('pib');
     const [growthMetric, setGrowthMetric] = useState('gdpGrowth');
-    const [activeSection, setActiveSection] = useState('datos');
+    const [activeSection, setActiveSection] = useState(
+        () => resolveSectionFromPath(window.location.pathname)
+    );
     const [theme, setTheme] = useState(() => {
         const stored = localStorage.getItem('theme');
         if (stored === 'dark' || stored === 'light') return stored;
@@ -42,6 +72,14 @@ function App() {
     const [regionalTimeRange, setRegionalTimeRange] = useState('1a');
     const [hasScrolled, setHasScrolled] = useState(false);
     const [showPibInfo, setShowPibInfo] = useState(false);
+
+    useEffect(() => {
+        const handlePopState = () => {
+            setActiveSection(resolveSectionFromPath(window.location.pathname));
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
 
     const {
         indicators,
@@ -473,8 +511,16 @@ function App() {
 
         return { ftr: ftrSeries, ocu: ocuSeries, des: desSeries };
     }, [regionalData]);
-    const laborFtrSeries = laborRegionId ? regionalData[laborRegionId]?.labor?.ftr : nationalLaborSeries.ftr;
-    const laborOcuSeries = laborRegionId ? regionalData[laborRegionId]?.labor?.ocu : nationalLaborSeries.ocu;
+    const laborFtrSeriesRaw = laborRegionId ? regionalData[laborRegionId]?.labor?.ftr : nationalLaborSeries.ftr;
+    const laborOcuSeriesRaw = laborRegionId ? regionalData[laborRegionId]?.labor?.ocu : nationalLaborSeries.ocu;
+    const laborFtrSeries = useMemo(
+        () => scaleLaborSeries(laborFtrSeriesRaw, 1000),
+        [laborFtrSeriesRaw]
+    );
+    const laborOcuSeries = useMemo(
+        () => scaleLaborSeries(laborOcuSeriesRaw, 1000),
+        [laborOcuSeriesRaw]
+    );
     const laborDesSeries = laborRegionId ? regionalData[laborRegionId]?.labor?.des : nationalLaborSeries.des;
     const laborCards = useMemo(() => (
         [
@@ -483,16 +529,20 @@ function App() {
                 title: 'Fuerza de trabajo',
                 series: laborFtrSeries,
                 color: '#38bdf8',
-                unit: 'mil personas',
-                formatter: (val) => `${formatNumber(val, 1)} mil`
+                unit: 'personas',
+                valueFormatter: (val) => formatNumber(val, 0),
+                averageFormatter: (val) => formatNumber(val, 0),
+                formatter: (val) => `${formatNumber(val, 0)} personas`
             },
             {
                 id: 'labor-ocu',
                 title: 'Ocupados',
                 series: laborOcuSeries,
                 color: '#22c55e',
-                unit: 'mil personas',
-                formatter: (val) => `${formatNumber(val, 1)} mil`
+                unit: 'personas',
+                valueFormatter: (val) => formatNumber(val, 0),
+                averageFormatter: (val) => formatNumber(val, 0),
+                formatter: (val) => `${formatNumber(val, 0)} personas`
             },
             {
                 id: 'labor-des',
@@ -500,6 +550,8 @@ function App() {
                 series: laborDesSeries,
                 color: '#facc15',
                 unit: '%',
+                valueFormatter: (val) => formatNumber(val, 1),
+                averageFormatter: (val) => formatNumber(val, 1),
                 formatter: (val) => `${formatNumber(val, 1)}%`
             }
         ]
@@ -507,17 +559,20 @@ function App() {
 
     const showTopNav = hasScrolled || activeSection !== 'datos';
     const handleSectionSelect = (sectionId) => {
+        const sectionPathMap = {
+            datos: '/',
+            blog: '/blog',
+            videos: '/videos',
+            contacto: '/contacto',
+            desarrollo: '/desarrollo'
+        };
+        const nextPath = sectionPathMap[sectionId] || '/';
+        if (normalizePath(window.location.pathname) !== nextPath) {
+            window.history.pushState({}, '', nextPath);
+        }
         setActiveSection(sectionId);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-
-    const blogItems = [
-        {
-            title: 'Blog editorial',
-            badge: 'PROXIMAMENTE',
-            description: 'Publicaciones breves con contexto macro y lecturas semanales.'
-        }
-    ];
 
     const videoItems = [
         {
@@ -591,13 +646,7 @@ function App() {
                 </>
             ) : null}
 
-            {activeSection === 'blog' ? (
-                <PlaceholderSection
-                    title="Blog"
-                    subtitle="Un espacio editorial para análisis, notas breves y lecturas en profundidad."
-                    items={blogItems}
-                />
-            ) : null}
+            {activeSection === 'blog' ? <BlogSection /> : null}
 
             {activeSection === 'videos' ? (
                 <PlaceholderSection
