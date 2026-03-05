@@ -1,19 +1,30 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import TrendChart from '../Charts/TrendChart';
 import { getChartData, getFxDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../services/api';
 import { formatNumber } from '../../utils/format';
 import DataTableModal from './DataTableModal';
 
+const DEFAULT_RANGE_BY_INDICATOR = {
+    ipc: '1y',
+    desempleo: '1y',
+    dolar: '1y',
+    cobre: '1y'
+};
+const RANGE_OPTIONS = [
+    { id: '1y', label: '1A' },
+    { id: '2y', label: '2A' },
+    { id: '5y', label: '5A' },
+    { id: 'all', label: 'Todo' }
+];
+const MODAL_RANGE_OPTIONS = [
+    ...RANGE_OPTIONS,
+    { id: 'custom', label: 'Otro' }
+];
+const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
 const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const [chartData, setChartData] = useState([]);
-    const defaultRangeByIndicator = {
-        ipc: '1y',
-        desempleo: '1y',
-        dolar: '1y',
-        cobre: '1y'
-    };
-    const [timeRange, setTimeRange] = useState(defaultRangeByIndicator[indicator.id] || '1y');
+    const [timeRange, setTimeRange] = useState(DEFAULT_RANGE_BY_INDICATOR[indicator.id] || '1y');
     const [customRange, setCustomRange] = useState({ start: '', end: '' });
     const [openDropdown, setOpenDropdown] = useState(null);
     const [rangeStep, setRangeStep] = useState({ start: 'year', end: 'year' });
@@ -79,55 +90,40 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         };
     }, [indicator.id]);
 
-    const getTrendIcon = (trend) => {
-        if (trend === 'up') return <TrendingUp size={16} className="text-up" />;
-        if (trend === 'down') return <TrendingDown size={16} className="text-down" />;
-        return <Minus size={16} className="text-neutral" />;
-    };
-
-    const getChartColor = (trend) => {
-        if (trend === 'up') return 'var(--trend-up)';
-        if (trend === 'down') return 'var(--trend-down)';
-        return 'var(--trend-neutral)';
-    };
-
     const formatAverage = (value) => {
         if (value === null || value === undefined || Number.isNaN(value)) return '';
-        const formatter = new Intl.NumberFormat('es-CL', {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1
-        });
-
+        const formatted = formatNumber(value, 1);
         if (indicator.id === 'ipc') {
-            return `${formatter.format(value)}%`;
+            return `${formatted}%`;
         }
         if (indicator.id === 'desempleo') {
-            return `${formatter.format(value)}%`;
+            return `${formatted}%`;
         }
         if (indicator.id === 'dolar') {
-            return `$${formatter.format(value)}`;
+            return `$${formatted}`;
         }
         if (indicator.id === 'cobre') {
-            return `$${formatter.format(value)}`;
+            return `$${formatted}`;
         }
-        return formatter.format(value);
+        return formatted;
     };
 
     const formatTooltipValue = (value) => {
         if (value === null || value === undefined || Number.isNaN(value)) return '';
+        const formatted = formatNumber(value, 1);
         if (indicator.id === 'ipc') {
-            return `${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}%`;
+            return `${formatted}%`;
         }
         if (indicator.id === 'desempleo') {
-            return `${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}%`;
+            return `${formatted}%`;
         }
         if (indicator.id === 'dolar') {
-            return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}`;
+            return `$${formatted}`;
         }
         if (indicator.id === 'cobre') {
-            return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)}`;
+            return `$${formatted}`;
         }
-        return new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+        return formatted;
     };
 
     const formatStartDate = (date) => {
@@ -143,14 +139,13 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         const mm = String(month).padStart(2, '0');
         return `${dd}/${mm}/${yy}`;
     };
-    const monthShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const formatMonthLabel = (value) => {
         if (!value) return '';
         const parts = value.split('-');
         if (parts.length < 2) return value;
         const year = parts[0];
         const monthIndex = Number(parts[1]) - 1;
-        const mon = monthShort[monthIndex] || parts[1];
+        const mon = MONTH_SHORT[monthIndex] || parts[1];
         return `${mon} ${year}`;
     };
     const formatMonthOnly = (value) => {
@@ -158,28 +153,17 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         const parts = value.split('-');
         if (parts.length < 2) return value;
         const monthIndex = Number(parts[1]) - 1;
-        return monthShort[monthIndex] || parts[1];
+        return MONTH_SHORT[monthIndex] || parts[1];
     };
 
     useEffect(() => {
-        setTimeRange(defaultRangeByIndicator[indicator.id] || '1y');
+        setTimeRange(DEFAULT_RANGE_BY_INDICATOR[indicator.id] || '1y');
         setCustomRange({ start: '', end: '' });
         setOpenDropdown(null);
         setRangeStep({ start: 'year', end: 'year' });
         setShowDataTable(false);
         setShowDetailTable(false);
     }, [indicator.id]);
-
-    const rangeOptions = [
-        { id: '1y', label: '1A' },
-        { id: '2y', label: '2A' },
-        { id: '5y', label: '5A' },
-        { id: 'all', label: 'Todo' }
-    ];
-    const modalRangeOptions = [
-        ...rangeOptions,
-        { id: 'custom', label: 'Otro' }
-    ];
 
     const getPointsPerYear = () => {
         if (indicator.id === 'ipc' || indicator.id === 'desempleo') return 12;
@@ -657,7 +641,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                     ) : null}
                 </div>
                 <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    {(isModal ? modalRangeOptions : rangeOptions).map((option) => {
+                    {(isModal ? MODAL_RANGE_OPTIONS : RANGE_OPTIONS).map((option) => {
                         const isActive = timeRange === option.id;
                         return (
                             <button
@@ -1096,4 +1080,4 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     );
 };
 
-export default MacroCard;
+export default React.memo(MacroCard);

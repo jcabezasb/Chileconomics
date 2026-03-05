@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import HeroHeader from './components/Sections/HeroHeader';
 import TopNav from './components/Sections/TopNav';
 import PlaceholderSection from './components/Sections/PlaceholderSection';
@@ -10,8 +9,7 @@ import RegionalSection from './components/Sections/RegionalSection';
 import BlogSection from './components/Sections/BlogSection';
 import useBcchData from './hooks/useBcchData';
 import {
-    REGION_ID_BY_NAME,
-    REGION_LABEL_BY_ID
+    REGION_ID_BY_NAME
 } from './constants/regions';
 import {
     formatMonthLabelDash,
@@ -23,7 +21,29 @@ import { buildSparklinePaths } from './utils/sparkline';
 import { getTrendFromHistory } from './utils/series';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
-import './styles/global.css';
+const CHART_ORDER = ['ipc', 'dolar', 'desempleo', 'cobre'];
+const SECTION_PATH_MAP = {
+    datos: '/',
+    blog: '/blog',
+    videos: '/videos',
+    contacto: '/contacto',
+    desarrollo: '/desarrollo'
+};
+const REGIONAL_PIB_LIMIT_MAP = { '1a': 4, '2a': 8, '5a': 20, 'all': null };
+const LABOR_RANGE_MAP = { '1a': 12, '2a': 24, '5a': 60, 'all': null };
+const VIDEO_ITEMS = [
+    {
+        title: 'Videos explicativos',
+        badge: 'PROXIMAMENTE',
+        description: 'Series cortas y entrevistas para explicar datos con claridad.'
+    }
+];
+const DEVELOPMENT_ITEMS = [
+    { id: 'dev-1', label: 'Detalles en graficos', done: true },
+    { id: 'dev-2', label: 'Descarga de datos', done: true },
+    { id: 'dev-3', label: 'Correcciones y mejoras visuales', done: true },
+    { id: 'dev-4', label: 'Correo oficial', done: true }
+];
 
 const scaleLaborSeries = (series, factor) => {
     if (!series) return [];
@@ -54,8 +74,6 @@ const resolveSectionFromPath = (pathname) => {
 
 function App() {
     const [selectedRegion, setSelectedRegion] = useState(null);
-    const [overviewView, setOverviewView] = useState('pib');
-    const [growthMetric, setGrowthMetric] = useState('gdpGrowth');
     const [activeSection, setActiveSection] = useState(
         () => resolveSectionFromPath(window.location.pathname)
     );
@@ -358,96 +376,11 @@ function App() {
 
     const getRegionId = (name) => REGION_ID_BY_NAME[name];
 
-    const regionGrowthData = useMemo(() => (
-        [
-            { region: 'I', gdpGrowth: 2.4, exportGrowth: 4.8, investmentGrowth: -1.2, consumptionGrowth: 1.7 },
-            { region: 'II', gdpGrowth: 3.1, exportGrowth: 6.2, investmentGrowth: 0.4, consumptionGrowth: 2.1 },
-            { region: 'III', gdpGrowth: 1.6, exportGrowth: 3.5, investmentGrowth: -2.3, consumptionGrowth: 0.9 },
-            { region: 'IV', gdpGrowth: 2.9, exportGrowth: 4.1, investmentGrowth: 1.1, consumptionGrowth: 2.4 },
-            { region: 'V', gdpGrowth: 2.1, exportGrowth: 3.2, investmentGrowth: -0.6, consumptionGrowth: 1.5 },
-            { region: 'VI', gdpGrowth: 2.6, exportGrowth: 4.7, investmentGrowth: 0.8, consumptionGrowth: 2.0 },
-            { region: 'VII', gdpGrowth: 1.8, exportGrowth: 2.9, investmentGrowth: -1.4, consumptionGrowth: 1.1 },
-            { region: 'VIII', gdpGrowth: 2.7, exportGrowth: 5.1, investmentGrowth: 0.3, consumptionGrowth: 1.9 },
-            { region: 'IX', gdpGrowth: 1.4, exportGrowth: 2.6, investmentGrowth: -1.9, consumptionGrowth: 0.8 },
-            { region: 'X', gdpGrowth: 2.3, exportGrowth: 3.9, investmentGrowth: 0.2, consumptionGrowth: 1.6 },
-            { region: 'XI', gdpGrowth: 1.1, exportGrowth: 2.2, investmentGrowth: -2.5, consumptionGrowth: 0.6 },
-            { region: 'XII', gdpGrowth: 1.9, exportGrowth: 3.1, investmentGrowth: -0.4, consumptionGrowth: 1.2 },
-            { region: 'RM', gdpGrowth: 2.8, exportGrowth: 3.7, investmentGrowth: 0.9, consumptionGrowth: 2.7 },
-            { region: 'XIV', gdpGrowth: 2.0, exportGrowth: 3.3, investmentGrowth: -0.8, consumptionGrowth: 1.3 },
-            { region: 'XV', gdpGrowth: 2.5, exportGrowth: 4.4, investmentGrowth: 0.5, consumptionGrowth: 1.8 },
-            { region: 'XVI', gdpGrowth: 2.2, exportGrowth: 3.6, investmentGrowth: -0.2, consumptionGrowth: 1.4 }
-        ]
-    ), []);
-
-    const growthMetricOptions = [
-        { id: 'gdpGrowth', label: 'Crecimiento PIB' },
-        { id: 'exportGrowth', label: 'Crecimiento Exportaciones' },
-        { id: 'consumptionGrowth', label: 'Crecimiento Consumo' }
-    ];
-
-    const exportTableRows = [
-        { item: 'Cobre', value: '42,8 MM USD', delta: '+3,2%', series: [3.1, 3.4, 3.0, 3.6, 3.9, 4.1, 3.8, 4.2, 4.5, 4.3, 4.6, 4.9] },
-        { item: 'Litio', value: '9,4 MM USD', delta: '+8,1%', series: [1.8, 2.0, 2.4, 2.7, 2.9, 3.3, 3.6, 3.4, 3.8, 4.1, 4.4, 4.8] },
-        { item: 'Celulosa', value: '6,1 MM USD', delta: '-2,4%', series: [2.6, 2.4, 2.2, 2.5, 2.3, 2.1, 2.0, 2.2, 2.1, 1.9, 1.8, 1.7] },
-        { item: 'Vino embotellado', value: '2,3 MM USD', delta: '+1,1%', series: [1.1, 1.2, 1.0, 1.3, 1.4, 1.3, 1.5, 1.6, 1.4, 1.6, 1.7, 1.8] },
-        { item: 'Salmón', value: '5,8 MM USD', delta: '+4,6%', series: [2.2, 2.5, 2.3, 2.7, 2.9, 3.1, 3.0, 3.4, 3.6, 3.5, 3.8, 4.0] },
-        { item: 'Frutas frescas', value: '3,2 MM USD', delta: '-0,8%', series: [1.9, 2.1, 2.0, 1.8, 1.7, 1.9, 1.8, 1.6, 1.7, 1.5, 1.6, 1.4] }
-    ];
-
-    const currentGrowthLabel = growthMetricOptions.find(option => option.id === growthMetric)?.label || 'Crecimiento PIB';
-
-    const formatGrowthTick = (value) => `${value}%`;
-
-    const renderGrowthTooltip = ({ active, payload, label }) => {
-        if (!active || !payload || !payload.length) return null;
-        const value = payload[0]?.value ?? 0;
-        const regionLabel = REGION_LABEL_BY_ID[label] || `Region ${label}`;
-        const tooltipBackground = theme === 'dark' ? 'rgba(15, 23, 42, 0.95)' : '#ffffff';
-
-        return (
-            <div style={{
-                background: tooltipBackground,
-                border: '1px solid var(--border)',
-                borderRadius: '10px',
-                padding: '0.5rem 0.6rem',
-                color: 'var(--text-primary)',
-                boxShadow: 'var(--shadow-md)',
-                fontSize: '0.75rem'
-            }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{regionLabel}</div>
-                <div style={{ color: 'var(--text-secondary)' }}>{currentGrowthLabel}: {value}%</div>
-            </div>
-        );
-    };
-
-    const growthAverage = useMemo(() => {
-        if (!regionGrowthData.length) return 0;
-        const sum = regionGrowthData.reduce((acc, item) => acc + (Number(item[growthMetric]) || 0), 0);
-        return Number((sum / regionGrowthData.length).toFixed(1));
-    }, [regionGrowthData, growthMetric]);
-
-    const getOverviewButtonStyle = (id) => {
-        const isActive = overviewView === id;
-        const isLight = theme === 'light';
-        return {
-            background: isLight
-                ? (isActive ? 'rgba(30, 58, 138, 0.12)' : 'transparent')
-                : (isActive ? 'var(--accent)' : 'transparent'),
-            color: isLight ? 'var(--text-primary)' : (isActive ? 'white' : 'var(--text-secondary)'),
-            border: '1px solid var(--border)',
-            padding: '0.35rem 0.7rem',
-            borderRadius: '4px',
-            fontSize: '0.7rem',
-            cursor: 'pointer'
-        };
-    };
-
     // Chart indicators
-    const chartOrder = ['ipc', 'dolar', 'desempleo', 'cobre'];
     const chartIndicators = useMemo(() => (
         indicators
-            .filter(ind => chartOrder.includes(ind.id))
-            .sort((a, b) => chartOrder.indexOf(a.id) - chartOrder.indexOf(b.id))
+            .filter(ind => CHART_ORDER.includes(ind.id))
+            .sort((a, b) => CHART_ORDER.indexOf(a.id) - CHART_ORDER.indexOf(b.id))
     ), [indicators]);
 
     const regionalPibRaw = useMemo(() => (
@@ -455,8 +388,7 @@ function App() {
             ? (regionalData[getRegionId(selectedRegion)]?.pib?.history || [])
             : (realPibData || [])
     ), [selectedRegion, regionalData, realPibData]);
-    const regionalPibLimitMap = { '1a': 4, '2a': 8, '5a': 20, 'all': null };
-    const regionalPibLimit = regionalPibLimitMap[regionalTimeRange];
+    const regionalPibLimit = REGIONAL_PIB_LIMIT_MAP[regionalTimeRange];
     const regionalPibChartData = useMemo(
         () => (regionalPibLimit ? regionalPibRaw.slice(-regionalPibLimit) : regionalPibRaw),
         [regionalPibLimit, regionalPibRaw]
@@ -466,8 +398,7 @@ function App() {
         || formatShortDate(regionalPibChartData[regionalPibChartData.length - 1]?.date);
 
     const laborRegionId = selectedRegion ? getRegionId(selectedRegion) : null;
-    const laborRangeMap = { '1a': 12, '2a': 24, '5a': 60, 'all': null };
-    const laborRangeLimit = laborRangeMap[regionalTimeRange];
+    const laborRangeLimit = LABOR_RANGE_MAP[regionalTimeRange];
     const buildLaborChartData = (series, limit = laborRangeLimit) => {
         if (!series || !series.length) return [];
         const cleaned = series
@@ -559,35 +490,13 @@ function App() {
 
     const showTopNav = hasScrolled || activeSection !== 'datos';
     const handleSectionSelect = (sectionId) => {
-        const sectionPathMap = {
-            datos: '/',
-            blog: '/blog',
-            videos: '/videos',
-            contacto: '/contacto',
-            desarrollo: '/desarrollo'
-        };
-        const nextPath = sectionPathMap[sectionId] || '/';
+        const nextPath = SECTION_PATH_MAP[sectionId] || '/';
         if (normalizePath(window.location.pathname) !== nextPath) {
             window.history.pushState({}, '', nextPath);
         }
         setActiveSection(sectionId);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-
-    const videoItems = [
-        {
-            title: 'Videos explicativos',
-            badge: 'PROXIMAMENTE',
-            description: 'Series cortas y entrevistas para explicar datos con claridad.'
-        }
-    ];
-
-    const developmentItems = [
-        { id: 'dev-1', label: 'Detalles en graficos', done: true },
-        { id: 'dev-2', label: 'Descarga de datos', done: true },
-        { id: 'dev-3', label: 'Correcciones y mejoras visuales', done: true },
-        { id: 'dev-4', label: 'Correo oficial', done: true }
-    ];
 
     return (
         <div className={`container ${hasScrolled ? 'has-scrolled' : 'intro-only'}`}>
@@ -652,14 +561,14 @@ function App() {
                 <PlaceholderSection
                     title="Videos"
                     subtitle="Contenido audiovisual para explicar los datos con claridad y contexto."
-                    items={videoItems}
+                    items={VIDEO_ITEMS}
                 />
             ) : null}
 
             {activeSection === 'contacto' ? <ContactSection /> : null}
 
             {activeSection === 'desarrollo' ? (
-                <DevelopmentSection items={developmentItems} />
+                <DevelopmentSection items={DEVELOPMENT_ITEMS} />
             ) : null}
             <Analytics />
             <SpeedInsights />

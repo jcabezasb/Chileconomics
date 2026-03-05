@@ -91,8 +91,10 @@ const mockChartData = (indicatorId) => {
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const ALLOW_API_FALLBACK = import.meta.env.DEV;
 
 const fetchData = async (url, fallback) => {
+    if (!ALLOW_API_FALLBACK) return fallback;
     try {
         const response = await fetch(`${API_BASE_URL}${url}`);
         if (!response.ok) throw new Error("Request failed");
@@ -106,6 +108,7 @@ const fetchData = async (url, fallback) => {
 export const getKeyIndicators = async () => {
     const bcchData = await loadBcchData();
     if (bcchData) {
+        if (derivedCache.keyIndicators) return derivedCache.keyIndicators;
         const ipcSeries = bcchData.ipc_general?.data || bcchData.ipc_index?.data || [];
         const dolarSeries = bcchData.dolar?.data || [];
         const cobreSeries = bcchData.cobre?.data || [];
@@ -133,7 +136,7 @@ export const getKeyIndicators = async () => {
             : null;
 
         if (ipcLatest && dolarLatest && cobreLatest && desempleoLatest) {
-            return [
+            const indicators = [
                 {
                     id: 'ipc',
                     title: 'IPC',
@@ -183,6 +186,8 @@ export const getKeyIndicators = async () => {
                     description: 'Tasa de desocupacion nacional'
                 }
             ];
+            derivedCache.keyIndicators = indicators;
+            return indicators;
         }
     }
 
@@ -214,6 +219,9 @@ const buildYoYFromIndex = (series, lag = 12) => {
 
 export const getChartData = async (indicatorId) => {
     const bcchData = await loadBcchData();
+    if (bcchData && derivedCache.chartData.has(indicatorId)) {
+        return derivedCache.chartData.get(indicatorId);
+    }
     const keyMap = {
         ipc: ['ipc_general', 'ipc_index'],
         dolar: 'dolar',
@@ -234,13 +242,15 @@ export const getChartData = async (indicatorId) => {
             series = buildYoYFromIndex(raw, 12);
         }
 
-        return series
+        const normalized = series
             .filter((entry) => entry && entry.value !== null && entry.value !== undefined)
             .map((entry) => ({
                 name: formatChartLabel(entry.date),
                 date: entry.date,
                 value: entry.value
             }));
+        derivedCache.chartData.set(indicatorId, normalized);
+        return normalized;
     }
 
     return fetchData(`/api/chart?id=${encodeURIComponent(indicatorId)}`, mockChartData(indicatorId));
@@ -249,6 +259,7 @@ export const getChartData = async (indicatorId) => {
 export const getIpcDetailSeries = async () => {
     const bcchData = await loadBcchData();
     if (!bcchData) return null;
+    if (derivedCache.ipcDetail) return derivedCache.ipcDetail;
 
     const coreSeries = bcchData.ipc_core?.data || [];
     const volatileSeries = bcchData.ipc_volatile?.data || [];
@@ -258,7 +269,7 @@ export const getIpcDetailSeries = async () => {
     const coreYoY = buildYoYFromIndex(coreSeries, 12);
     const volatileYoY = buildYoYFromIndex(volatileSeries, 12);
 
-    return {
+    const detail = {
         core: coreYoY.map((entry) => ({
             name: formatChartLabel(entry.date),
             date: entry.date,
@@ -270,9 +281,12 @@ export const getIpcDetailSeries = async () => {
             value: entry.value
         }))
     };
+    derivedCache.ipcDetail = detail;
+    return detail;
 };
 
 export const getFxDetailSeries = async () => {
+    if (derivedCache.fxDetail) return derivedCache.fxDetail;
     const [cnySeries, eurSeries, arsSeries, jpySeries] = await Promise.all([
         getSeries('F072.CLP.CNY.N.O.D'),
         getSeries('F072.CLP.EUR.N.O.D'),
@@ -288,15 +302,19 @@ export const getFxDetailSeries = async () => {
             value: entry.value
         }));
 
-    return {
+    const detail = {
         cny: buildSeries(cnySeries),
         eur: buildSeries(eurSeries),
         ars: buildSeries(arsSeries),
         jpy: buildSeries(jpySeries)
     };
+    const hasData = detail.cny.length || detail.eur.length || detail.ars.length || detail.jpy.length;
+    if (hasData) derivedCache.fxDetail = detail;
+    return detail;
 };
 
 export const getTcrDetailSeries = async () => {
+    if (derivedCache.tcrDetail) return derivedCache.tcrDetail;
     const [tcrSeries, tcr5Series] = await Promise.all([
         getSeries('F073.TCR.IND.199101.M'),
         getSeries('F073.TR5.IND.198601.M')
@@ -310,10 +328,13 @@ export const getTcrDetailSeries = async () => {
             value: entry.value
         }));
 
-    return {
+    const detail = {
         tcr: buildSeries(tcrSeries),
         tcr5: buildSeries(tcr5Series)
     };
+    const hasData = detail.tcr.length || detail.tcr5.length;
+    if (hasData) derivedCache.tcrDetail = detail;
+    return detail;
 };
 
 // Mapeo de IDs de series a claves en el JSON
@@ -465,6 +486,14 @@ const SERIES_KEY_MAP = {
 // Cache para datos del BC
 let bcchDataCache = null;
 let bcchDataPromise = null;
+const bcchSeriesCache = new Map();
+const derivedCache = {
+    keyIndicators: null,
+    chartData: new Map(),
+    ipcDetail: null,
+    fxDetail: null,
+    tcrDetail: null
+};
 
 const staticKeyAliases = {
     pib_total: 'pib_nominal',
@@ -493,17 +522,41 @@ const coerceSeriesValues = (series) => {
         });
 };
 
+const coerceLatestEntry = (entry) => {
+    if (!entry || entry.value === null || entry.value === undefined) return entry;
+    const numericValue = Number(entry.value);
+    if (Number.isNaN(numericValue)) return entry;
+    return { ...entry, value: numericValue };
+};
+
 const normalizeStaticPayload = (payload) => {
     if (!payload || !payload.series) return payload;
     const normalized = {};
 
     Object.entries(payload.series).forEach(([key, data]) => {
         const mappedKey = staticKeyAliases[key] || key;
-        const normalizedData = coerceSeriesValues(data);
-        normalized[mappedKey] = {
-            data: normalizedData,
-            latest: buildLatestEntry(normalizedData)
-        };
+
+        if (Array.isArray(data)) {
+            const normalizedData = coerceSeriesValues(data);
+            normalized[mappedKey] = {
+                data: normalizedData,
+                latest: buildLatestEntry(normalizedData)
+            };
+            return;
+        }
+
+        if (data && Array.isArray(data.data)) {
+            const normalizedData = coerceSeriesValues(data.data);
+            const latest = data.latest ? coerceLatestEntry(data.latest) : buildLatestEntry(normalizedData);
+            normalized[mappedKey] = {
+                ...data,
+                data: normalizedData,
+                latest
+            };
+            return;
+        }
+
+        normalized[mappedKey] = data;
     });
 
     return normalized;
@@ -537,22 +590,24 @@ const loadBcchData = async () => {
     return bcchDataPromise;
 };
 
-export const getSeries = async (seriesId, options = {}) => {
+export const getSeries = async (seriesId) => {
     if (!seriesId) return [];
+    if (bcchSeriesCache.has(seriesId)) return bcchSeriesCache.get(seriesId);
 
     // Intentar cargar desde JSON estático primero
     const bcchData = await loadBcchData();
     const key = SERIES_KEY_MAP[seriesId];
 
     if (bcchData && key && bcchData[key]) {
-        if (Array.isArray(bcchData[key])) return bcchData[key];
-        return bcchData[key].data || [];
+        const resolved = Array.isArray(bcchData[key]) ? bcchData[key] : (bcchData[key].data || []);
+        bcchSeriesCache.set(seriesId, resolved);
+        return resolved;
     }
 
     return [];
 };
 
-export const getLatestSeries = async (seriesId, frequency) => {
+export const getLatestSeries = async (seriesId) => {
     if (!seriesId) return null;
     return null;
 };
