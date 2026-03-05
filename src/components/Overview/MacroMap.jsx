@@ -121,4 +121,4 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
     );
 };
 
-export default MacroMap;
+export default React.memo(MacroMap);

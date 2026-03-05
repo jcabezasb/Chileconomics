@@ -34,7 +34,6 @@ const useBcchData = (selectedDate) => {
     const [realPibData, setRealPibData] = useState(null);
     const [nominalSeries, setNominalSeries] = useState(null);
     const [availablePeriods, setAvailablePeriods] = useState([]);
-
     useEffect(() => {
         getKeyIndicators().then(data => {
             setIndicators(data);

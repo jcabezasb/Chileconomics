@@ -4,7 +4,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import bcchapi
 
-from bcch_shared import SERIES_CONFIG_SYNC
+from bcch_shared import SERIES_CONFIG_SYNC, normalize_dataframe
 
 # Cargar variables de entorno (BCCH_USER, BCCH_PASSWORD)
 load_dotenv()
@@ -16,27 +16,11 @@ OUTPUT_DIR = "public/data"
 def fetch_series(siete, series_id):
     """Obtiene una serie del BC y la normaliza."""
     df = siete.cuadro(series=[series_id], nombres=["value"])
-    
+
     if df is None or df.empty:
         return []
-    
-    df = df.reset_index()
-    records = []
-    
-    for _, row in df.iterrows():
-        date = row.get("index") or row.get("fecha") or row.get("date")
-        value = row.get("value")
-        
-        if date is not None and hasattr(date, "strftime"):
-            date = date.strftime("%Y-%m-%d")
-        
-        try:
-            value = float(value)
-        except (TypeError, ValueError):
-            value = None
-        
-        records.append({"date": date, "value": value})
 
+    records = normalize_dataframe(df)
     records = [record for record in records if record.get("date")]
     start_index = next(
         (i for i, record in enumerate(records) if record.get("value") is not None),
@@ -69,7 +53,11 @@ def sync_data():
         print(f"Obteniendo serie: {config['name']} ({config['id']})")
         try:
             records = fetch_series(siete, config["id"])
-            all_data["series"][key] = records
+            latest = next((record for record in reversed(records) if record.get("value") is not None), None)
+            all_data["series"][key] = {
+                "data": records,
+                "latest": latest
+            }
             start_date = records[0]["date"] if records else "N/A"
             start_value = records[0]["value"] if records else "N/A"
             end_date = records[-1]["date"] if records else "N/A"
@@ -81,8 +69,13 @@ def sync_data():
             print(f"   ERROR: {str(e)}")
 
     output_path = os.path.join(OUTPUT_DIR, "bcch_series.json")
+    pretty_json = os.getenv("BCCH_PRETTY_JSON", "").lower() in {"1", "true", "yes"}
+
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(all_data, f, indent=2, ensure_ascii=False)
+        if pretty_json:
+            json.dump(all_data, f, indent=2, ensure_ascii=False)
+        else:
+            json.dump(all_data, f, ensure_ascii=False, separators=(",", ":"))
     
     print(f"\nOK: Datos guardados en: {output_path}")
     print(f"Ultima actualizacion: {all_data['last_update']}")

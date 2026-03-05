@@ -1,5 +1,6 @@
-import React, { useId } from 'react';
+import React, { useId, useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, YAxis, ReferenceLine, Tooltip } from 'recharts';
+import { formatNumber } from '../../utils/format';
 
 const monthShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -29,36 +30,51 @@ const TrendChart = ({
     const gradientBaseId = useId();
     const glowId = useId();
     const isDark = theme === 'dark';
-    const seriesList = series && series.length
-        ? series
-        : [{ key: 'value', color, fill: true }];
-    const fillGradientIds = seriesList.map((_, index) => `${gradientBaseId}-fill-${index}`);
+    const seriesList = useMemo(() => (
+        series && series.length
+            ? series
+            : [{ key: 'value', color, fill: true }]
+    ), [series, color]);
+    const fillGradientIds = useMemo(
+        () => seriesList.map((_, index) => `${gradientBaseId}-fill-${index}`),
+        [seriesList, gradientBaseId]
+    );
     const primaryKey = seriesList[0].key;
-    const seriesAverages = seriesList.map((entry) => {
-        const valuesForSeries = data
-            .map((item) => Number(item[entry.key]))
-            .filter((value) => !Number.isNaN(value));
-        const sum = valuesForSeries.reduce((acc, value) => acc + value, 0);
-        const average = valuesForSeries.length ? sum / valuesForSeries.length : 0;
-        return { key: entry.key, average, color: entry.color || color };
-    });
+    const seriesAverages = useMemo(() => (
+        seriesList.map((entry) => {
+            const valuesForSeries = data
+                .map((item) => Number(item[entry.key]))
+                .filter((value) => !Number.isNaN(value));
+            const sum = valuesForSeries.reduce((acc, value) => acc + value, 0);
+            const average = valuesForSeries.length ? sum / valuesForSeries.length : 0;
+            return { key: entry.key, average, color: entry.color || color };
+        })
+    ), [data, seriesList, color]);
     const average = seriesAverages[0]?.average || 0;
-    const values = data
-        .flatMap((item) => seriesList.map((entry) => Number(item[entry.key])))
-        .filter((value) => !Number.isNaN(value));
-    const minValue = values.length ? Math.min(...values) : 0;
-    const maxValue = values.length ? Math.max(...values) : 0;
-    const range = maxValue - minValue;
-    const padding = range === 0 ? Math.abs(maxValue || 1) * 0.05 : range * 0.12;
-    const chartDomain = [minValue - padding, maxValue + padding];
-    const averageLabel = averageFormatter
-        ? averageFormatter(average)
-        : new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(average);
-    const averageLabelBySeries = seriesAverages.map((entry) => (
+    const values = useMemo(() => (
+        data
+            .flatMap((item) => seriesList.map((entry) => Number(item[entry.key])))
+            .filter((value) => !Number.isNaN(value))
+    ), [data, seriesList]);
+    const chartDomain = useMemo(() => {
+        const minValue = values.length ? Math.min(...values) : 0;
+        const maxValue = values.length ? Math.max(...values) : 0;
+        const range = maxValue - minValue;
+        const padding = range === 0 ? Math.abs(maxValue || 1) * 0.05 : range * 0.12;
+        return [minValue - padding, maxValue + padding];
+    }, [values]);
+    const averageLabel = useMemo(() => (
         averageFormatter
-            ? averageFormatter(entry.average)
-            : new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(entry.average)
-    ));
+            ? averageFormatter(average)
+            : formatNumber(average, 1)
+    ), [average, averageFormatter]);
+    const averageLabelBySeries = useMemo(() => (
+        seriesAverages.map((entry) => (
+            averageFormatter
+                ? averageFormatter(entry.average)
+                : formatNumber(entry.average, 1)
+        ))
+    ), [seriesAverages, averageFormatter]);
     const longestAverageLabel = seriesList.length > 1
         ? averageLabelBySeries.reduce((acc, label) => (label.length > acc.length ? label : acc), '')
         : averageLabel;
@@ -204,4 +220,4 @@ const TrendChart = ({
     );
 };
 
-export default TrendChart;
+export default React.memo(TrendChart);
