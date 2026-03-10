@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import HeroHeader from './components/Sections/HeroHeader';
+import LandingSection from './components/Sections/LandingSection';
 import TopNav from './components/Sections/TopNav';
 import PlaceholderSection from './components/Sections/PlaceholderSection';
 import ContactSection from './components/Sections/ContactSection';
@@ -23,7 +24,8 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const CHART_ORDER = ['ipc', 'dolar', 'desempleo', 'cobre'];
 const SECTION_PATH_MAP = {
-    datos: '/',
+    inicio: '/',
+    datos: '/datos',
     blog: '/blog',
     videos: '/videos',
     contacto: '/contacto',
@@ -65,11 +67,13 @@ const normalizePath = (pathname) => {
 
 const resolveSectionFromPath = (pathname) => {
     const path = normalizePath(pathname);
+    if (path === '/') return 'inicio';
+    if (path === '/datos') return 'datos';
     if (path === '/blog') return 'blog';
     if (path === '/videos') return 'videos';
     if (path === '/contacto') return 'contacto';
     if (path === '/desarrollo') return 'desarrollo';
-    return 'datos';
+    return 'inicio';
 };
 
 function App() {
@@ -177,7 +181,7 @@ function App() {
     }, []);
 
     useEffect(() => {
-        if (activeSection !== 'datos') return undefined;
+        if (activeSection !== 'inicio' && activeSection !== 'datos') return undefined;
         const elements = revealElementsRef.current.filter(Boolean);
         if (!elements.length) return undefined;
 
@@ -186,7 +190,7 @@ function App() {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('is-visible');
-                    } else {
+                    } else if (entry.target.dataset.revealOnce !== 'true') {
                         entry.target.classList.remove('is-visible');
                     }
                 });
@@ -488,7 +492,7 @@ function App() {
         ]
     ), [laborFtrSeries, laborOcuSeries, laborDesSeries]);
 
-    const showTopNav = hasScrolled || activeSection !== 'datos';
+    const showTopNav = hasScrolled || activeSection !== 'inicio';
     const handleSectionSelect = (sectionId) => {
         const nextPath = SECTION_PATH_MAP[sectionId] || '/';
         if (normalizePath(window.location.pathname) !== nextPath) {
@@ -508,12 +512,20 @@ function App() {
                 isVisible={showTopNav}
             />
 
+            {activeSection === 'inicio' ? (
+                <>
+                    <HeroHeader hasScrolled={hasScrolled} />
+                    <LandingSection
+                        sectionRef={(el) => { revealElementsRef.current[0] = el; }}
+                        onSelectSection={handleSectionSelect}
+                    />
+                </>
+            ) : null}
+
             {activeSection === 'datos' ? (
                 <>
-                    <HeroHeader />
-
                     <OverviewSection
-                        sectionRef={(el) => { revealElementsRef.current[0] = el; }}
+                        sectionRef={(el) => { revealElementsRef.current[1] = el; }}
                         pibCompositionData={pibCompositionData}
                         theme={theme}
                         showPibInfo={showPibInfo}
@@ -533,7 +545,7 @@ function App() {
                     />
 
                     <RegionalSection
-                        sectionRef={(el) => { revealElementsRef.current[1] = el; }}
+                        sectionRef={(el) => { revealElementsRef.current[2] = el; }}
                         theme={theme}
                         selectedRegion={selectedRegion}
                         setSelectedRegion={setSelectedRegion}
