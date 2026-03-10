@@ -1,6 +1,7 @@
 import React from 'react';
 
 const SECTIONS = [
+    { id: 'inicio', label: 'Inicio' },
     { id: 'datos', label: 'Datos' },
     { id: 'blog', label: 'Blog' },
     { id: 'videos', label: 'Videos' },
