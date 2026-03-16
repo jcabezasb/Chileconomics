@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import MacroMap from '../Overview/MacroMap';
-import TrendChart from '../Charts/TrendChart';
-import DataTableModal from '../Overview/DataTableModal';
+import MacroMap from './MacroMap';
+import TrendChart from '../../shared/components/TrendChart';
+import DataTableModal from '../../shared/components/DataTableModal';
 
 const RegionalSection = ({
     sectionRef,

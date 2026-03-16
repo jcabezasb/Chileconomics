@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
-import { formatNumber } from '../utils/format';
+import { formatNumber } from '../../shared/utils/format';
 
 const demandRows = [
     { price: 1, quantity: 9 },

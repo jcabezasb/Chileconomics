@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import HeroHeader from './components/Sections/HeroHeader';
-import TopNav from './components/Sections/TopNav';
-import PlaceholderSection from './components/Sections/PlaceholderSection';
-import ContactSection from './components/Sections/ContactSection';
-import DevelopmentSection from './components/Sections/DevelopmentSection';
-import OverviewSection from './components/Sections/OverviewSection';
-import RegionalSection from './components/Sections/RegionalSection';
-import BlogSection from './components/Sections/BlogSection';
-import useBcchData from './hooks/useBcchData';
+import HeroHeader from './shell/HeroHeader';
+import TopNav from './shell/TopNav';
+import PlaceholderSection from '../shared/components/PlaceholderSection';
+import ContactSection from '../features/contact/ContactSection';
+import DevelopmentSection from '../features/development/DevelopmentSection';
+import OverviewSection from '../features/overview/OverviewSection';
+import RegionalSection from '../features/regional/RegionalSection';
+import BlogSection from '../features/blog/BlogSection';
+import useBcchData from '../data/bcch/useBcchData';
 import {
     REGION_ID_BY_NAME
-} from './constants/regions';
+} from '../shared/constants/regions';
 import {
     formatMonthLabelDash,
     formatNumber,
     formatQuarterLabel,
     formatShortDate
-} from './utils/format';
-import { buildSparklinePaths } from './utils/sparkline';
-import { getTrendFromHistory } from './utils/series';
+} from '../shared/utils/format';
+import { buildSparklinePaths } from '../shared/utils/sparkline';
+import { getTrendFromHistory } from '../shared/utils/series';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const CHART_ORDER = ['ipc', 'dolar', 'desempleo', 'cobre'];

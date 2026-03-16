@@ -1,6 +1,6 @@
 import React, { useId, useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, YAxis, ReferenceLine, Tooltip } from 'recharts';
-import { formatNumber } from '../../utils/format';
+import { formatNumber } from '../utils/format';
 
 const monthShort = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 

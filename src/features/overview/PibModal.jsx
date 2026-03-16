@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import PIBComparisonChart from './PIBComparisonChart';
-import { formatNumber, formatQuarterLabel } from '../../utils/format';
-import { buildGovernmentResidualSeries, mergeInvestmentSeries, normalizeSeries } from '../../utils/series';
+import { formatNumber, formatQuarterLabel } from '../../shared/utils/format';
+import { buildGovernmentResidualSeries, mergeInvestmentSeries, normalizeSeries } from '../../shared/utils/series';
 import '../../styles/pibModal.css';
 
 const PIB_COMPONENTS = [
