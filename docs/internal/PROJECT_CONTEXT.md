@@ -12,11 +12,18 @@ Este documento está diseñado para proporcionar a cualquier IA o desarrollador 
   - **BCCH API**: Conexión mediante Python (`sync_bcch_data.py`) que descarga series en `public/data/bcch_series.json`.
   - **Fallback**: Mocks realistas para desarrollo offline.
 
+## 🧭 Estructura modular (src)
+- `src/app/`: shell, navegacion, tema y estado global (`src/app/App.jsx`).
+- `src/features/`: secciones por dominio (overview, regional, blog, blog-posts).
+- `src/data/bcch/`: carga y derivacion de datos (API + hooks).
+- `src/shared/`: componentes y utils reutilizables.
+- `src/styles/`: estilos globales y variables de tema.
+
 ## 📊 Estructura de Datos Crítica
 - **PIB Nacional**: Serie `F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T`.
 - **Dólar**: Serie `F073.TCO.PRE.Z.D`.
-- **IPC**: Serie `F074.IPC.VAR.Z.Z.C.M`.
-- **Componentes PIB**: Actualmente se calculan mediante pesos históricos (Consumo ~62%, Inversión ~22%, etc.) aplicados al PIB Real total.
+- **IPC**: Series `F074.IPC.IND.Z.EP23.C.M` y `G073.IPC.IND.2023.M`.
+- **Componentes PIB**: Se calculan desde series nominales (consumo, inversion, gasto, export, import) con residual para gasto cuando falta data.
 
 ## 🏗️ Estado Actual y Enfoque (Febrero 2026)
 Estamos en una fase de **Rediseño Estructural**:
@@ -30,7 +37,7 @@ Estamos en una fase de **Rediseño Estructural**:
 - **Tabla componentes**: Layout en grilla, columnas alineadas y separadores verticales; encabezados abreviados (VALOR, %PIB, TREND, VAR.%).
 
 ## 📱 En curso: Vista móvil compacta (branch `mobile-compact-ui`)
-- **Estado**: Cambios locales listos en `src/App.jsx` y `src/styles/global.css` para un layout móvil compacto.
+- **Estado**: Cambios locales listos en `src/app/App.jsx` y `src/styles/global.css` para un layout móvil compacto.
 - **Qué incluye**:
   - Reflow del overview a 1 columna en <=768px.
   - Tabla PIB comprimida (menos columnas) y tipografía más pequeña.
@@ -51,9 +58,9 @@ Estamos en una fase de **Rediseño Estructural**:
 - **Objetivo UI**: Bloques simples con Exportaciones, Importaciones, Saldo Cuenta Corriente, Terminos de Intercambio y TCR.
 - **Tablas**: Exportaciones e Importaciones con top rubros (si no hay series, usar mocks).
 - **Series BCCH necesarias**: saldo cuenta corriente (trimestral), terminos de intercambio (indice), TCR multilateral, exportaciones/importaciones por rubro.
-- **Pipeline**: Agregar series en `sync_bcch_data.py` y `api/bcch-bundle.py`, mapear IDs en `src/services/api.js`, regenerar `public/data/bcch_series.json`.
+- **Pipeline**: Agregar series en `sync_bcch_data.py` y `api/bcch-bundle.py`, mapear IDs en `src/data/bcch/api.js`, regenerar `public/data/bcch_series.json`.
 
 ## 🧠 Guía para la IA Siguiente
 - **Estética**: Mantener el estilo "Glassmorphism" y modo oscuro. Usar paletas de colores sobrias (#6366f1, #10b981, #f43f5e).
 - **Precisión**: Siempre validar las transformaciones de datos YoY (Year-over-Year) para evitar ruido estacional.
-- **Estructura**: `App.jsx` centraliza la lógica de estado; los componentes en `src/components/` deben ser atómicos.
+- **Estructura**: `src/app/App.jsx` centraliza la lógica de estado; las secciones viven en `src/features/` y lo compartido en `src/shared/`.

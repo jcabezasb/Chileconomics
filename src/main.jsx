@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import BlogPostPriceCoordinator from './pages/BlogPostPriceCoordinator.jsx'
+import App from './app/App.jsx'
+import BlogPostPriceCoordinator from './features/blog-posts/BlogPostPriceCoordinator.jsx'
 import './styles/global.css'
 
 const Root = () => {

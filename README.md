@@ -19,21 +19,22 @@ Navegación vertical donde cada sección narra un aspecto macroeconómico:
 4.  **Precios y Tasas:** Inflación (IPC), TPM y expectativas.
 5.  **Sector externo:** Balanza comercial, Cobre y Tipo de Cambio.
 
-## 🧱 Arquitectura Técnica
+## 🧱 Arquitectura Tecnica
 
 ### Frontend
 - **Framework:** React + Vite
-- **Estilos:** CSS Modules / Tailwind (según definición)
-- **Visualización:** Gráficos (Recharts/Victory) y Mapas interactivos.
+- **Estilos:** CSS global + variables de tema
+- **Visualizacion:** Recharts + react-simple-maps
 
 ### Backend (BFF - Backend for Frontend)
-- **Plataforma:** Vercel Serverless Functions
+- **Plataforma:** Vercel Serverless Functions (solo desarrollo)
 - **Rol:** Proxy seguro entre Frontend y API Banco Central.
-- **Funciones:** Ocultar API Keys, cacheo de respuestas, normalización de datos.
+- **Funciones:** Ocultar API Keys, cacheo de respuestas, normalizacion de datos.
+- **Produccion:** El frontend consume JSON estatico en `public/data/`.
 
 ### Datos
 - **Fuente:** API Banco Central de Chile.
-- **Actualización:** Estrategia de Cache + Cron Jobs para mantener datos "calientes" (hot data).
+- **Actualizacion:** Python + GitHub Actions generan `public/data/bcch_series.json`.
 
 ## 🚀 Instalación y Ejecución
 
@@ -54,12 +55,25 @@ npm run sync-data
 npm run dev
 ```
 
+## 🧩 Estructura Modular (resumen)
+- `src/app/`: shell, navegacion, tema y estado global
+- `src/features/`: secciones por dominio (overview, regional, blog, blog-posts)
+- `src/data/bcch/`: carga y derivacion de datos BCCH
+- `src/shared/`: componentes, utils y constantes reutilizables
+- `src/styles/`: estilos globales y variables de tema
+
+Para mas detalle ver `PROJECT_STRUCTURE.md`.
+
 ## 🛠 Estado Actual y Próximos Pasos
 
 El dashboard ya se encuentra conectado a la API oficial del Banco Central de Chile:
 - **Datos Reales**: PIB (Nacional y de las 16 regiones), IPC y Dólar.
 - **Visualización**: Minigráficos (sparklines) y variaciones porcentuales automáticas basadas en historia real.
 - **Mapeo Regional**: Interacción con el mapa completamente vinculada a series oficiales.
+
+Documentos de contexto:
+- `PROJECT_STRUCTURE.md` (estructura simple para el equipo)
+- `PROJECT_CONTEXT_LLM.md` (contexto tecnico para IA)
 
 **Próximos Pasos:**
 - Integrar series regionales adicionales (Desempleo, Ocupación, etc.) donde la fuente oficial esté disponible.

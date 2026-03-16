@@ -1,4 +1,4 @@
-import { formatDayLabel, formatMonthLabelSpace, formatNumber } from '../utils/format';
+import { formatDayLabel, formatMonthLabelSpace, formatNumber } from '../../shared/utils/format';
 
 const mockIndicators = [
     {

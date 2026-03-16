@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import MacroCard from '../Overview/MacroCard';
-import PIBComparisonChart from '../Overview/PIBComparisonChart';
-import IndicatorModal from '../Overview/IndicatorModal';
-import PibModal from '../Overview/PibModal';
+import MacroCard from './MacroCard';
+import PIBComparisonChart from './PIBComparisonChart';
+import IndicatorModal from './IndicatorModal';
+import PibModal from './PibModal';
 
 const OverviewSection = ({
     sectionRef,

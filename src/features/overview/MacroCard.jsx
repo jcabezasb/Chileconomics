@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import TrendChart from '../Charts/TrendChart';
-import { getChartData, getFxDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../services/api';
-import { formatNumber } from '../../utils/format';
-import DataTableModal from './DataTableModal';
+import TrendChart from '../../shared/components/TrendChart';
+import { getChartData, getFxDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../data/bcch/api';
+import { formatNumber } from '../../shared/utils/format';
+import DataTableModal from '../../shared/components/DataTableModal';
 
 const DEFAULT_RANGE_BY_INDICATOR = {
     ipc: '1y',

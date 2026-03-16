@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
-import { getKeyIndicators, getSeries } from '../services/api';
+import { getKeyIndicators, getSeries } from './api';
 import {
     buildGovernmentResidualSeries,
     buildPeriods,
     computeSeriesStatsAtDate,
     mergeInvestmentSeries
-} from '../utils/series';
+} from '../../shared/utils/series';
 import {
     REGION_IDS,
     REGION_NUMERIC_CODE_BY_ID,
     REGION_POB_CODE_BY_ID
-} from '../constants/regions';
+} from '../../shared/constants/regions';
 
 const initialPibComposition = {
     total: 51880.0,

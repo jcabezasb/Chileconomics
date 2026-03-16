@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { buildMiniSparklinePath } from '../../utils/sparkline';
+import { buildMiniSparklinePath } from '../../shared/utils/sparkline';
 
 // Mini sparkline SVG component
 const getTrendFromHistory = (history, fallback = 'up') => {
