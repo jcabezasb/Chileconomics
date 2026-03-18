@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import HeroHeader from './shell/HeroHeader';
+import LandingRibbons from './shell/LandingRibbons';
 import TopNav from './shell/TopNav';
 import PlaceholderSection from '../shared/components/PlaceholderSection';
 import ContactSection from '../features/contact/ContactSection';
@@ -23,7 +24,8 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 const CHART_ORDER = ['ipc', 'dolar', 'desempleo', 'cobre'];
 const SECTION_PATH_MAP = {
-    datos: '/',
+    landing: '/',
+    datos: '/datos',
     blog: '/blog',
     videos: '/videos',
     contacto: '/contacto',
@@ -65,11 +67,13 @@ const normalizePath = (pathname) => {
 
 const resolveSectionFromPath = (pathname) => {
     const path = normalizePath(pathname);
+    if (path === '/') return 'landing';
+    if (path === '/datos') return 'datos';
     if (path === '/blog') return 'blog';
     if (path === '/videos') return 'videos';
     if (path === '/contacto') return 'contacto';
     if (path === '/desarrollo') return 'desarrollo';
-    return 'datos';
+    return 'landing';
 };
 
 function App() {
@@ -84,6 +88,7 @@ function App() {
     });
 
     const revealElementsRef = useRef([]);
+    const landingRevealRef = useRef([]);
     const [selectedYear, setSelectedYear] = useState('');
     const [selectedQuarter, setSelectedQuarter] = useState('');
     const [selectedDate, setSelectedDate] = useState(null);
@@ -192,6 +197,29 @@ function App() {
                 });
             },
             { threshold: 0.25 }
+        );
+
+        elements.forEach((el) => observer.observe(el));
+
+        return () => observer.disconnect();
+    }, [activeSection]);
+
+    useEffect(() => {
+        if (activeSection !== 'landing') return undefined;
+        const elements = landingRevealRef.current.filter(Boolean);
+        if (!elements.length) return undefined;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    } else {
+                        entry.target.classList.remove('is-visible');
+                    }
+                });
+            },
+            { threshold: 0.2 }
         );
 
         elements.forEach((el) => observer.observe(el));
@@ -488,7 +516,7 @@ function App() {
         ]
     ), [laborFtrSeries, laborOcuSeries, laborDesSeries]);
 
-    const showTopNav = hasScrolled || activeSection !== 'datos';
+    const showTopNav = activeSection !== 'landing';
     const handleSectionSelect = (sectionId) => {
         const nextPath = SECTION_PATH_MAP[sectionId] || '/';
         if (normalizePath(window.location.pathname) !== nextPath) {
@@ -499,7 +527,9 @@ function App() {
     };
 
     return (
-        <div className={`container ${hasScrolled ? 'has-scrolled' : 'intro-only'}`}>
+        <div
+            className={`container ${hasScrolled ? 'has-scrolled' : 'intro-only'} ${activeSection === 'landing' ? 'is-landing' : ''}`}
+        >
             <TopNav
                 theme={theme}
                 onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -508,10 +538,22 @@ function App() {
                 isVisible={showTopNav}
             />
 
-            {activeSection === 'datos' ? (
+            {activeSection === 'landing' ? (
                 <>
                     <HeroHeader />
+                    <LandingRibbons
+                        activeSection={activeSection}
+                        onSelectSection={handleSectionSelect}
+                        sectionRef={(el) => { landingRevealRef.current[0] = el; }}
+                    />
+                </>
+            ) : null}
 
+            {activeSection === 'datos' ? (
+                <>
+                    <section className="data-header">
+                        <h1 className="data-title">DATOS</h1>
+                    </section>
                     <OverviewSection
                         sectionRef={(el) => { revealElementsRef.current[0] = el; }}
                         pibCompositionData={pibCompositionData}
