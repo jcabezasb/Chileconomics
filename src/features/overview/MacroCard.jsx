@@ -294,7 +294,8 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const chartStartDate = formatStartDate(filteredChartData[0]?.date);
     const isInteractive = typeof onOpen === 'function';
     const isModal = variant === 'modal';
-    const chartHeight = isModal ? 240 : 110;
+    const isFeatured = variant === 'featured';
+    const chartHeight = isModal ? 240 : isFeatured ? 200 : 110;
     const handleCardClick = () => {
         if (isInteractive) onOpen(indicator);
     };
@@ -615,9 +616,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             onKeyDown={handleCardKeyDown}
             style={{
                 background: 'var(--bg-card)',
-                padding: isModal ? '1.2rem' : '0.85rem',
-                paddingBottom: isModal ? '2.2rem' : '1.7rem',
-                borderRadius: isModal ? '12px' : '10px',
+                padding: isModal ? '1.2rem' : isFeatured ? '1.25rem' : '0.85rem',
+                paddingBottom: isModal ? '2.2rem' : isFeatured ? '2rem' : '1.7rem',
+                borderRadius: isModal ? '12px' : isFeatured ? '14px' : '10px',
                 boxShadow: isModal ? 'none' : 'var(--shadow-md)',
                 border: isModal ? 'none' : '1px solid var(--border)',
                 transition: 'transform 0.2s',
@@ -633,9 +634,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
                 <div>
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
+                    <span style={{ fontSize: isFeatured ? '1.05rem' : '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
                     {indicator.subtitle ? (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                        <div style={{ fontSize: isFeatured ? '0.78rem' : '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
                             ({indicator.subtitle})
                         </div>
                     ) : null}
@@ -652,17 +653,17 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                                     setTimeRange(option.id);
                                 }}
                                 aria-pressed={isActive}
-                                style={{
-                                    fontSize: '0.6rem',
-                                    padding: '0.2rem 0.4rem',
-                                    borderRadius: '999px',
-                                    border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                                    background: isActive ? 'var(--bg-hover)' : 'transparent',
-                                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    fontWeight: isActive ? 700 : 500,
-                                    boxShadow: isActive ? '0 0 0 1px rgba(14, 165, 233, 0.18)' : 'none'
-                                }}
+                            style={{
+                                fontSize: isFeatured ? '0.65rem' : '0.6rem',
+                                padding: isFeatured ? '0.25rem 0.5rem' : '0.2rem 0.4rem',
+                                borderRadius: '999px',
+                                border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                                background: isActive ? 'var(--bg-hover)' : 'transparent',
+                                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontWeight: isActive ? 700 : 500,
+                                boxShadow: isActive ? '0 0 0 1px rgba(14, 165, 233, 0.18)' : 'none'
+                            }}
                             >
                                 {option.label}
                             </button>
@@ -778,10 +779,10 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             {/* Main Value */}
             <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '1.7rem', fontWeight: 700, color: 'var(--text-primary)' }}>{indicator.value}</span>
+                    <span style={{ fontSize: isFeatured ? '2.1rem' : '1.7rem', fontWeight: 700, color: 'var(--text-primary)' }}>{indicator.value}</span>
                     {indicator.variation ? (
                         <span style={{
-                            fontSize: '0.95rem',
+                            fontSize: isFeatured ? '1.05rem' : '0.95rem',
                             fontWeight: 600,
                             color: indicator.trend === 'up'
                                 ? 'var(--trend-up)'

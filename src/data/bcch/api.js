@@ -224,6 +224,7 @@ export const getChartData = async (indicatorId) => {
     }
     const keyMap = {
         ipc: ['ipc_general', 'ipc_index'],
+        imacec: ['imacec'],
         dolar: 'dolar',
         cobre: 'cobre',
         desempleo: 'desempleo'
@@ -233,6 +234,10 @@ export const getChartData = async (indicatorId) => {
     const resolvedKey = Array.isArray(key)
         ? key.find((candidate) => bcchData && bcchData[candidate])
         : key;
+
+    if (indicatorId === 'imacec' && bcchData && !resolvedKey) {
+        return [];
+    }
 
     if (bcchData && resolvedKey && bcchData[resolvedKey]) {
         const raw = bcchData[resolvedKey].data || [];
