@@ -4,11 +4,11 @@ const mockIndicators = [
     {
         id: "imacec",
         title: "IMACEC",
-        value: "1.2%",
-        variation: "+0.3%",
-        trend: "up",
+        value: "112.4",
+        variation: "",
+        trend: "neutral",
         period: "Ene 2024",
-        description: "Indicador Mensual de Actividad Económica"
+        description: "Indicador Mensual de Actividad Economica"
     },
     {
         id: "ipc",
@@ -70,7 +70,7 @@ const mockChartData = (indicatorId) => {
     let volatility = 1;
 
     switch (indicatorId) {
-        case "imacec": base = 1.0; volatility = 0.5; break;
+        case "imacec": base = 112.0; volatility = 3.0; break;
         case "ipc": base = 3.5; volatility = 0.3; break;
         case "tpm": base = 8.0; volatility = 0.75; break;
         case "dolar": base = 950; volatility = 20; break;
@@ -113,6 +113,7 @@ export const getKeyIndicators = async () => {
         const dolarSeries = bcchData.dolar?.data || [];
         const cobreSeries = bcchData.cobre?.data || [];
         const desempleoSeries = bcchData.desempleo?.data || [];
+        const imacecSeries = bcchData.imacec?.data || [];
 
         const ipcYoY = buildYoYFromIndex(ipcSeries, 12);
         const ipcLatest = ipcYoY[ipcYoY.length - 1];
@@ -135,8 +136,30 @@ export const getKeyIndicators = async () => {
             ? desempleoLatest.value - desempleoPrev.value
             : null;
 
+        const imacecLatest = imacecSeries[imacecSeries.length - 1];
+        const imacecYoY = buildYoYFromIndex(imacecSeries, 12);
+        const imacecYoYLatest = imacecYoY[imacecYoY.length - 1];
+        const imacecVariation = imacecYoYLatest
+            ? `${imacecYoYLatest.value >= 0 ? '+' : ''}${formatNumber(imacecYoYLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% YoY`
+            : '';
+        const imacecTrend = imacecYoYLatest
+            ? (imacecYoYLatest.value >= 0 ? 'up' : 'down')
+            : 'neutral';
+
         if (ipcLatest && dolarLatest && cobreLatest && desempleoLatest) {
             const indicators = [
+                ...(imacecLatest ? [
+                    {
+                        id: 'imacec',
+                        title: 'IMACEC',
+                        subtitle: 'Indice 2018=100',
+                        value: formatNumber(imacecLatest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+                        variation: imacecVariation,
+                        trend: imacecTrend,
+                        period: formatMonthLabelSpace(imacecLatest.date),
+                        description: 'Indicador Mensual de Actividad Economica'
+                    }
+                ] : []),
                 {
                     id: 'ipc',
                     title: 'IPC',
@@ -290,6 +313,34 @@ export const getIpcDetailSeries = async () => {
     return detail;
 };
 
+export const getImacecDetailSeries = async () => {
+    const bcchData = await loadBcchData();
+    if (!bcchData) return null;
+    if (derivedCache.imacecDetail) return derivedCache.imacecDetail;
+
+    const buildSeries = (series) => (series || [])
+        .filter((entry) => entry && entry.value !== null && entry.value !== undefined)
+        .map((entry) => ({
+            name: formatChartLabel(entry.date),
+            date: entry.date,
+            value: entry.value
+        }));
+
+    const detail = {
+        bienes: buildSeries(bcchData.imacec_bienes?.data || []),
+        mineria: buildSeries(bcchData.imacec_mineria?.data || []),
+        industria: buildSeries(bcchData.imacec_industria?.data || []),
+        resto_bienes: buildSeries(bcchData.imacec_resto_bienes?.data || []),
+        comercio: buildSeries(bcchData.imacec_comercio?.data || []),
+        servicios: buildSeries(bcchData.imacec_servicios?.data || []),
+        no_minero: buildSeries(bcchData.imacec_no_minero?.data || [])
+    };
+
+    const hasData = Object.values(detail).some((series) => series.length);
+    if (hasData) derivedCache.imacecDetail = detail;
+    return detail;
+};
+
 export const getFxDetailSeries = async () => {
     if (derivedCache.fxDetail) return derivedCache.fxDetail;
     const [cnySeries, eurSeries, arsSeries, jpySeries] = await Promise.all([
@@ -365,6 +416,14 @@ const SERIES_KEY_MAP = {
     'G073.IPCV.IND.2023.M': 'ipc_volatile',
     'F019.PPB.PRE.100.D': 'cobre',
     'F049.DES.TAS.INE9.10.M': 'desempleo',
+    'F032.IMC.IND.Z.Z.EP18.Z.Z.0.M': 'imacec',
+    'F032.IMC.IND.Z.Z.EP18.PB.Z.0.M': 'imacec_bienes',
+    'F032.IMC.IND.Z.Z.EP18.03.Z.0.M': 'imacec_mineria',
+    'F032.IMC.IND.Z.Z.EP18.04.Z.0.M': 'imacec_industria',
+    'F032.IMC.IND.Z.Z.EP18.RB.Z.0.M': 'imacec_resto_bienes',
+    'F032.IMC.IND.Z.Z.EP18.COM.Z.0.M': 'imacec_comercio',
+    'F032.IMC.IND.Z.Z.EP18.SERV.Z.0.M': 'imacec_servicios',
+    'F032.IMC.IND.Z.Z.EP18.N03.Z.0.M': 'imacec_no_minero',
     // Población Nacional
     'F049.POB.STO.INE1.01.A': 'pob_total',
     'F049.POB.STO.INE1.03.A': 'pob_mujeres',
@@ -496,6 +555,7 @@ const derivedCache = {
     keyIndicators: null,
     chartData: new Map(),
     ipcDetail: null,
+    imacecDetail: null,
     fxDetail: null,
     tcrDetail: null
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import TrendChart from '../../shared/components/TrendChart';
-import { getChartData, getFxDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../data/bcch/api';
+import { getChartData, getFxDetailSeries, getImacecDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../data/bcch/api';
 import { formatNumber } from '../../shared/utils/format';
 import DataTableModal from '../../shared/components/DataTableModal';
 
@@ -21,6 +21,13 @@ const MODAL_RANGE_OPTIONS = [
     { id: 'custom', label: 'Otro' }
 ];
 const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const YOY_ELIGIBLE = new Set(['imacec', 'cobre', 'dolar']);
+const IMACEC_GOODS_OPTIONS = [
+    { id: 'total', label: 'Total' },
+    { id: 'mineria', label: 'Mineria' },
+    { id: 'industria', label: 'Industria' },
+    { id: 'resto', label: 'Resto de bienes' }
+];
 
 const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const [chartData, setChartData] = useState([]);
@@ -30,10 +37,19 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const [rangeStep, setRangeStep] = useState({ start: 'year', end: 'year' });
     const [showDataTable, setShowDataTable] = useState(false);
     const [showDetailTable, setShowDetailTable] = useState(false);
+    const [showYoY, setShowYoY] = useState(false);
     const [ipcDetailData, setIpcDetailData] = useState(null);
+    const [imacecDetailData, setImacecDetailData] = useState(null);
     const [fxDetailData, setFxDetailData] = useState(null);
     const [tcrDetailData, setTcrDetailData] = useState(null);
+    const [imacecGoodsSelection, setImacecGoodsSelection] = useState(['total']);
+    const [imacecDetailTable, setImacecDetailTable] = useState(null);
+    const [imacecGoodsDropdownOpen, setImacecGoodsDropdownOpen] = useState(false);
     const customRangeRef = useRef(null);
+    const imacecGoodsRef = useRef(null);
+    const isInteractive = typeof onOpen === 'function';
+    const isModal = variant === 'modal';
+    const isFeatured = variant === 'featured';
 
     useEffect(() => {
         getChartData(indicator.id).then(data => setChartData(data));
@@ -49,6 +65,23 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         getIpcDetailSeries().then((data) => {
             if (!isActive) return;
             setIpcDetailData(data);
+        });
+
+        return () => {
+            isActive = false;
+        };
+    }, [indicator.id]);
+
+    useEffect(() => {
+        let isActive = true;
+        if (indicator.id !== 'imacec') {
+            setImacecDetailData(null);
+            return undefined;
+        }
+
+        getImacecDetailSeries().then((data) => {
+            if (!isActive) return;
+            setImacecDetailData(data);
         });
 
         return () => {
@@ -90,9 +123,14 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         };
     }, [indicator.id]);
 
+    const isYoYEligible = YOY_ELIGIBLE.has(indicator.id);
+    const yoyEnabled = isModal && isYoYEligible && showYoY;
     const formatAverage = (value) => {
         if (value === null || value === undefined || Number.isNaN(value)) return '';
         const formatted = formatNumber(value, 1);
+        if (yoyEnabled) {
+            return `${formatted}%`;
+        }
         if (indicator.id === 'ipc') {
             return `${formatted}%`;
         }
@@ -111,6 +149,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const formatTooltipValue = (value) => {
         if (value === null || value === undefined || Number.isNaN(value)) return '';
         const formatted = formatNumber(value, 1);
+        if (yoyEnabled) {
+            return `${formatted}%`;
+        }
         if (indicator.id === 'ipc') {
             return `${formatted}%`;
         }
@@ -155,6 +196,79 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         const monthIndex = Number(parts[1]) - 1;
         return MONTH_SHORT[monthIndex] || parts[1];
     };
+    const parseDateParts = (dateValue) => {
+        if (!dateValue) return null;
+        const parts = dateValue.split('-');
+        if (parts.length < 3) return null;
+        const year = Number(parts[0]);
+        const month = Number(parts[1]);
+        const day = Number(parts[2]);
+        if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null;
+        return { year, month, day };
+    };
+    const buildDateKey = (year, month, day) => (
+        `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    );
+    const shiftDayKey = (dateValue, deltaDays) => {
+        const parts = parseDateParts(dateValue);
+        if (!parts) return '';
+        const base = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+        base.setUTCDate(base.getUTCDate() + deltaDays);
+        return buildDateKey(base.getUTCFullYear(), base.getUTCMonth() + 1, base.getUTCDate());
+    };
+    const shiftYearKey = (dateValue, deltaYears = -1) => {
+        const parts = parseDateParts(dateValue);
+        if (!parts) return '';
+        const targetYear = parts.year + deltaYears;
+        const targetMonth = parts.month;
+        let targetDay = parts.day;
+        const candidate = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay));
+        if (candidate.getUTCMonth() !== targetMonth - 1) {
+            targetDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+        }
+        return buildDateKey(targetYear, targetMonth, targetDay);
+    };
+    const buildActionButtonStyle = (isActive) => ({
+        fontSize: '0.6rem',
+        padding: '0.2rem 0.55rem',
+        borderRadius: '999px',
+        border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+        background: isActive ? 'var(--bg-hover)' : 'transparent',
+        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+        cursor: 'pointer',
+        fontWeight: 700
+    });
+    const buildImacecSelectionLabel = () => {
+        if (imacecGoodsSelection.includes('total')) return 'Total';
+        if (!imacecGoodsSelection.length) return 'Total';
+        const labels = IMACEC_GOODS_OPTIONS
+            .filter((option) => imacecGoodsSelection.includes(option.id))
+            .map((option) => option.label);
+        if (!labels.length) return 'Total';
+        if (labels.length === 1) return labels[0];
+        if (labels.length === 2) return `${labels[0]} + ${labels[1]}`;
+        return `${labels[0]} + ${labels.length - 1} mas`;
+    };
+    const toggleImacecSelection = (optionId) => {
+        setImacecGoodsSelection((prev) => {
+            const next = new Set(prev);
+            const totalActive = next.has('total');
+            if (optionId === 'total') {
+                if (totalActive) return Array.from(next);
+                return ['total'];
+            }
+            if (totalActive) {
+                return [optionId];
+            }
+            if (next.has(optionId)) {
+                next.delete(optionId);
+            } else {
+                next.add(optionId);
+            }
+            if (next.has('total')) next.delete('total');
+            return Array.from(next);
+        });
+    };
 
     useEffect(() => {
         setTimeRange(DEFAULT_RANGE_BY_INDICATOR[indicator.id] || '1y');
@@ -163,6 +277,10 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         setRangeStep({ start: 'year', end: 'year' });
         setShowDataTable(false);
         setShowDetailTable(false);
+        setShowYoY(false);
+        setImacecGoodsSelection(['total']);
+        setImacecDetailTable(null);
+        setImacecGoodsDropdownOpen(false);
     }, [indicator.id]);
 
     const getPointsPerYear = () => {
@@ -242,6 +360,66 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         });
         return hasNonFirstDay ? 'daily' : 'monthly';
     };
+    const buildYoYSeries = (series) => {
+        if (!series || !series.length) return [];
+        const normalized = series
+            .map((entry) => {
+                const rawDate = entry?.date || entry?.name || '';
+                const value = Number(entry?.value);
+                if (!rawDate || Number.isNaN(value)) return null;
+                return { ...entry, date: rawDate, value };
+            })
+            .filter(Boolean)
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        if (!normalized.length) return [];
+
+        const freq = getSeriesFrequency(normalized);
+        if (freq === 'monthly') {
+            const monthKey = (value) => (value ? value.slice(0, 7) : '');
+            const monthMap = new Map();
+            normalized.forEach((entry) => {
+                const key = monthKey(entry.date);
+                if (key) monthMap.set(key, entry.value);
+            });
+            return normalized
+                .map((entry) => {
+                    const key = monthKey(entry.date);
+                    if (!key) return null;
+                    const parts = key.split('-');
+                    const year = Number(parts[0]);
+                    const month = parts[1];
+                    if (Number.isNaN(year) || !month) return null;
+                    const prevKey = `${year - 1}-${month}`;
+                    const prevValue = monthMap.get(prevKey);
+                    if (prevValue === null || prevValue === undefined) return null;
+                    if (!prevValue) return null;
+                    const yoy = ((entry.value - prevValue) / prevValue) * 100;
+                    return { ...entry, value: yoy };
+                })
+                .filter((entry) => entry && entry.value !== null && entry.value !== undefined);
+        }
+
+        const valueMap = new Map(normalized.map((entry) => [entry.date, entry.value]));
+        const findPrevValue = (targetKey) => {
+            if (valueMap.has(targetKey)) return valueMap.get(targetKey);
+            for (let i = 1; i <= 7; i += 1) {
+                const fallbackKey = shiftDayKey(targetKey, -i);
+                if (valueMap.has(fallbackKey)) return valueMap.get(fallbackKey);
+            }
+            return null;
+        };
+        return normalized
+            .map((entry) => {
+                const targetKey = shiftYearKey(entry.date);
+                if (!targetKey) return null;
+                const prevValue = findPrevValue(targetKey);
+                if (prevValue === null || prevValue === undefined) return null;
+                if (!prevValue) return null;
+                const yoy = ((entry.value - prevValue) / prevValue) * 100;
+                return { ...entry, value: yoy };
+            })
+            .filter((entry) => entry && entry.value !== null && entry.value !== undefined);
+    };
     const computeRangeStartKey = (series, freq) => {
         if (!series || !series.length) return '';
         if (timeRange === 'all' || timeRange === 'custom') return '';
@@ -291,11 +469,12 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     };
     const mainSeriesFrequency = getSeriesFrequency(chartData);
     const filteredChartData = applyRangeWindow(chartData, mainSeriesFrequency);
-    const chartStartDate = formatStartDate(filteredChartData[0]?.date);
-    const isInteractive = typeof onOpen === 'function';
-    const isModal = variant === 'modal';
-    const isFeatured = variant === 'featured';
-    const chartHeight = isModal ? 240 : isFeatured ? 200 : 110;
+    const rawYoYChartData = useMemo(() => buildYoYSeries(chartData), [chartData]);
+    const yoySeriesFrequency = getSeriesFrequency(rawYoYChartData);
+    const filteredYoYChartData = applyRangeWindow(rawYoYChartData, yoySeriesFrequency);
+    const displayChartData = yoyEnabled ? filteredYoYChartData : filteredChartData;
+    const chartStartDate = formatStartDate(displayChartData[0]?.date);
+    const chartHeight = isModal ? 240 : isFeatured ? 260 : 110;
     const handleCardClick = () => {
         if (isInteractive) onOpen(indicator);
     };
@@ -349,27 +528,30 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         return formatMonthLabel(value);
     };
     const csvContent = useMemo(() => {
-        if (!filteredChartData.length) return '';
+        if (!displayChartData.length) return '';
         const header = 'fecha;valor';
-        const rows = filteredChartData.map((entry) => {
+        const rows = displayChartData.map((entry) => {
             const dateValue = entry.date || entry.name || '';
             const value = Number(entry.value);
             const formattedValue = Number.isNaN(value) ? '' : formatNumber(value, 1);
             return `${dateValue};${formattedValue}`;
         });
         return [header, ...rows].join('\n');
-    }, [filteredChartData]);
-    const handleDownloadCsv = () => {
-        if (!csvContent) return;
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    }, [displayChartData]);
+    const downloadCsv = (content, filename) => {
+        if (!content) return;
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${indicator.id || 'serie'}-datos.csv`;
+        link.download = filename || 'datos.csv';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    };
+    const handleDownloadCsv = () => {
+        downloadCsv(csvContent, `${indicator.id || 'serie'}-datos.csv`);
     };
     const ipcDetailSeries = useMemo(() => {
         if (indicator.id !== 'ipc') return null;
@@ -398,12 +580,32 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         });
         return { core, volatile };
     }, [indicator.id, ipcDetailData, filteredChartData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
+    const imacecDetailSeries = useMemo(() => {
+        if (indicator.id !== 'imacec' || !imacecDetailData) return null;
+
+        const buildSeries = (series) => {
+            const base = yoyEnabled ? buildYoYSeries(series) : series;
+            const freq = getSeriesFrequency(base);
+            return applyRangeWindow(base, freq);
+        };
+
+        return {
+            bienes: buildSeries(imacecDetailData.bienes || []),
+            mineria: buildSeries(imacecDetailData.mineria || []),
+            industria: buildSeries(imacecDetailData.industria || []),
+            restoBienes: buildSeries(imacecDetailData.resto_bienes || []),
+            comercio: buildSeries(imacecDetailData.comercio || []),
+            servicios: buildSeries(imacecDetailData.servicios || []),
+            noMinero: buildSeries(imacecDetailData.no_minero || [])
+        };
+    }, [indicator.id, imacecDetailData, timeRange, customRange.start, customRange.end, yoyEnabled]);
     const fxDetailSeries = useMemo(() => {
         if (indicator.id !== 'dolar' || !fxDetailData) return null;
 
         const buildSeries = (series) => {
-            const freq = getSeriesFrequency(series);
-            return applyRangeWindow(series, freq);
+            const base = yoyEnabled ? buildYoYSeries(series) : series;
+            const freq = getSeriesFrequency(base);
+            return applyRangeWindow(base, freq);
         };
 
         return {
@@ -412,7 +614,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             ars: buildSeries(fxDetailData.ars || []),
             jpy: buildSeries(fxDetailData.jpy || [])
         };
-    }, [indicator.id, fxDetailData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
+    }, [indicator.id, fxDetailData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker, yoyEnabled]);
     const fxHasData = Boolean(
         fxDetailSeries
         && (fxDetailSeries.cny.length || fxDetailSeries.eur.length || fxDetailSeries.ars.length || fxDetailSeries.jpy.length)
@@ -421,15 +623,16 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         if (indicator.id !== 'dolar' || !tcrDetailData) return null;
 
         const buildSeries = (series) => {
-            const freq = getSeriesFrequency(series);
-            return applyRangeWindow(series, freq);
+            const base = yoyEnabled ? buildYoYSeries(series) : series;
+            const freq = getSeriesFrequency(base);
+            return applyRangeWindow(base, freq);
         };
 
         return {
             tcr: buildSeries(tcrDetailData.tcr || []),
             tcr5: buildSeries(tcrDetailData.tcr5 || [])
         };
-    }, [indicator.id, tcrDetailData, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
+    }, [indicator.id, tcrDetailData, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker, yoyEnabled]);
     const tcrChartData = useMemo(() => {
         if (!tcrDetailSeries) return [];
         const dateMap = new Map();
@@ -450,6 +653,189 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         return Array.from(dateMap.values())
             .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     }, [tcrDetailSeries]);
+    const mergeSeriesByDate = (seriesMap) => {
+        const dateMap = new Map();
+
+        Object.entries(seriesMap || {}).forEach(([key, series]) => {
+            (series || []).forEach((entry) => {
+                const dateKey = entry?.date || entry?.name || '';
+                if (!dateKey) return;
+                const current = dateMap.get(dateKey) || { date: dateKey };
+                current[key] = entry.value;
+                dateMap.set(dateKey, current);
+            });
+        });
+
+        return Array.from(dateMap.values())
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    };
+    const imacecGoodsSeriesMap = useMemo(() => {
+        if (!imacecDetailSeries) return null;
+        return {
+            total: { key: 'bienes', label: 'Produccion de bienes', color: '#38bdf8', series: imacecDetailSeries.bienes },
+            mineria: { key: 'mineria', label: 'Mineria', color: '#0ea5e9', series: imacecDetailSeries.mineria },
+            industria: { key: 'industria', label: 'Industria', color: '#f59e0b', series: imacecDetailSeries.industria },
+            resto: { key: 'resto', label: 'Resto de bienes', color: '#a855f7', series: imacecDetailSeries.restoBienes }
+        };
+    }, [imacecDetailSeries]);
+    const imacecGoodsChart = useMemo(() => {
+        if (!imacecDetailSeries || !imacecGoodsSeriesMap) return { data: [], series: [] };
+        const selected = imacecGoodsSelection.length ? imacecGoodsSelection : ['total'];
+        const uniqueSelected = Array.from(new Set(selected));
+        const selectedSeries = uniqueSelected
+            .map((id) => imacecGoodsSeriesMap[id])
+            .filter(Boolean);
+
+        if (selectedSeries.length <= 1) {
+            const base = selectedSeries[0] || imacecGoodsSeriesMap.total;
+            return { data: base?.series || [], series: [] };
+        }
+
+        const data = mergeSeriesByDate(
+            selectedSeries.reduce((acc, entry) => {
+                acc[entry.key] = entry.series;
+                return acc;
+            }, {})
+        );
+        const series = selectedSeries.map((entry) => ({
+            key: entry.key,
+            color: entry.color,
+            label: entry.label,
+            fill: true,
+            fillOpacity: 0.2
+        }));
+        return { data, series };
+    }, [imacecDetailSeries, imacecGoodsSeriesMap, imacecGoodsSelection]);
+    const imacecCommerceServicesData = useMemo(() => {
+        if (!imacecDetailSeries) return [];
+        return mergeSeriesByDate({
+            comercio: imacecDetailSeries.comercio,
+            servicios: imacecDetailSeries.servicios
+        });
+    }, [imacecDetailSeries]);
+    const imacecGoodsTableData = useMemo(() => {
+        if (!imacecDetailSeries || !imacecGoodsSeriesMap) return null;
+        const selection = imacecGoodsSelection.length ? imacecGoodsSelection : ['total'];
+        const selectedSeries = selection
+            .map((id) => imacecGoodsSeriesMap[id])
+            .filter(Boolean);
+
+        if (!selectedSeries.length) return null;
+        if (selectedSeries.length === 1) {
+            const base = selectedSeries[0];
+            const rows = (base.series || []).map((entry, index) => ({
+                id: `imacec-bienes-${base.key}-${entry.date || entry.name || index}`,
+                date: formatStartDate(entry.date || entry.name),
+                value: entry.value !== undefined ? formatNumber(entry.value, 1) : ''
+            }));
+            const csvRows = (base.series || []).map((entry) => {
+                const dateValue = entry.date || entry.name || '';
+                const value = entry.value !== undefined ? formatNumber(entry.value, 1) : '';
+                return `${dateValue};${value}`;
+            });
+            return {
+                title: `IMACEC - ${base.label}${yoyEnabled ? ' (Var. 12m)' : ''}`,
+                filename: `imacec-${base.key}${yoyEnabled ? '-yoy' : ''}.csv`,
+                columns: [
+                    { key: 'date', label: 'Fecha' },
+                    { key: 'value', label: base.label, align: 'right', emphasis: true }
+                ],
+                rows,
+                csv: ['fecha;valor', ...csvRows].join('\n')
+            };
+        }
+
+        const data = mergeSeriesByDate(
+            selectedSeries.reduce((acc, entry) => {
+                acc[entry.key] = entry.series;
+                return acc;
+            }, {})
+        );
+        const rows = data.map((entry, index) => {
+            const row = { id: `imacec-bienes-${entry.date || index}`, date: formatStartDate(entry.date) };
+            selectedSeries.forEach((series) => {
+                row[series.key] = entry[series.key] !== undefined ? formatNumber(entry[series.key], 1) : '';
+            });
+            return row;
+        });
+        const csvRows = data.map((entry) => {
+            const values = selectedSeries.map((series) => (
+                entry[series.key] !== undefined ? formatNumber(entry[series.key], 1) : ''
+            ));
+            return `${entry.date || ''};${values.join(';')}`;
+        });
+        return {
+            title: `IMACEC - Produccion de bienes (seleccion)${yoyEnabled ? ' (Var. 12m)' : ''}`,
+            filename: `imacec-produccion-bienes-seleccion${yoyEnabled ? '-yoy' : ''}.csv`,
+            columns: [
+                { key: 'date', label: 'Fecha' },
+                ...selectedSeries.map((series, index) => ({
+                    key: series.key,
+                    label: series.label,
+                    align: 'right',
+                    emphasis: index === 0
+                }))
+            ],
+            rows,
+            csv: [`fecha;${selectedSeries.map((series) => series.key).join(';')}`, ...csvRows].join('\n')
+        };
+    }, [imacecDetailSeries, imacecGoodsSeriesMap, imacecGoodsSelection]);
+    const imacecCommerceTableData = useMemo(() => {
+        if (!imacecDetailSeries) return null;
+        const rows = imacecCommerceServicesData.map((entry, index) => ({
+            id: `imacec-com-serv-${entry.date || index}`,
+            date: formatStartDate(entry.date),
+            comercio: entry.comercio !== undefined ? formatNumber(entry.comercio, 1) : '',
+            servicios: entry.servicios !== undefined ? formatNumber(entry.servicios, 1) : ''
+        }));
+        const csvRows = imacecCommerceServicesData.map((entry) => {
+            const dateValue = entry.date || '';
+            const comercio = entry.comercio !== undefined ? formatNumber(entry.comercio, 1) : '';
+            const servicios = entry.servicios !== undefined ? formatNumber(entry.servicios, 1) : '';
+            return `${dateValue};${comercio};${servicios}`;
+        });
+        return {
+            title: `IMACEC - Comercio y servicios${yoyEnabled ? ' (Var. 12m)' : ''}`,
+            filename: `imacec-comercio-servicios${yoyEnabled ? '-yoy' : ''}.csv`,
+            columns: [
+                { key: 'date', label: 'Fecha' },
+                { key: 'comercio', label: 'Comercio', align: 'right', emphasis: true },
+                { key: 'servicios', label: 'Servicios', align: 'right' }
+            ],
+            rows,
+            csv: ['fecha;comercio;servicios', ...csvRows].join('\n')
+        };
+    }, [imacecDetailSeries, imacecCommerceServicesData]);
+    const imacecNoMineroTableData = useMemo(() => {
+        if (!imacecDetailSeries) return null;
+        const rows = imacecDetailSeries.noMinero.map((entry, index) => ({
+            id: `imacec-no-minero-${entry.date || entry.name || index}`,
+            date: formatStartDate(entry.date || entry.name),
+            value: entry.value !== undefined ? formatNumber(entry.value, 1) : ''
+        }));
+        const csvRows = imacecDetailSeries.noMinero.map((entry) => {
+            const dateValue = entry.date || entry.name || '';
+            const value = entry.value !== undefined ? formatNumber(entry.value, 1) : '';
+            return `${dateValue};${value}`;
+        });
+        return {
+            title: `IMACEC no minero${yoyEnabled ? ' (Var. 12m)' : ''}`,
+            filename: `imacec-no-minero${yoyEnabled ? '-yoy' : ''}.csv`,
+            columns: [
+                { key: 'date', label: 'Fecha' },
+                { key: 'value', label: 'IMACEC no minero', align: 'right', emphasis: true }
+            ],
+            rows,
+            csv: ['fecha;imacec_no_minero', ...csvRows].join('\n')
+        };
+    }, [imacecDetailSeries]);
+    const activeImacecTable = useMemo(() => {
+        if (!imacecDetailTable) return null;
+        if (imacecDetailTable === 'bienes') return imacecGoodsTableData;
+        if (imacecDetailTable === 'comercio') return imacecCommerceTableData;
+        if (imacecDetailTable === 'no-minero') return imacecNoMineroTableData;
+        return null;
+    }, [imacecDetailTable, imacecGoodsTableData, imacecCommerceTableData, imacecNoMineroTableData]);
     const fxTableData = useMemo(() => {
         if (indicator.id !== 'dolar') return null;
 
@@ -464,7 +850,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             });
         };
 
-        addSeries(filteredChartData, 'usd');
+        addSeries(displayChartData, 'usd');
         if (fxDetailSeries) {
             addSeries(fxDetailSeries.cny, 'cny');
             addSeries(fxDetailSeries.eur, 'eur');
@@ -472,16 +858,24 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             addSeries(fxDetailSeries.jpy, 'jpy');
         }
 
+        const formatFxValue = (value, digits = 2) => {
+            if (value === undefined || value === null) return '';
+            if (yoyEnabled) {
+                return `${formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+            }
+            return formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+        };
+
         const rows = Array.from(dateMap.values())
             .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
             .map((row) => ({
                 id: row.id,
                 date: formatStartDate(row.date),
-                usd: row.usd !== undefined ? formatTooltipValue(row.usd) : '',
-                cny: row.cny !== undefined ? formatNumber(row.cny, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-                eur: row.eur !== undefined ? formatNumber(row.eur, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-                ars: row.ars !== undefined ? formatNumber(row.ars, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-                jpy: row.jpy !== undefined ? formatNumber(row.jpy, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+                usd: row.usd !== undefined ? (yoyEnabled ? formatFxValue(row.usd, 1) : formatTooltipValue(row.usd)) : '',
+                cny: formatFxValue(row.cny),
+                eur: formatFxValue(row.eur),
+                ars: formatFxValue(row.ars),
+                jpy: formatFxValue(row.jpy)
             }));
 
         return {
@@ -495,8 +889,16 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             ],
             rows
         };
-    }, [indicator.id, filteredChartData, fxDetailSeries, formatStartDate, formatTooltipValue]);
+    }, [indicator.id, displayChartData, fxDetailSeries, formatStartDate, formatTooltipValue, yoyEnabled]);
     const buildSeriesStartLabel = (series) => formatStartDate(series?.[0]?.date || series?.[0]?.name);
+    const displayValue = useMemo(() => {
+        if (!yoyEnabled) return indicator.value;
+        const latest = displayChartData[displayChartData.length - 1];
+        if (!latest || latest.value === null || latest.value === undefined) return '--';
+        return `${formatNumber(latest.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    }, [yoyEnabled, displayChartData, indicator.value]);
+    const displaySubtitle = yoyEnabled ? 'Var. % en 12 meses' : indicator.subtitle;
+    const showVariation = indicator.variation && !yoyEnabled;
     const detailCsvContent = useMemo(() => {
         if (!ipcDetailSeries) return '';
         const header = 'fecha;ipc_subyacente;ipc_volatil';
@@ -509,16 +911,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         return [header, ...rows].join('\n');
     }, [ipcDetailSeries]);
     const handleDownloadDetailCsv = () => {
-        if (!detailCsvContent) return;
-        const blob = new Blob([detailCsvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'ipc-detalle-datos.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        downloadCsv(detailCsvContent, 'ipc-detalle-datos.csv');
     };
     const ipcTopComponents = useMemo(() => {
         if (indicator.id !== 'ipc') return [];
@@ -602,6 +995,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             if (customRangeRef.current && !customRangeRef.current.contains(event.target)) {
                 setOpenDropdown(null);
             }
+            if (imacecGoodsRef.current && !imacecGoodsRef.current.contains(event.target)) {
+                setImacecGoodsDropdownOpen(false);
+            }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
@@ -625,19 +1021,46 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                 cursor: isInteractive ? 'pointer' : 'default',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
+                justifyContent: isFeatured ? 'flex-start' : 'space-between',
+                gap: isFeatured ? '0.85rem' : undefined,
                 height: '100%',
                 boxSizing: 'border-box',
                 position: 'relative'
             }}
         >
+            {isModal && isYoYEligible ? (
+                <button
+                    type="button"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setShowYoY((prev) => !prev);
+                    }}
+                    style={{
+                        position: 'absolute',
+                        top: '-1.7rem',
+                        left: '-0.3rem',
+                        fontSize: '0.75rem',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '999px',
+                        border: `1px solid ${showYoY ? 'var(--accent)' : 'var(--border)'}`,
+                        background: showYoY ? 'var(--bg-hover)' : 'var(--bg-card)',
+                        color: showYoY ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        boxShadow: 'var(--shadow-sm)',
+                        zIndex: 3
+                    }}
+                >
+                    Variacion 12 meses
+                </button>
+            ) : null}
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
                 <div>
                     <span style={{ fontSize: isFeatured ? '1.05rem' : '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
-                    {indicator.subtitle ? (
+                    {displaySubtitle ? (
                         <div style={{ fontSize: isFeatured ? '0.78rem' : '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                            ({indicator.subtitle})
+                            ({displaySubtitle})
                         </div>
                     ) : null}
                 </div>
@@ -779,10 +1202,12 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             {/* Main Value */}
             <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: isFeatured ? '2.1rem' : '1.7rem', fontWeight: 700, color: 'var(--text-primary)' }}>{indicator.value}</span>
-                    {indicator.variation ? (
+                    <span style={{ fontSize: isFeatured ? '2.1rem' : '1.7rem', fontWeight: 700, color: 'var(--text-primary)' }}>{displayValue}</span>
+                    {showVariation ? (
                         <span style={{
-                            fontSize: isFeatured ? '1.05rem' : '0.95rem',
+                            fontSize: indicator.id === 'imacec'
+                                ? (isFeatured ? '0.82rem' : '0.8rem')
+                                : (isFeatured ? '1.05rem' : '0.95rem'),
                             fontWeight: 600,
                             color: indicator.trend === 'up'
                                 ? 'var(--trend-up)'
@@ -799,7 +1224,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             {/* Sparkline Chart */}
             <div style={{ position: 'relative' }}>
                 <TrendChart
-                    data={filteredChartData}
+                    data={displayChartData}
                     color="var(--chart-neon)"
                     height={chartHeight}
                     averageFormatter={formatAverage}
@@ -829,6 +1254,257 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                     </span>
                 ) : null}
             </div>
+            {isModal && indicator.id === 'imacec' && imacecDetailSeries ? (
+                <div style={{ marginTop: '1.2rem' }}>
+                    <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Produccion de bienes</span>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{yoyEnabled ? 'Var. % en 12 meses' : 'Indice 2018=100'}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <div ref={imacecGoodsRef} style={{ position: 'relative' }}>
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setImacecGoodsDropdownOpen((prev) => !prev);
+                                        }}
+                                        className="period-select"
+                                        style={{ minWidth: '170px', textAlign: 'left', fontSize: '0.65rem' }}
+                                    >
+                                        {buildImacecSelectionLabel()}
+                                    </button>
+                                    {imacecGoodsDropdownOpen ? (
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                top: 'calc(100% + 6px)',
+                                                right: 0,
+                                                background: 'var(--bg-card)',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: '12px',
+                                                boxShadow: 'var(--shadow-md)',
+                                                padding: '0.6rem',
+                                                width: '220px',
+                                                zIndex: 6
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
+                                                Series (seleccion multiple)
+                                            </div>
+                                            <div style={{ display: 'grid', gap: '0.4rem' }}>
+                                                {IMACEC_GOODS_OPTIONS.map((option) => {
+                                                    const totalActive = imacecGoodsSelection.includes('total');
+                                                    const isChecked = totalActive || imacecGoodsSelection.includes(option.id);
+                                                    const isMuted = totalActive && option.id !== 'total';
+                                                    return (
+                                                        <button
+                                                            key={option.id}
+                                                            type="button"
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                toggleImacecSelection(option.id);
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.5rem',
+                                                                padding: '0.35rem 0.4rem',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid transparent',
+                                                                background: isChecked ? 'var(--bg-hover)' : 'transparent',
+                                                                color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                                                fontSize: '0.7rem',
+                                                                cursor: 'pointer',
+                                                                textAlign: 'left',
+                                                                opacity: isMuted ? 0.6 : 1
+                                                            }}
+                                                        >
+                                                            <span
+                                                                style={{
+                                                                    width: '14px',
+                                                                    height: '14px',
+                                                                    borderRadius: '4px',
+                                                                    border: `1px solid ${isChecked ? 'var(--accent)' : 'var(--border)'}`,
+                                                                    background: isChecked ? 'var(--accent)' : 'transparent',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    fontSize: '0.65rem',
+                                                                    color: 'white'
+                                                                }}
+                                                            >
+                                                                {isChecked ? '✓' : ''}
+                                                            </span>
+                                                            <span>{option.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                                <span style={{ width: '1px', height: '16px', background: 'var(--border)', display: 'inline-flex' }}></span>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setImacecDetailTable('bienes');
+                                    }}
+                                    style={buildActionButtonStyle(imacecDetailTable === 'bienes')}
+                                >
+                                    Datos
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        downloadCsv(imacecGoodsTableData?.csv, imacecGoodsTableData?.filename);
+                                    }}
+                                    style={buildActionButtonStyle(false)}
+                                >
+                                    Descargar CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            {imacecGoodsChart.series.length ? (
+                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.3rem' }}>
+                                    {imacecGoodsChart.series.map((series) => (
+                                        <span
+                                            key={series.key}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}
+                                        >
+                                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: series.color }}></span>
+                                            {series.label}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : null}
+                            <TrendChart
+                                data={imacecGoodsChart.data}
+                                color="#38bdf8"
+                                height={170}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                                series={imacecGoodsChart.series.length ? imacecGoodsChart.series : undefined}
+                            />
+                            {buildSeriesStartLabel(imacecGoodsChart.data) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(imacecGoodsChart.data)}
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Comercio y servicios</span>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{yoyEnabled ? 'Var. % en 12 meses' : 'Indice 2018=100'}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setImacecDetailTable('comercio');
+                                    }}
+                                    style={buildActionButtonStyle(imacecDetailTable === 'comercio')}
+                                >
+                                    Datos
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        downloadCsv(imacecCommerceTableData?.csv, imacecCommerceTableData?.filename);
+                                    }}
+                                    style={buildActionButtonStyle(false)}
+                                >
+                                    Descargar CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.3rem' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }}></span>
+                                    Comercio
+                                </span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#60a5fa' }}></span>
+                                    Servicios
+                                </span>
+                            </div>
+                            <TrendChart
+                                data={imacecCommerceServicesData}
+                                height={170}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                                series={[
+                                    { key: 'comercio', color: '#22c55e', label: 'Comercio', fill: true, fillOpacity: 0.22 },
+                                    { key: 'servicios', color: '#60a5fa', label: 'Servicios', fill: true, fillOpacity: 0.2 }
+                                ]}
+                            />
+                            {buildSeriesStartLabel(imacecCommerceServicesData) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(imacecCommerceServicesData)}
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>IMACEC no minero</span>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{yoyEnabled ? 'Var. % en 12 meses' : 'Indice 2018=100'}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setImacecDetailTable('no-minero');
+                                    }}
+                                    style={buildActionButtonStyle(imacecDetailTable === 'no-minero')}
+                                >
+                                    Datos
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        downloadCsv(imacecNoMineroTableData?.csv, imacecNoMineroTableData?.filename);
+                                    }}
+                                    style={buildActionButtonStyle(false)}
+                                >
+                                    Descargar CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
+                            <TrendChart
+                                data={imacecDetailSeries.noMinero}
+                                color="#f97316"
+                                height={170}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                theme={theme}
+                            />
+                            {buildSeriesStartLabel(imacecDetailSeries.noMinero) ? (
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    {buildSeriesStartLabel(imacecDetailSeries.noMinero)}
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
             {isModal && indicator.id === 'ipc' && ipcDetailSeries ? (
                 <div style={{ marginTop: '1.2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
@@ -1043,14 +1719,23 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                     </div>
                 </div>
             ) : null}
+            {isModal && indicator.id === 'imacec' && activeImacecTable ? (
+                <DataTableModal
+                    title={activeImacecTable.title}
+                    columns={activeImacecTable.columns}
+                    rows={activeImacecTable.rows}
+                    onClose={() => setImacecDetailTable(null)}
+                    onDownload={() => downloadCsv(activeImacecTable.csv, activeImacecTable.filename)}
+                />
+            ) : null}
             {isModal && showDataTable ? (
                 <DataTableModal
-                    title="Datos del grafico"
+                    title={yoyEnabled ? 'Datos del grafico (Var. 12m)' : 'Datos del grafico'}
                     columns={fxTableData?.columns || [
                         { key: 'date', label: 'Fecha' },
                         { key: 'value', label: 'Valor', align: 'right', emphasis: true }
                     ]}
-                    rows={fxTableData?.rows || filteredChartData.map((entry, index) => ({
+                    rows={fxTableData?.rows || displayChartData.map((entry, index) => ({
                         id: `${entry.date || entry.name}-${index}`,
                         date: formatStartDate(entry.date || entry.name),
                         value: formatTooltipValue(entry.value)

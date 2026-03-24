@@ -415,7 +415,7 @@ function App() {
         const fallback = {
             id: 'imacec',
             title: 'IMACEC',
-            subtitle: 'Var. % anual',
+            subtitle: 'Indice 2018=100',
             value: '--',
             variation: '',
             trend: 'neutral',
