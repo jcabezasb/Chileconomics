@@ -6,6 +6,7 @@ import PlaceholderSection from '../shared/components/PlaceholderSection';
 import ContactSection from '../features/contact/ContactSection';
 import DevelopmentSection from '../features/development/DevelopmentSection';
 import OverviewSection from '../features/overview/OverviewSection';
+import PibCompositionSection from '../features/overview/PibCompositionSection';
 import RegionalSection from '../features/regional/RegionalSection';
 import BlogSection from '../features/blog/BlogSection';
 import useBcchData from '../data/bcch/useBcchData';
@@ -94,7 +95,6 @@ function App() {
     const [selectedDate, setSelectedDate] = useState(null);
     const [regionalTimeRange, setRegionalTimeRange] = useState('1a');
     const [hasScrolled, setHasScrolled] = useState(false);
-    const [showPibInfo, setShowPibInfo] = useState(false);
 
     useEffect(() => {
         const handlePopState = () => {
@@ -411,6 +411,27 @@ function App() {
             .sort((a, b) => CHART_ORDER.indexOf(a.id) - CHART_ORDER.indexOf(b.id))
     ), [indicators]);
 
+    const imacecIndicator = useMemo(() => {
+        const fallback = {
+            id: 'imacec',
+            title: 'IMACEC',
+            subtitle: 'Indice 2018=100',
+            value: '--',
+            variation: '',
+            trend: 'neutral',
+            period: 'Serie en preparacion',
+            description: 'Indicador Mensual de Actividad Economica'
+        };
+        const found = indicators.find((item) => item.id === 'imacec');
+        if (!found) return fallback;
+        return {
+            ...fallback,
+            ...found,
+            subtitle: found.subtitle || fallback.subtitle,
+            description: found.description || fallback.description
+        };
+    }, [indicators]);
+
     const regionalPibRaw = useMemo(() => (
         selectedRegion
             ? (regionalData[getRegionId(selectedRegion)]?.pib?.history || [])
@@ -556,22 +577,9 @@ function App() {
                     </section>
                     <OverviewSection
                         sectionRef={(el) => { revealElementsRef.current[0] = el; }}
-                        pibCompositionData={pibCompositionData}
                         theme={theme}
-                        showPibInfo={showPibInfo}
-                        setShowPibInfo={setShowPibInfo}
-                        periodYears={periodYears}
-                        periodQuarters={periodQuarters}
-                        selectedYear={selectedYear}
-                        setSelectedYear={setSelectedYear}
-                        selectedQuarter={selectedQuarter}
-                        setSelectedQuarter={setSelectedQuarter}
-                        availablePeriods={availablePeriods}
-                        nominalSeries={nominalSeries}
-                        pibTableIndicators={pibTableIndicators}
-                        buildSparklinePaths={buildSparklinePaths}
-                        getSparklineTrend={getSparklineTrend}
                         chartIndicators={chartIndicators}
+                        imacecIndicator={imacecIndicator}
                     />
 
                     <RegionalSection
@@ -593,6 +601,23 @@ function App() {
                         laborCards={laborCards}
                         buildLaborChartData={buildLaborChartData}
                         formatMonthLabelDash={formatMonthLabelDash}
+                    />
+
+                    <PibCompositionSection
+                        sectionRef={(el) => { revealElementsRef.current[2] = el; }}
+                        pibCompositionData={pibCompositionData}
+                        theme={theme}
+                        periodYears={periodYears}
+                        periodQuarters={periodQuarters}
+                        selectedYear={selectedYear}
+                        setSelectedYear={setSelectedYear}
+                        selectedQuarter={selectedQuarter}
+                        setSelectedQuarter={setSelectedQuarter}
+                        availablePeriods={availablePeriods}
+                        nominalSeries={nominalSeries}
+                        pibTableIndicators={pibTableIndicators}
+                        buildSparklinePaths={buildSparklinePaths}
+                        getSparklineTrend={getSparklineTrend}
                     />
                 </>
             ) : null}

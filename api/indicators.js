@@ -2,11 +2,11 @@ const indicators = [
     {
         id: "imacec",
         title: "IMACEC",
-        value: "1.2%",
-        variation: "+0.3%",
-        trend: "up",
+        value: "112.4",
+        variation: "",
+        trend: "neutral",
         period: "Ene 2024",
-        description: "Indicador Mensual de Actividad Económica"
+        description: "Indicador Mensual de Actividad Economica"
     },
     {
         id: "ipc",

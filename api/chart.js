@@ -5,7 +5,7 @@ const buildSeries = (indicatorId) => {
     let volatility = 1;
 
     switch (indicatorId) {
-        case "imacec": base = 1.0; volatility = 0.5; break;
+        case "imacec": base = 112.0; volatility = 3.0; break;
         case "ipc": base = 3.5; volatility = 0.3; break;
         case "tpm": base = 8.0; volatility = 0.75; break;
         case "dolar": base = 950; volatility = 20; break;
@@ -17,7 +17,7 @@ const buildSeries = (indicatorId) => {
     return months.map((m, i) => {
         let val = base + (Math.random() * volatility - volatility / 2);
         if (indicatorId === "tpm") val -= (i * 0.1);
-        if (indicatorId === "imacec") val += (i * 0.05);
+        if (indicatorId === "imacec") val += (i * 0.35);
         return {
             name: m,
             value: Number(val.toFixed(2))
