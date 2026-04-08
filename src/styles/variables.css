@@ -1,7 +1,7 @@
 :root {
   /* Typography */
-  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --font-display: 'Source Sans 3', system-ui, -apple-system, sans-serif;
 
   /* Colors - Light Theme (Default) */
   --bg-primary: #f5f7fb;

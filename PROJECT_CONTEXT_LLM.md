@@ -6,7 +6,7 @@ Chileconomics is a single-page macro dashboard for Chile. It renders a scrollyte
 ## Quick start
 - `npm install`
 - `pip install -r requirements.txt`
-- Create `.env` with `BCCH_USER` and `BCCH_PASSWORD`
+- Create `.env` with `BCCH_USER`, `BCCH_PASSWORD`, and `VITE_API_BASE_URL`
 - `npm run sync-data` (generates `public/data/bcch_series.json`)
 - `npm run dev`
 
@@ -14,12 +14,14 @@ Chileconomics is a single-page macro dashboard for Chile. It renders a scrollyte
 - `index.html` -> `src/main.jsx`
 - `src/main.jsx` picks `App` vs blog post by pathname
 - `src/app/App.jsx` is the main shell and section router
+ - Blog post route: `/blog/el-precio-como-coordinador`
 
 ## Data pipeline (BCCH)
 - Source: Banco Central de Chile API via `bcchapi`
 - Sync: `sync_bcch_data.py` uses `SERIES_CONFIG_SYNC` from `bcch_shared.py` and writes `public/data/bcch_series.json`
 - Automation: `.github/workflows/hourly_sync.yml` runs daily, commits JSON
 - Frontend load: `src/data/bcch/api.js` loads `/data/bcch_series.json`, normalizes, caches, and derives data
+- Fallback behavior: API calls are only attempted in dev (`import.meta.env.DEV`); prod relies on static JSON
 - Aggregation: `src/data/bcch/useBcchData.js` composes overview + regional data and statistics
 - Production: serverless endpoints in `api/` are blocked in prod; frontend should only use static JSON
 
@@ -56,9 +58,20 @@ Chileconomics is a single-page macro dashboard for Chile. It renders a scrollyte
 - Theme tokens in `src/styles/variables.css`
 - Theme switches via `data-theme` attribute on `document.documentElement`
 
+## Environment variables
+- `BCCH_USER`, `BCCH_PASSWORD` for the sync script (server-side only)
+- `VITE_API_BASE_URL` for dev API proxy (used by `src/data/bcch/api.js`)
+
+## Deploy/runtime notes
+- Vercel rewrites all routes to `index.html` (see `vercel.json`)
+- Security headers and CSP are defined in `vercel.json`
+
 ## Common changes
 - Add a new BCCH series: update `SERIES_CONFIG_SYNC` in `bcch_shared.py`, run `npm run sync-data`, and add a key in `SERIES_KEY_MAP` inside `src/data/bcch/api.js` if the frontend needs it.
 - Add a new section: create a new folder under `src/features/` and wire it in `src/app/App.jsx` + `TopNav` (if needed).
+
+## Useful scripts/tests
+- `test_bcch.py` for quick BCCH data sanity checks
 
 ## Do not
 - Do not edit `public/data/bcch_series.json` by hand.

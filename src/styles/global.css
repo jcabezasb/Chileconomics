@@ -80,7 +80,7 @@ h6 {
 .landing-ribbons {
     width: min(960px, 92vw);
     margin: 0 auto;
-    padding: 2.5rem 0 4.5rem;
+    padding: 1.6rem 0 4rem;
     position: relative;
     z-index: 1;
 }
@@ -98,51 +98,72 @@ h6 {
 
 .landing-ribbon-list {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 0.75rem;
 }
 
 .landing-ribbon {
     position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
     align-items: center;
-    gap: 1.5rem;
-    text-align: left;
-    padding: 0.95rem 1.6rem;
-    border-radius: 16px;
-    border: 1px solid color-mix(in srgb, var(--ribbon-accent) 20%, var(--border));
-    background: linear-gradient(120deg, color-mix(in srgb, var(--ribbon-accent) 16%, var(--bg-card)) 0%, color-mix(in srgb, var(--bg-card) 94%, var(--ribbon-accent)) 100%);
+    justify-content: center;
+    text-align: center;
+    min-height: 56px;
+    padding: 0.8rem 1.1rem;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--ribbon-accent) 18%, var(--border));
+    background:
+        linear-gradient(140deg, color-mix(in srgb, var(--ribbon-accent) 12%, var(--bg-card)) 0%, color-mix(in srgb, var(--bg-card) 96%, #0b1220) 100%);
     color: var(--text-primary);
     cursor: pointer;
+    overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 10px 28px -22px rgba(0, 0, 0, 0.6);
 }
 
 .landing-ribbon::before,
 .landing-ribbon::after {
     content: '';
     position: absolute;
-    top: 0.55rem;
-    bottom: 0.55rem;
-    width: 18px;
-    background: color-mix(in srgb, var(--ribbon-accent) 20%, var(--bg-card));
-    clip-path: polygon(0 50%, 100% 0, 100% 100%);
-    opacity: 0.6;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.35s ease;
 }
 
 .landing-ribbon::before {
-    left: -10px;
-    transform: rotate(180deg);
+    inset: 1px;
+    border-radius: 12px;
+    background: linear-gradient(
+        120deg,
+        color-mix(in srgb, var(--ribbon-accent) 12%, transparent) 0%,
+        transparent 52%,
+        color-mix(in srgb, var(--ribbon-accent) 8%, transparent) 100%
+    );
+    opacity: 0.35;
 }
 
 .landing-ribbon::after {
-    right: -10px;
+    inset: 0;
+    border-radius: 12px;
+    background: radial-gradient(
+        circle at 50% -20%,
+        color-mix(in srgb, var(--ribbon-accent) 55%, transparent) 0%,
+        transparent 55%
+    );
+    opacity: 0;
+    transform: translateY(6px);
 }
 
 .landing-ribbon:hover {
-    transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--ribbon-accent) 35%, var(--border));
-    box-shadow: 0 10px 24px -18px color-mix(in srgb, var(--ribbon-accent) 40%, transparent);
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--ribbon-accent) 36%, var(--border));
+    box-shadow:
+        0 14px 26px -22px rgba(0, 0, 0, 0.7),
+        0 0 18px -12px color-mix(in srgb, var(--ribbon-accent) 50%, transparent);
+}
+
+.landing-ribbon:hover::after {
+    opacity: 0.6;
+    transform: translateY(0);
 }
 
 .landing-ribbon:focus-visible {
@@ -155,42 +176,12 @@ h6 {
     box-shadow: 0 12px 28px -18px color-mix(in srgb, var(--ribbon-accent) 45%, transparent);
 }
 
-.landing-ribbon-copy {
-    display: grid;
-    gap: 0.35rem;
-}
-
-.landing-ribbon-kicker {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    font-weight: 700;
-    color: var(--text-secondary);
-}
-
 .landing-ribbon-title {
     margin: 0;
-    font-size: 1.15rem;
-}
-
-.landing-ribbon-text {
-    margin: 0;
-    color: var(--text-secondary);
     font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-.landing-ribbon-cta {
-    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.2em;
     font-weight: 700;
-    color: var(--ribbon-accent);
-    padding: 0.3rem 0.7rem;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--ribbon-accent) 50%, var(--border));
-    background: color-mix(in srgb, var(--ribbon-accent) 12%, transparent);
-    white-space: nowrap;
 }
 
 .overview-section {
