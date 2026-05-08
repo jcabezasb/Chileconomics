@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "sync-data": "python sync_bcch_data.py",
+    "sync-data": "python python/sync_bcch_data.py",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

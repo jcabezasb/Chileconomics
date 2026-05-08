@@ -62,7 +62,7 @@ npm run dev
 - `src/shared/`: componentes, utils y constantes reutilizables
 - `src/styles/`: estilos globales y variables de tema
 
-Para mas detalle ver `PROJECT_STRUCTURE.md`.
+Para mas detalle ver `PROJECT_CONTEXT_LLM.md`.
 
 ## 🛠 Estado Actual y Próximos Pasos
 
@@ -72,13 +72,13 @@ El dashboard ya se encuentra conectado a la API oficial del Banco Central de Chi
 - **Mapeo Regional**: Interacción con el mapa completamente vinculada a series oficiales.
 
 Documentos de contexto:
-- `PROJECT_STRUCTURE.md` (estructura simple para el equipo)
-- `PROJECT_CONTEXT_LLM.md` (contexto tecnico para IA)
+- `PROJECT_CONTEXT_LLM.md` (contexto técnico completo para IA)
+- `CLAUDE.md` (contexto para Claude Code)
 
 **Próximos Pasos:**
 - Integrar series regionales adicionales (Desempleo, Ocupación, etc.) donde la fuente oficial esté disponible.
 - Refinar la visualización de los gráficos de tendencia detallados.
-- Implementar el BFF final en Vercel para ocultar credenciales en producción.
+- Mejorar sección de mercado laboral.
 
 
 ## 📄 Licencia

@@ -17,8 +17,7 @@ ChilEconomics is a macroeconomic dashboard for Chile that displays official data
 1. **Data Source**: Python script (`sync_bcch_data.py`) fetches time series from BCCH API using credentials stored in `.env` (BCCH_USER, BCCH_PASSWORD)
 2. **Static Data**: Script writes to `public/data/bcch_series.json` — this is the single source of truth for the frontend
 3. **Automation**: GitHub Actions workflow (`.github/workflows/hourly_sync.yml`) runs daily, fetching fresh data and committing updates
-4. **Frontend Consumption**: React app reads the static JSON file; no runtime API calls in production
-5. **Development Proxy**: `api/` folder contains Vercel serverless functions blocked in production — used only for local development
+4. **Frontend Consumption**: React app reads the static JSON file — no runtime API calls in production
 
 **Important**: `public/data/bcch_series.json` is auto-generated. Never edit manually. The JSON structure:
 ```json
@@ -178,7 +177,6 @@ Manual sync: Run workflow from GitHub Actions UI or locally with `npm run sync-d
 - BCCH credentials stored as GitHub Secrets (BCCH_USER, BCCH_PASSWORD)
 - Never commit `.env` file
 - Production uses Content Security Policy headers (see `vercel.json`)
-- API endpoints in `api/` folder are blocked in production via CSP
 
 ## Economics Context
 
