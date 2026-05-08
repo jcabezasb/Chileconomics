@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import MacroMap from './MacroMap';
 import TrendChart from '../../shared/components/TrendChart';
 import DataTableModal from '../../shared/components/DataTableModal';
+import { getSeries } from '../../data/bcch/api';
+import { REGION_NUMERIC_CODE_BY_ID } from '../../shared/constants/regions';
 
 const RegionalSection = ({
     sectionRef,
@@ -23,7 +25,9 @@ const RegionalSection = ({
     formatMonthLabelDash,
     theme
 }) => {
-    const [activeModal, setActiveModal] = useState(null);
+const [activeModal, setActiveModal] = useState(null);
+    const [pibActivityData, setPibActivityData] = useState(null);
+    const [activityLoading, setActivityLoading] = useState(false);
     const regionId = selectedRegion ? getRegionId(selectedRegion) : null;
     const populationSeries = {
         total: regionId ? regionalData[regionId]?.pob?.total : populationData?.total,
@@ -32,6 +36,60 @@ const RegionalSection = ({
     };
 
     const closeModal = () => setActiveModal(null);
+
+    const loadPibActivities = async (regId) => {
+        if (!regId || !REGION_NUMERIC_CODE_BY_ID[regId]) return null;
+        const code = REGION_NUMERIC_CODE_BY_ID[regId];
+        const baseId = `F035.PIB.FLU.R.CLP.2018`;
+        
+        const activityMap = {
+            bienes: `${baseId}.PB.Z.Z.${code}.0.T`,
+            mineria: `${baseId}.03.Z.Z.${code}.0.T`,
+            industria: `${baseId}.04.Z.Z.${code}.0.T`,
+            resto: `${baseId}.RB.Z.Z.${code}.0.T`,
+            comercio: `${baseId}.COM.Z.Z.${code}.0.T`,
+            servicios: `${baseId}.SERV.Z.Z.${code}.0.T`
+        };
+
+        try {
+            const results = await Promise.all([
+                getSeries(activityMap.bienes),
+                getSeries(activityMap.mineria),
+                getSeries(activityMap.industria),
+                getSeries(activityMap.resto),
+                getSeries(activityMap.comercio),
+                getSeries(activityMap.servicios)
+            ]);
+            
+            return {
+                bienes: results[0] || [],
+                mineria: results[1] || [],
+                industria: results[2] || [],
+                resto: results[3] || [],
+                comercio: results[4] || [],
+                servicios: results[5] || []
+            };
+        } catch (e) {
+            console.error('Error loading PIB activities:', e);
+            return null;
+        }
+    };
+
+    const handleOpenPibActivities = async () => {
+        if (!regionId) return;
+        
+        setActivityLoading(true);
+        const data = await loadPibActivities(regionId);
+        setActivityLoading(false);
+        
+        if (data) {
+            setPibActivityData(data);
+            setActiveModal({
+                type: 'pib_activities',
+                title: `PIB por Actividad - ${selectedRegion}`
+            });
+        }
+    };
 
     const buildSeriesCsv = (series, header = 'fecha;valor') => {
         if (!series || !series.length) return '';
@@ -299,13 +357,13 @@ const RegionalSection = ({
                                                     );
                                                 })}
                                             </div>
-                                            <button
+<button
                                                 type="button"
                                                 className="regional-download"
-                                                onClick={handleOpenPibDetails}
-                                                disabled={!regionalPibChartData || !regionalPibChartData.length}
+                                                onClick={handleOpenPibActivities}
+                                                disabled={!selectedRegion || !regionId}
                                             >
-                                                Mas detalles
+                                                Por actividad
                                             </button>
                                         </div>
                                     </div>
@@ -436,17 +494,83 @@ const RegionalSection = ({
         </section>
     );
 
-    return (
+return (
         <>
             {content}
             {activeModal ? (
-                <DataTableModal
-                    title={activeModal.title}
-                    columns={activeModal.columns}
-                    rows={activeModal.rows}
-                    onClose={closeModal}
-                    onDownload={activeModal.onDownload}
-                />
+                activeModal.type === 'pib_activities' ? (
+                    <div className="modal-backdrop" onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>{activeModal.title}</h2>
+                                <button className="modal-close" onClick={closeModal}>×</button>
+                            </div>
+                            <div className="modal-body" style={{ padding: '1rem', maxHeight: '70vh', overflowY: 'auto' }}>
+                                {activityLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando datos...</div>
+                                ) : pibActivityData ? (
+                                    <div style={{ display: 'grid', gap: '1rem' }}>
+                                        {[
+                                            { key: 'bienes', label: 'Producción de bienes', color: '#3b82f6' },
+                                            { key: 'mineria', label: 'Minería', color: '#ef4444' },
+                                            { key: 'industria', label: 'Industria', color: '#f59e0b' },
+                                            { key: 'resto', label: 'Resto de bienes', color: '#8b5cf6' },
+                                            { key: 'comercio', label: 'Comercio', color: '#10b981' },
+                                            { key: 'servicios', label: 'Servicios', color: '#06b6d4' }
+                                        ].map((activity) => {
+                                            const data = pibActivityData[activity.key] || [];
+                                            const latest = data[data.length - 1];
+                                            return (
+                                                <div key={activity.key} style={{
+                                                    padding: '0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: `1px solid var(--border)`,
+                                                    background: 'var(--bg-card)'
+                                                }}>
+                                                    <div style={{ 
+                                                        fontWeight: 600, 
+                                                        color: activity.color,
+                                                        marginBottom: '0.5rem'
+                                                    }}>
+                                                        {activity.label}
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                                        <div style={{ flex: 1, height: 60 }}>
+                                                            <TrendChart
+                                                                data={data.slice(-20)}
+                                                                color={activity.color}
+                                                                height={60}
+                                                                valueFormatter={(v) => formatNumber(v, 1)}
+                                                                theme={theme}
+                                                            />
+                                                        </div>
+                                                        <div style={{ minWidth: 80, textAlign: 'right' }}>
+                                                            <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                                                                {latest?.value ? formatNumber(latest.value, 1) + ' MM' : '--'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                                        No hay datos disponibles para esta región
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <DataTableModal
+                        title={activeModal.title}
+                        columns={activeModal.columns}
+                        rows={activeModal.rows}
+                        onClose={closeModal}
+                        onDownload={activeModal.onDownload}
+                    />
+                )
             ) : null}
         </>
     );
