@@ -1,4 +1,6 @@
-# Dashboard Macroeconómico de Chile
+# Chileconomics
+
+Dashboard macroeconómico de Chile.
 
 ## 📊 Descripción del Proyecto
 Este proyecto consiste en el desarrollo de un **Dashboard Macroeconómico de Chile**, publicado como sitio web (one-pager/scrollytelling) con actualización automática de datos oficiales. 
