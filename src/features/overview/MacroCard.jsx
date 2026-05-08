@@ -1015,9 +1015,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                 padding: isModal ? '1.2rem' : isFeatured ? '1.25rem' : '0.85rem',
                 paddingBottom: isModal ? '2.2rem' : isFeatured ? '2rem' : '1.7rem',
                 borderRadius: isModal ? '12px' : isFeatured ? '14px' : '10px',
-                boxShadow: isModal ? 'none' : 'var(--shadow-md)',
-                border: isModal ? 'none' : '1px solid var(--border)',
-                transition: 'transform 0.2s',
+boxShadow: isModal ? 'none' : 'var(--shadow-md)',
                 cursor: isInteractive ? 'pointer' : 'default',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1025,7 +1023,20 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
                 gap: isFeatured ? '0.85rem' : undefined,
                 height: '100%',
                 boxSizing: 'border-box',
-                position: 'relative'
+                position: 'relative',
+                outline: isInteractive ? '2px solid transparent' : 'none',
+                outlineOffset: '2px',
+                transition: 'transform 0.2s, box-shadow 0.2s, outline-color 0.2s'
+            }}
+            onMouseEnter={(e) => {
+                if (!isInteractive) return;
+                e.currentTarget.style.outlineColor = 'var(--accent)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+            }}
+            onMouseLeave={(e) => {
+                if (!isInteractive) return;
+                e.currentTarget.style.outlineColor = 'transparent';
+                e.currentTarget.style.boxShadow = isModal ? 'none' : 'var(--shadow-md)';
             }}
         >
             {isModal && isYoYEligible ? (
