@@ -230,8 +230,33 @@ const RegionalSection = ({
 
                         <div className="regional-metrics-grid">
                             <div className="regional-metrics-left">
-                                {/* Ficha 1: Detalle PIB Real */}
-                                <div className="regional-pib-card">
+{/* Ficha 1: Detalle PIB Real */}
+                                <div 
+                                    className="regional-pib-card"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={handleOpenPibDetails}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            handleOpenPibDetails();
+                                        }
+                                    }}
+                                    style={{
+                                        cursor: 'pointer',
+                                        outline: '2px solid transparent',
+                                        outlineOffset: '2px',
+                                        transition: 'outline-color 0.2s, box-shadow 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.outlineColor = 'var(--accent)';
+                                        e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.outlineColor = 'transparent';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                >
                                     <div className="regional-pib-header">
                                         <div>
                                             <div className="regional-pib-label">PIB Real (Cuentas Nacionales)</div>
