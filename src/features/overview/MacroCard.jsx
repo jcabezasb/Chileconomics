@@ -5,6 +5,7 @@ import DataTable from '../../shared/components/DataTable';
 import { getChartData, getFxDetailSeries, getImacecDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../data/bcch/api';
 import { formatNumber } from '../../shared/utils/format';
 import { DetailPanel, IconButton, Legend, Segmented, StatStrip } from './IndicatorDetailParts';
+import { buildJoinedReturns, buildRollingCorrelation, correlationBetween, toWeekly } from '../../shared/utils/correlation';
 import {
     computeSeriesStats,
     formatPeriodChange,
@@ -68,6 +69,7 @@ const MacroCard = ({ indicator, theme, onOpen, onClose, variant = 'compact' }) =
     const [fxDetailData, setFxDetailData] = useState(null);
     const [tcrDetailData, setTcrDetailData] = useState(null);
     const [imacecGoodsSelection, setImacecGoodsSelection] = useState(['total']);
+    const [cobreDolarData, setCobreDolarData] = useState(null);
     const customRangeRef = useRef(null);
     const isInteractive = typeof onOpen === 'function';
     const isModal = variant === 'modal';
@@ -144,6 +146,36 @@ const MacroCard = ({ indicator, theme, onOpen, onClose, variant = 'compact' }) =
             isActive = false;
         };
     }, [indicator.id]);
+
+    // El dólar solo se carga al abrir la ventana del cobre (para compararlos).
+    useEffect(() => {
+        let isActive = true;
+        if (!isModal || indicator.id !== 'cobre') {
+            setCobreDolarData(null);
+            return undefined;
+        }
+
+        getChartData('dolar').then((data) => {
+            if (!isActive) return;
+            setCobreDolarData(data);
+        });
+
+        return () => {
+            isActive = false;
+        };
+    }, [isModal, indicator.id]);
+
+    const cobreDolarReturns = useMemo(() => (
+        indicator.id === 'cobre' && cobreDolarData?.length && chartData.length
+            ? buildJoinedReturns(toWeekly(chartData), toWeekly(cobreDolarData))
+            : []
+    ), [indicator.id, cobreDolarData, chartData]);
+    const cobreDolarRolling = useMemo(() => (
+        buildRollingCorrelation(cobreDolarReturns, [
+            { key: 'corr3m', size: 13 },
+            { key: 'corr12m', size: 52 }
+        ])
+    ), [cobreDolarReturns]);
 
     const isYoYEligible = YOY_ELIGIBLE.has(indicator.id);
     const yoyEnabled = isModal && isYoYEligible && showYoY;
@@ -972,9 +1004,46 @@ const MacroCard = ({ indicator, theme, onOpen, onClose, variant = 'compact' }) =
             { key: 'tcr', label: 'TCR', color: '#38bdf8' },
             { key: 'tcr5', label: 'TCR-5', color: '#f97316' }
         ];
+        // Cobre vs dólar: en nivel ambas series parten en 100 al inicio del período (unidades distintas);
+        // en "Var. 12 meses" se comparan las variaciones anuales.
+        const cobrePairDefs = [
+            { key: 'cobre', label: 'Cobre (US$/lb)', color: '#f97316' },
+            { key: 'dolar', label: 'Dólar (CLP/US$)', color: '#38bdf8' }
+        ];
+        const corrDefs = [
+            { key: 'corr12m', label: 'Ventana 12 meses', color: 'var(--chart-neon)', strokeWidth: 2.5 },
+            { key: 'corr3m', label: 'Ventana 3 meses', color: '#94a3b8', strokeWidth: 1.5 }
+        ];
+        let cobrePairData = [];
+        let cobreCorrData = [];
+        let cobrePeriodCorr = null;
+        if (indicator.id === 'cobre' && cobreDolarData?.length && displayChartData.length) {
+            const startDate = displayChartData[0].date;
+            const endDate = displayChartData[displayChartData.length - 1].date;
+            const dolarBase = yoyEnabled ? buildYoYSeries(cobreDolarData) : cobreDolarData;
+            const dolarInRange = dolarBase.filter((entry) => entry.date >= startDate && entry.date <= endDate);
+            const rebase = (series) => {
+                const base = Number(series[0]?.value);
+                return base ? series.map((entry) => ({ date: entry.date, value: (Number(entry.value) / base) * 100 })) : [];
+            };
+            cobrePairData = mergeSeriesByDate({
+                cobre: yoyEnabled ? displayChartData : rebase(displayChartData),
+                dolar: yoyEnabled ? dolarInRange : rebase(dolarInRange)
+            });
+            cobreCorrData = cobreDolarRolling.filter((row) => row.date >= startDate && row.date <= endDate);
+            cobrePeriodCorr = correlationBetween(cobreDolarReturns, startDate, endDate);
+        }
+        const corrFormatter = (value) => (
+            value === null || value === undefined || Number.isNaN(Number(value))
+                ? ''
+                : formatNumber(Number(value), 2)
+        );
+        const pairFormatter = yoyEnabled ? percentFormatter : indexFormatter;
+
         const hasBreakdown = (indicator.id === 'imacec' && imacecDetailSeries)
             || (indicator.id === 'ipc' && ipcCombinedData.length)
-            || (indicator.id === 'dolar' && (fxHasData || tcrChartData.length));
+            || (indicator.id === 'dolar' && (fxHasData || tcrChartData.length))
+            || (indicator.id === 'cobre' && cobrePairData.length);
 
         return (
             <div className="detail">
@@ -1159,6 +1228,61 @@ const MacroCard = ({ indicator, theme, onOpen, onClose, variant = 'compact' }) =
                                         detailed
                                     />
                                 </DetailPanel>
+                            ) : null}
+
+                            {indicator.id === 'cobre' && cobrePairData.length ? (
+                                <>
+                                    <DetailPanel
+                                        wide
+                                        title="Cobre y dólar"
+                                        subtitle={yoyEnabled
+                                            ? 'Var. % en 12 meses de cada serie'
+                                            : 'Índice: inicio del período = 100 · cuando el cobre sube, el dólar suele bajar (el peso se aprecia)'}
+                                        legend={<Legend items={cobrePairDefs.map((def) => ({ id: def.key, ...def }))} />}
+                                        table={() => buildMultiTable(cobrePairData, cobrePairDefs, pairFormatter)}
+                                        onDownload={() => downloadCsv(
+                                            buildCsv(cobrePairData, cobrePairDefs),
+                                            `cobre-dolar${yoyEnabled ? '-var12m' : '-base100'}.csv`
+                                        )}
+                                    >
+                                        <TrendChart
+                                            data={cobrePairData}
+                                            height={240}
+                                            valueFormatter={pairFormatter}
+                                            axisFormatter={makeAxisFormatter(yoyEnabled ? { suffix: '%' } : {})}
+                                            theme={theme}
+                                            series={cobrePairDefs}
+                                            showAverage={false}
+                                            referenceLines={yoyEnabled ? [{ y: 0, label: '' }] : [{ y: 100, label: 'Inicio' }]}
+                                            detailed
+                                        />
+                                    </DetailPanel>
+                                    {cobreCorrData.length ? (
+                                        <DetailPanel
+                                            wide
+                                            title="Correlación móvil cobre–dólar"
+                                            subtitle="Variaciones semanales · −1: se mueven siempre en sentido opuesto, 0: sin relación"
+                                            info="Correlación de Pearson entre las variaciones semanales del precio del cobre y del dólar observado. Se usan variaciones (no niveles) para no confundir tendencias comunes con relación."
+                                            latest={cobrePeriodCorr !== null ? corrFormatter(cobrePeriodCorr) : null}
+                                            change={cobrePeriodCorr !== null ? { text: `correlación ${periodLabel}`, direction: 'flat' } : null}
+                                            legend={<Legend items={corrDefs.map((def) => ({ id: def.key, ...def }))} />}
+                                            table={() => buildMultiTable(cobreCorrData, corrDefs, corrFormatter)}
+                                            onDownload={() => downloadCsv(buildCsv(cobreCorrData, corrDefs, 3), 'correlacion-cobre-dolar.csv')}
+                                        >
+                                            <TrendChart
+                                                data={cobreCorrData}
+                                                height={200}
+                                                valueFormatter={corrFormatter}
+                                                axisFormatter={(value, decimals) => formatNumber(value, Math.max(decimals, 1))}
+                                                theme={theme}
+                                                series={corrDefs}
+                                                showAverage={false}
+                                                referenceLines={[{ y: 0, label: '' }]}
+                                                detailed
+                                            />
+                                        </DetailPanel>
+                                    ) : null}
+                                </>
                             ) : null}
 
                             {indicator.id === 'dolar' && fxHasData ? fxPanels.map((panel) => {

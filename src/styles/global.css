@@ -3096,3 +3096,70 @@ p {
     border-color: var(--accent) !important;
     box-shadow: 0 0 0 1px var(--accent) inset;
 }
+
+/* ---------- PIB per cápita regional ---------- */
+
+.regional-map-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.regional-map-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    max-width: 260px;
+}
+
+.regional-map-legend-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.regional-map-legend-bar {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--map-fill-selected) 12%, var(--map-fill)),
+        var(--map-fill-selected)
+    );
+}
+
+.regional-map-legend-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.66rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.regional-percapita-value {
+    margin: 0.2rem 0;
+    font-size: 1.7rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.regional-percapita-unit {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.regional-percapita-context {
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.regional-percapita-context strong {
+    color: var(--text-primary);
+}
