@@ -74,6 +74,25 @@ export const REGION_LABEL_BY_ID = {
     XVI: 'Region XVI: Nuble'
 };
 
+export const REGION_SHORT_NAME_BY_ID = {
+    XV: 'Arica y Parinacota',
+    I: 'Tarapacá',
+    II: 'Antofagasta',
+    III: 'Atacama',
+    IV: 'Coquimbo',
+    V: 'Valparaíso',
+    RM: 'Metropolitana',
+    VI: "O'Higgins",
+    VII: 'Maule',
+    XVI: 'Ñuble',
+    VIII: 'Biobío',
+    IX: 'La Araucanía',
+    XIV: 'Los Ríos',
+    X: 'Los Lagos',
+    XI: 'Aysén',
+    XII: 'Magallanes'
+};
+
 export const REGION_IDS = [
     'XV',
     'I',

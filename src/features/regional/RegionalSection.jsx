@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import MacroMap from './MacroMap';
 import TrendChart from '../../shared/components/TrendChart';
 import DataTableModal from '../../shared/components/DataTableModal';
 import { getSeries } from '../../data/bcch/api';
-import { REGION_NUMERIC_CODE_BY_ID } from '../../shared/constants/regions';
+import { REGION_NUMERIC_CODE_BY_ID, REGION_SHORT_NAME_BY_ID } from '../../shared/constants/regions';
+import { buildAnnualPerCapita, buildLatestPerCapita, buildRegionalPerCapitaRanking } from '../../shared/utils/perCapita';
+import { Segmented } from '../overview/IndicatorDetailParts';
+
+const MAP_MODES = [
+    { id: 'regions', label: 'Regiones' },
+    { id: 'percapita', label: 'PIB per cápita' }
+];
+
+// '2026-04-01' -> '2T 2026'
+const quarterLabel = (date) => {
+    if (!date) return '';
+    const month = Number(date.slice(5, 7));
+    return `${Math.floor((month - 1) / 3) + 1}T ${date.slice(0, 4)}`;
+};
 
 const RegionalSection = ({
     sectionRef,
@@ -34,6 +48,38 @@ const [activeModal, setActiveModal] = useState(null);
         hombres: regionId ? regionalData[regionId]?.pob?.hombres : populationData?.hombres,
         mujeres: regionId ? regionalData[regionId]?.pob?.mujeres : populationData?.mujeres
     };
+
+    const [mapMode, setMapMode] = useState('regions');
+    const perCapitaRanking = useMemo(() => buildRegionalPerCapitaRanking(regionalData), [regionalData]);
+    const nationalPerCapita = useMemo(
+        () => buildLatestPerCapita(realPibData, populationData?.total),
+        [realPibData, populationData]
+    );
+    const perCapitaHistory = useMemo(() => (
+        regionId
+            ? buildAnnualPerCapita(regionalData[regionId]?.pib?.history, regionalData[regionId]?.pob?.total)
+            : buildAnnualPerCapita(realPibData, populationData?.total)
+    ), [regionId, regionalData, realPibData, populationData]);
+    const selectedPerCapita = regionId ? perCapitaRanking.byId[regionId] : nationalPerCapita;
+    // Variación del PIB real nacional: último trimestre vs mismo trimestre del año anterior.
+    const nationalPibYoY = useMemo(() => {
+        const valid = (realPibData || []).filter((entry) => Number.isFinite(Number(entry?.value)));
+        if (valid.length < 5) return null;
+        const latest = Number(valid[valid.length - 1].value);
+        const previous = Number(valid[valid.length - 5].value);
+        return previous ? ((latest - previous) / previous) * 100 : null;
+    }, [realPibData]);
+    const perCapitaValues = useMemo(() => (
+        Object.fromEntries(perCapitaRanking.rows.map((row) => [row.regionId, row.value]))
+    ), [perCapitaRanking]);
+    const choropleth = useMemo(() => (
+        mapMode === 'percapita' && perCapitaRanking.rows.length
+            ? { values: perCapitaValues, getId: getRegionId }
+            : null
+    ), [mapMode, perCapitaRanking, perCapitaValues, getRegionId]);
+    const perCapitaExtremes = perCapitaRanking.rows.length
+        ? { max: perCapitaRanking.rows[0], min: perCapitaRanking.rows[perCapitaRanking.rows.length - 1] }
+        : null;
 
     const closeModal = () => setActiveModal(null);
 
@@ -219,6 +265,47 @@ const [activeModal, setActiveModal] = useState(null);
         });
     };
 
+    const formatMillions = (value) => (
+        Number.isFinite(value) ? `$${formatNumber(value / 1e6, 1)} millones` : '...'
+    );
+    const formatGrowth = (value) => (
+        Number.isFinite(value) ? `${value > 0 ? '+' : ''}${formatNumber(value, 1)}%` : ''
+    );
+
+    const handleOpenPerCapitaRanking = () => {
+        const { rows, average } = perCapitaRanking;
+        const tableRows = rows.map((row) => ({
+            id: row.regionId,
+            rank: row.rank,
+            region: REGION_SHORT_NAME_BY_ID[row.regionId] || row.regionId,
+            value: formatMillions(row.value),
+            ratio: average ? `${formatNumber(row.value / average, 2)}×` : '',
+            growth: formatGrowth(row.growth)
+        }));
+        const csv = [
+            'posicion;region;pib_per_capita_clp;veces_promedio;variacion_real_pct',
+            ...rows.map((row) => [
+                row.rank,
+                REGION_SHORT_NAME_BY_ID[row.regionId] || row.regionId,
+                Math.round(row.value),
+                average ? formatNumber(row.value / average, 2) : '',
+                Number.isFinite(row.growth) ? formatNumber(row.growth, 1) : ''
+            ].join(';'))
+        ].join('\n');
+        setActiveModal({
+            title: 'PIB per cápita por región (12 meses, pesos encadenados 2018)',
+            columns: [
+                { key: 'rank', label: '#' },
+                { key: 'region', label: 'Región', emphasis: true },
+                { key: 'value', label: 'Por habitante', align: 'right', emphasis: true },
+                { key: 'ratio', label: 'vs promedio', align: 'right' },
+                { key: 'growth', label: 'Var. real a/a', align: 'right' }
+            ],
+            rows: tableRows,
+            onDownload: () => downloadCsv(csv, 'pib-per-capita-regiones.csv')
+        });
+    };
+
     const handleOpenLaborDetails = (card, chartData) => {
         const rows = (chartData || []).map((entry, index) => ({
             id: `${card.id}-${entry?.date || index}`,
@@ -271,12 +358,31 @@ const [activeModal, setActiveModal] = useState(null);
                 <div className="regional-layout">
                     {/* Mapa (Columna Izquierda) */}
                     <div className="regional-map">
-                        <MacroMap
-                            selectedRegion={selectedRegion}
-                            onRegionSelect={(regionName) => {
-                                setSelectedRegion((prev) => prev === regionName ? null : regionName);
-                            }}
-                        />
+                        <div className="regional-map-stack">
+                            <Segmented
+                                ariaLabel="Colorear mapa"
+                                options={MAP_MODES}
+                                value={mapMode}
+                                onChange={setMapMode}
+                            />
+                            <MacroMap
+                                selectedRegion={selectedRegion}
+                                choropleth={choropleth}
+                                onRegionSelect={(regionName) => {
+                                    setSelectedRegion((prev) => prev === regionName ? null : regionName);
+                                }}
+                            />
+                            {choropleth && perCapitaExtremes ? (
+                                <div className="regional-map-legend">
+                                    <span className="regional-map-legend-title">PIB per cápita, millones de $ por habitante</span>
+                                    <span className="regional-map-legend-bar" aria-hidden="true" />
+                                    <div className="regional-map-legend-labels">
+                                        <span>{formatNumber(perCapitaExtremes.min.value / 1e6, 1)} · {REGION_SHORT_NAME_BY_ID[perCapitaExtremes.min.regionId]}</span>
+                                        <span>{REGION_SHORT_NAME_BY_ID[perCapitaExtremes.max.regionId]} · {formatNumber(perCapitaExtremes.max.value / 1e6, 1)}</span>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
 
                     {/* Fichas de Datos (Columna Derecha) */}
@@ -322,9 +428,9 @@ const [activeModal, setActiveModal] = useState(null);
                                                 {selectedRegion ? (sideIndicators[0].value) : (realPibData ? formatNumber(realPibData[realPibData.length - 1].value, 1) + ' MM' : '...')}
                                             </div>
                                             <div className="regional-pib-trend" style={{
-                                                color: (selectedRegion ? sideIndicators[0].trend : (realPibData ? 'up' : 'neutral')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
+                                                color: (selectedRegion ? sideIndicators[0].trend : ((nationalPibYoY ?? 0) >= 0 ? 'up' : 'down')) === 'up' ? 'var(--trend-up)' : 'var(--trend-down)'
                                             }}>
-                                                {selectedRegion ? sideIndicators[0].variation : (realPibData ? '+2.4%' : '')} YoY
+                                                {selectedRegion ? sideIndicators[0].variation : formatGrowth(nationalPibYoY)} YoY
                                                 <span className="regional-pib-trend-note"> (Último dato)</span>
                                             </div>
                                         </div>
@@ -390,6 +496,72 @@ const [activeModal, setActiveModal] = useState(null);
                                             </div>
                                         ) : null}
                                     </div>
+                                </div>
+
+                                {/* Ficha: PIB per cápita (PIB regional / población INE) */}
+                                <div className="regional-pib-card regional-percapita-card">
+                                    <div className="regional-pib-header">
+                                        <div>
+                                            <div className="regional-pib-label">
+                                                PIB per cápita
+                                                {selectedPerCapita?.date ? (
+                                                    <span className="regional-pib-trend-note"> · año móvil al {quarterLabel(selectedPerCapita.date)}</span>
+                                                ) : null}
+                                            </div>
+                                            <div className="regional-percapita-value">
+                                                {formatMillions(selectedPerCapita?.value)}
+                                                <span className="regional-percapita-unit"> por habitante</span>
+                                            </div>
+                                            {Number.isFinite(selectedPerCapita?.growth) ? (
+                                                <div
+                                                    className="regional-pib-trend"
+                                                    style={{ color: selectedPerCapita.growth >= 0 ? 'var(--trend-up)' : 'var(--trend-down)' }}
+                                                >
+                                                    {formatGrowth(selectedPerCapita.growth)} real a/a
+                                                </div>
+                                            ) : null}
+                                            <div className="regional-percapita-context">
+                                                {regionId && selectedPerCapita?.rank ? (
+                                                    <>
+                                                        <strong>#{selectedPerCapita.rank}</strong> de {perCapitaRanking.rows.length} regiones
+                                                        {perCapitaRanking.average
+                                                            ? ` · ${formatNumber(selectedPerCapita.value / perCapitaRanking.average, 2)}× el promedio regional`
+                                                            : ''}
+                                                    </>
+                                                ) : perCapitaExtremes ? (
+                                                    <>
+                                                        Promedio regional {formatMillions(perCapitaRanking.average)} · mayor en {REGION_SHORT_NAME_BY_ID[perCapitaExtremes.max.regionId]}
+                                                    </>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                        <div className="regional-pib-actions">
+                                            <button
+                                                type="button"
+                                                className="regional-download"
+                                                onClick={handleOpenPerCapitaRanking}
+                                                disabled={!perCapitaRanking.rows.length}
+                                            >
+                                                Ranking
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {perCapitaHistory.length ? (
+                                        <>
+                                            <TrendChart
+                                                data={perCapitaHistory}
+                                                color="#22d3ee"
+                                                height={80}
+                                                valueFormatter={formatMillions}
+                                                averageFormatter={(value) => `$${formatNumber(value / 1e6, 1)}M`}
+                                                theme={theme}
+                                            />
+                                            <div className="regional-labor-range">
+                                                <span>{perCapitaHistory[0].date.slice(0, 4)}</span>
+                                                <span>{perCapitaHistory[perCapitaHistory.length - 1].date.slice(0, 4)}</span>
+                                            </div>
+                                        </>
+                                    ) : null}
                                 </div>
 
                                 {/* Ficha 2: Población INE */}

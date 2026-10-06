@@ -7,8 +7,26 @@ import chileTopo from "../../assets/chile.json";
 // URL for Chile TopoJSON (16 Regions)
 const CHILE_TOPO_URL = chileTopo;
 
-const MacroMap = ({ onRegionSelect, selectedRegion }) => {
+// Intensidad 0-1 en escala logarítmica: Antofagasta (~4 veces La Araucanía) no aplasta al resto.
+const buildIntensity = (values) => {
+    const numbers = Object.values(values || {}).filter((value) => Number.isFinite(value) && value > 0);
+    if (!numbers.length) return () => null;
+    const min = Math.log(Math.min(...numbers));
+    const max = Math.log(Math.max(...numbers));
+    return (value) => {
+        if (!Number.isFinite(value) || value <= 0) return null;
+        return max === min ? 1 : (Math.log(value) - min) / (max - min);
+    };
+};
+
+const choroplethFill = (intensity) => (
+    `color-mix(in srgb, var(--map-fill-selected) ${Math.round(12 + intensity * 88)}%, var(--map-fill))`
+);
+
+// choropleth: { values: { [regionId]: número }, getId: (nombreRegión) => regionId }
+const MacroMap = ({ onRegionSelect, selectedRegion, choropleth }) => {
     const [isPulseActive, setIsPulseActive] = useState(false);
+    const getIntensity = choropleth ? buildIntensity(choropleth.values) : null;
     const [hasPulsed, setHasPulsed] = useState(false);
     const containerRef = useRef(null);
     const pulseTimerRef = useRef(null);
@@ -72,6 +90,28 @@ const MacroMap = ({ onRegionSelect, selectedRegion }) => {
                                 geographies.map((geo) => {
                                     const regionName = geo.properties.Region || geo.properties.name;
                                     const isSelected = selectedRegion === regionName;
+                                    const intensity = getIntensity
+                                        ? getIntensity(choropleth.values[choropleth.getId(regionName)])
+                                        : null;
+                                    if (intensity !== null) {
+                                        const fill = choroplethFill(intensity);
+                                        const stroke = isSelected ? 'var(--text-primary)' : 'var(--map-invert-stroke, var(--map-stroke))';
+                                        const strokeWidth = isSelected ? 1.6 : 0.8;
+                                        return (
+                                            <Geography
+                                                key={geo.rsmKey}
+                                                geography={geo}
+                                                onClick={() => {
+                                                    if (onRegionSelect) onRegionSelect(regionName);
+                                                }}
+                                                style={{
+                                                    default: { fill, stroke, strokeWidth, outline: 'none', transition: 'fill 0.3s ease' },
+                                                    hover: { fill, stroke: 'var(--text-primary)', strokeWidth: 1.2, outline: 'none', cursor: 'pointer' },
+                                                    pressed: { fill, stroke: 'var(--text-primary)', strokeWidth: 1.6, outline: 'none' }
+                                                }}
+                                            />
+                                        );
+                                    }
                                     return (
                                         <Geography
                                             key={geo.rsmKey}
