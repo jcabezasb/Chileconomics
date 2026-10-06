@@ -1,8 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Download, LineChart, Table2, X } from 'lucide-react';
 import TrendChart from '../../shared/components/TrendChart';
+import DataTable from '../../shared/components/DataTable';
 import { getChartData, getFxDetailSeries, getImacecDetailSeries, getIpcDetailSeries, getTcrDetailSeries } from '../../data/bcch/api';
 import { formatNumber } from '../../shared/utils/format';
-import DataTableModal from '../../shared/components/DataTableModal';
+import { DetailPanel, IconButton, Legend, Segmented, StatStrip } from './IndicatorDetailParts';
+import {
+    computeSeriesStats,
+    formatPeriodChange,
+    formatShortDate,
+    isDailySeries,
+    makeAxisFormatter,
+    makeValueFormatter
+} from '../../shared/utils/detailStats';
 
 const DEFAULT_RANGE_BY_INDICATOR = {
     ipc: '1y',
@@ -18,35 +28,47 @@ const RANGE_OPTIONS = [
 ];
 const MODAL_RANGE_OPTIONS = [
     ...RANGE_OPTIONS,
-    { id: 'custom', label: 'Otro' }
+    { id: 'custom', label: 'Otro', title: 'Elegir fechas' }
 ];
+const UNIT_OPTIONS = [
+    { id: 'level', label: 'Nivel' },
+    { id: 'yoy', label: 'Var. 12 meses', title: 'Variación porcentual respecto a 12 meses antes' }
+];
+const VIEW_OPTIONS = [
+    { id: 'chart', label: 'Gráfico', icon: LineChart },
+    { id: 'table', label: 'Tabla', icon: Table2 }
+];
+const PERIOD_LABELS = {
+    '1y': 'en 12 meses',
+    '2y': 'en 2 años',
+    '5y': 'en 5 años',
+    all: 'en todo el período',
+    custom: 'en el período'
+};
+const PERCENT_UNIT_INDICATORS = new Set(['ipc', 'desempleo']);
 const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const YOY_ELIGIBLE = new Set(['imacec', 'cobre', 'dolar']);
 const IMACEC_GOODS_OPTIONS = [
     { id: 'total', label: 'Total' },
-    { id: 'mineria', label: 'Mineria' },
+    { id: 'mineria', label: 'Minería' },
     { id: 'industria', label: 'Industria' },
     { id: 'resto', label: 'Resto de bienes' }
 ];
 
-const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
+const MacroCard = ({ indicator, theme, onOpen, onClose, variant = 'compact' }) => {
     const [chartData, setChartData] = useState([]);
     const [timeRange, setTimeRange] = useState(DEFAULT_RANGE_BY_INDICATOR[indicator.id] || '1y');
     const [customRange, setCustomRange] = useState({ start: '', end: '' });
     const [openDropdown, setOpenDropdown] = useState(null);
     const [rangeStep, setRangeStep] = useState({ start: 'year', end: 'year' });
-    const [showDataTable, setShowDataTable] = useState(false);
-    const [showDetailTable, setShowDetailTable] = useState(false);
+    const [mainView, setMainView] = useState('chart');
     const [showYoY, setShowYoY] = useState(false);
     const [ipcDetailData, setIpcDetailData] = useState(null);
     const [imacecDetailData, setImacecDetailData] = useState(null);
     const [fxDetailData, setFxDetailData] = useState(null);
     const [tcrDetailData, setTcrDetailData] = useState(null);
     const [imacecGoodsSelection, setImacecGoodsSelection] = useState(['total']);
-    const [imacecDetailTable, setImacecDetailTable] = useState(null);
-    const [imacecGoodsDropdownOpen, setImacecGoodsDropdownOpen] = useState(false);
     const customRangeRef = useRef(null);
-    const imacecGoodsRef = useRef(null);
     const isInteractive = typeof onOpen === 'function';
     const isModal = variant === 'modal';
     const isFeatured = variant === 'featured';
@@ -228,27 +250,6 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         }
         return buildDateKey(targetYear, targetMonth, targetDay);
     };
-    const buildActionButtonStyle = (isActive) => ({
-        fontSize: '0.6rem',
-        padding: '0.2rem 0.55rem',
-        borderRadius: '999px',
-        border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-        background: isActive ? 'var(--bg-hover)' : 'transparent',
-        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-        cursor: 'pointer',
-        fontWeight: 700
-    });
-    const buildImacecSelectionLabel = () => {
-        if (imacecGoodsSelection.includes('total')) return 'Total';
-        if (!imacecGoodsSelection.length) return 'Total';
-        const labels = IMACEC_GOODS_OPTIONS
-            .filter((option) => imacecGoodsSelection.includes(option.id))
-            .map((option) => option.label);
-        if (!labels.length) return 'Total';
-        if (labels.length === 1) return labels[0];
-        if (labels.length === 2) return `${labels[0]} + ${labels[1]}`;
-        return `${labels[0]} + ${labels.length - 1} mas`;
-    };
     const toggleImacecSelection = (optionId) => {
         setImacecGoodsSelection((prev) => {
             const next = new Set(prev);
@@ -275,12 +276,9 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
         setCustomRange({ start: '', end: '' });
         setOpenDropdown(null);
         setRangeStep({ start: 'year', end: 'year' });
-        setShowDataTable(false);
-        setShowDetailTable(false);
+        setMainView('chart');
         setShowYoY(false);
         setImacecGoodsSelection(['total']);
-        setImacecDetailTable(null);
-        setImacecGoodsDropdownOpen(false);
     }, [indicator.id]);
 
     const getPointsPerYear = () => {
@@ -565,20 +563,7 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             return { core, volatile };
         }
 
-        if (!filteredChartData.length) return null;
-        const core = filteredChartData.map((entry, index) => {
-            const base = Number(entry.value);
-            const mod = Math.sin(index / 6) * 0.15;
-            const value = Number.isNaN(base) ? null : Number((base * 0.6 + mod).toFixed(1));
-            return { ...entry, value };
-        });
-        const volatile = filteredChartData.map((entry, index) => {
-            const base = Number(entry.value);
-            const mod = Math.cos(index / 5) * 0.12;
-            const value = Number.isNaN(base) ? null : Number((base * 0.4 + mod).toFixed(1));
-            return { ...entry, value };
-        });
-        return { core, volatile };
+        return null;
     }, [indicator.id, ipcDetailData, filteredChartData, rangePoints, timeRange, customRange.start, customRange.end, useMonthlyRange, useDailyPicker]);
     const imacecDetailSeries = useMemo(() => {
         if (indicator.id !== 'imacec' || !imacecDetailData) return null;
@@ -672,8 +657,8 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     const imacecGoodsSeriesMap = useMemo(() => {
         if (!imacecDetailSeries) return null;
         return {
-            total: { key: 'bienes', label: 'Produccion de bienes', color: '#38bdf8', series: imacecDetailSeries.bienes },
-            mineria: { key: 'mineria', label: 'Mineria', color: '#0ea5e9', series: imacecDetailSeries.mineria },
+            total: { key: 'bienes', label: 'Producción de bienes', color: '#38bdf8', series: imacecDetailSeries.bienes },
+            mineria: { key: 'mineria', label: 'Minería', color: '#0ea5e9', series: imacecDetailSeries.mineria },
             industria: { key: 'industria', label: 'Industria', color: '#f59e0b', series: imacecDetailSeries.industria },
             resto: { key: 'resto', label: 'Resto de bienes', color: '#a855f7', series: imacecDetailSeries.restoBienes }
         };
@@ -713,184 +698,6 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             servicios: imacecDetailSeries.servicios
         });
     }, [imacecDetailSeries]);
-    const imacecGoodsTableData = useMemo(() => {
-        if (!imacecDetailSeries || !imacecGoodsSeriesMap) return null;
-        const selection = imacecGoodsSelection.length ? imacecGoodsSelection : ['total'];
-        const selectedSeries = selection
-            .map((id) => imacecGoodsSeriesMap[id])
-            .filter(Boolean);
-
-        if (!selectedSeries.length) return null;
-        if (selectedSeries.length === 1) {
-            const base = selectedSeries[0];
-            const rows = (base.series || []).map((entry, index) => ({
-                id: `imacec-bienes-${base.key}-${entry.date || entry.name || index}`,
-                date: formatStartDate(entry.date || entry.name),
-                value: entry.value !== undefined ? formatNumber(entry.value, 1) : ''
-            }));
-            const csvRows = (base.series || []).map((entry) => {
-                const dateValue = entry.date || entry.name || '';
-                const value = entry.value !== undefined ? formatNumber(entry.value, 1) : '';
-                return `${dateValue};${value}`;
-            });
-            return {
-                title: `IMACEC - ${base.label}${yoyEnabled ? ' (Var. 12m)' : ''}`,
-                filename: `imacec-${base.key}${yoyEnabled ? '-yoy' : ''}.csv`,
-                columns: [
-                    { key: 'date', label: 'Fecha' },
-                    { key: 'value', label: base.label, align: 'right', emphasis: true }
-                ],
-                rows,
-                csv: ['fecha;valor', ...csvRows].join('\n')
-            };
-        }
-
-        const data = mergeSeriesByDate(
-            selectedSeries.reduce((acc, entry) => {
-                acc[entry.key] = entry.series;
-                return acc;
-            }, {})
-        );
-        const rows = data.map((entry, index) => {
-            const row = { id: `imacec-bienes-${entry.date || index}`, date: formatStartDate(entry.date) };
-            selectedSeries.forEach((series) => {
-                row[series.key] = entry[series.key] !== undefined ? formatNumber(entry[series.key], 1) : '';
-            });
-            return row;
-        });
-        const csvRows = data.map((entry) => {
-            const values = selectedSeries.map((series) => (
-                entry[series.key] !== undefined ? formatNumber(entry[series.key], 1) : ''
-            ));
-            return `${entry.date || ''};${values.join(';')}`;
-        });
-        return {
-            title: `IMACEC - Produccion de bienes (seleccion)${yoyEnabled ? ' (Var. 12m)' : ''}`,
-            filename: `imacec-produccion-bienes-seleccion${yoyEnabled ? '-yoy' : ''}.csv`,
-            columns: [
-                { key: 'date', label: 'Fecha' },
-                ...selectedSeries.map((series, index) => ({
-                    key: series.key,
-                    label: series.label,
-                    align: 'right',
-                    emphasis: index === 0
-                }))
-            ],
-            rows,
-            csv: [`fecha;${selectedSeries.map((series) => series.key).join(';')}`, ...csvRows].join('\n')
-        };
-    }, [imacecDetailSeries, imacecGoodsSeriesMap, imacecGoodsSelection]);
-    const imacecCommerceTableData = useMemo(() => {
-        if (!imacecDetailSeries) return null;
-        const rows = imacecCommerceServicesData.map((entry, index) => ({
-            id: `imacec-com-serv-${entry.date || index}`,
-            date: formatStartDate(entry.date),
-            comercio: entry.comercio !== undefined ? formatNumber(entry.comercio, 1) : '',
-            servicios: entry.servicios !== undefined ? formatNumber(entry.servicios, 1) : ''
-        }));
-        const csvRows = imacecCommerceServicesData.map((entry) => {
-            const dateValue = entry.date || '';
-            const comercio = entry.comercio !== undefined ? formatNumber(entry.comercio, 1) : '';
-            const servicios = entry.servicios !== undefined ? formatNumber(entry.servicios, 1) : '';
-            return `${dateValue};${comercio};${servicios}`;
-        });
-        return {
-            title: `IMACEC - Comercio y servicios${yoyEnabled ? ' (Var. 12m)' : ''}`,
-            filename: `imacec-comercio-servicios${yoyEnabled ? '-yoy' : ''}.csv`,
-            columns: [
-                { key: 'date', label: 'Fecha' },
-                { key: 'comercio', label: 'Comercio', align: 'right', emphasis: true },
-                { key: 'servicios', label: 'Servicios', align: 'right' }
-            ],
-            rows,
-            csv: ['fecha;comercio;servicios', ...csvRows].join('\n')
-        };
-    }, [imacecDetailSeries, imacecCommerceServicesData]);
-    const imacecNoMineroTableData = useMemo(() => {
-        if (!imacecDetailSeries) return null;
-        const rows = imacecDetailSeries.noMinero.map((entry, index) => ({
-            id: `imacec-no-minero-${entry.date || entry.name || index}`,
-            date: formatStartDate(entry.date || entry.name),
-            value: entry.value !== undefined ? formatNumber(entry.value, 1) : ''
-        }));
-        const csvRows = imacecDetailSeries.noMinero.map((entry) => {
-            const dateValue = entry.date || entry.name || '';
-            const value = entry.value !== undefined ? formatNumber(entry.value, 1) : '';
-            return `${dateValue};${value}`;
-        });
-        return {
-            title: `IMACEC no minero${yoyEnabled ? ' (Var. 12m)' : ''}`,
-            filename: `imacec-no-minero${yoyEnabled ? '-yoy' : ''}.csv`,
-            columns: [
-                { key: 'date', label: 'Fecha' },
-                { key: 'value', label: 'IMACEC no minero', align: 'right', emphasis: true }
-            ],
-            rows,
-            csv: ['fecha;imacec_no_minero', ...csvRows].join('\n')
-        };
-    }, [imacecDetailSeries]);
-    const activeImacecTable = useMemo(() => {
-        if (!imacecDetailTable) return null;
-        if (imacecDetailTable === 'bienes') return imacecGoodsTableData;
-        if (imacecDetailTable === 'comercio') return imacecCommerceTableData;
-        if (imacecDetailTable === 'no-minero') return imacecNoMineroTableData;
-        return null;
-    }, [imacecDetailTable, imacecGoodsTableData, imacecCommerceTableData, imacecNoMineroTableData]);
-    const fxTableData = useMemo(() => {
-        if (indicator.id !== 'dolar') return null;
-
-        const dateMap = new Map();
-        const addSeries = (series, key) => {
-            (series || []).forEach((entry) => {
-                const dateKey = entry?.date || entry?.name || '';
-                if (!dateKey) return;
-                const current = dateMap.get(dateKey) || { id: dateKey, date: dateKey };
-                current[key] = entry.value;
-                dateMap.set(dateKey, current);
-            });
-        };
-
-        addSeries(displayChartData, 'usd');
-        if (fxDetailSeries) {
-            addSeries(fxDetailSeries.cny, 'cny');
-            addSeries(fxDetailSeries.eur, 'eur');
-            addSeries(fxDetailSeries.ars, 'ars');
-            addSeries(fxDetailSeries.jpy, 'jpy');
-        }
-
-        const formatFxValue = (value, digits = 2) => {
-            if (value === undefined || value === null) return '';
-            if (yoyEnabled) {
-                return `${formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-            }
-            return formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits });
-        };
-
-        const rows = Array.from(dateMap.values())
-            .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-            .map((row) => ({
-                id: row.id,
-                date: formatStartDate(row.date),
-                usd: row.usd !== undefined ? (yoyEnabled ? formatFxValue(row.usd, 1) : formatTooltipValue(row.usd)) : '',
-                cny: formatFxValue(row.cny),
-                eur: formatFxValue(row.eur),
-                ars: formatFxValue(row.ars),
-                jpy: formatFxValue(row.jpy)
-            }));
-
-        return {
-            columns: [
-                { key: 'date', label: 'Fecha' },
-                { key: 'usd', label: 'USD/CLP', align: 'right', emphasis: true },
-                { key: 'cny', label: 'CNY/CLP', align: 'right' },
-                { key: 'eur', label: 'EUR/CLP', align: 'right' },
-                { key: 'ars', label: 'ARS/CLP', align: 'right' },
-                { key: 'jpy', label: 'JPY/CLP', align: 'right' }
-            ],
-            rows
-        };
-    }, [indicator.id, displayChartData, fxDetailSeries, formatStartDate, formatTooltipValue, yoyEnabled]);
-    const buildSeriesStartLabel = (series) => formatStartDate(series?.[0]?.date || series?.[0]?.name);
     const displayValue = useMemo(() => {
         if (!yoyEnabled) return indicator.value;
         const latest = displayChartData[displayChartData.length - 1];
@@ -899,30 +706,6 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
     }, [yoyEnabled, displayChartData, indicator.value]);
     const displaySubtitle = yoyEnabled ? 'Var. % en 12 meses' : indicator.subtitle;
     const showVariation = indicator.variation && !yoyEnabled;
-    const detailCsvContent = useMemo(() => {
-        if (!ipcDetailSeries) return '';
-        const header = 'fecha;ipc_subyacente;ipc_volatil';
-        const rows = ipcDetailSeries.core.map((entry, index) => {
-            const dateValue = entry.date || entry.name || '';
-            const coreVal = ipcDetailSeries.core[index]?.value;
-            const volatileVal = ipcDetailSeries.volatile[index]?.value;
-            return `${dateValue};${formatNumber(coreVal, 1)};${formatNumber(volatileVal, 1)}`;
-        });
-        return [header, ...rows].join('\n');
-    }, [ipcDetailSeries]);
-    const handleDownloadDetailCsv = () => {
-        downloadCsv(detailCsvContent, 'ipc-detalle-datos.csv');
-    };
-    const ipcTopComponents = useMemo(() => {
-        if (indicator.id !== 'ipc') return [];
-        return [
-            { name: 'Alimentos', change: 1.2, weight: 0.28 },
-            { name: 'Vivienda y servicios', change: 0.9, weight: 0.22 },
-            { name: 'Transporte', change: 0.7, weight: 0.14 },
-            { name: 'Salud', change: 0.6, weight: 0.09 },
-            { name: 'Educacion', change: 0.5, weight: 0.06 }
-        ];
-    }, [indicator.id]);
     const renderOptionGrid = (options, selectedValue, onSelect, formatLabel) => (
         <div
             style={{
@@ -995,140 +778,78 @@ const MacroCard = ({ indicator, theme, onOpen, variant = 'compact' }) => {
             if (customRangeRef.current && !customRangeRef.current.contains(event.target)) {
                 setOpenDropdown(null);
             }
-            if (imacecGoodsRef.current && !imacecGoodsRef.current.contains(event.target)) {
-                setImacecGoodsDropdownOpen(false);
-            }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    return (
-        <div
-            role={isInteractive ? 'button' : undefined}
-            tabIndex={isInteractive ? 0 : undefined}
-            onClick={handleCardClick}
-            onKeyDown={handleCardKeyDown}
-            style={{
-                background: 'var(--bg-card)',
-                padding: isModal ? '1.2rem' : isFeatured ? '1.25rem' : '0.85rem',
-                paddingBottom: isModal ? '2.2rem' : isFeatured ? '2rem' : '1.7rem',
-                borderRadius: isModal ? '12px' : isFeatured ? '14px' : '10px',
-boxShadow: isModal ? 'none' : 'var(--shadow-md)',
-                cursor: isInteractive ? 'pointer' : 'default',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: isFeatured ? 'flex-start' : 'space-between',
-                gap: isFeatured ? '0.85rem' : undefined,
-                height: '100%',
-                boxSizing: 'border-box',
-                position: 'relative',
-                outline: isInteractive ? '2px solid transparent' : 'none',
-                outlineOffset: '2px',
-                transition: 'transform 0.2s, box-shadow 0.2s, outline-color 0.2s'
-            }}
-            onMouseEnter={(e) => {
-                if (!isInteractive) return;
-                e.currentTarget.style.outlineColor = 'var(--accent)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
-            }}
-            onMouseLeave={(e) => {
-                if (!isInteractive) return;
-                e.currentTarget.style.outlineColor = 'transparent';
-                e.currentTarget.style.boxShadow = isModal ? 'none' : 'var(--shadow-md)';
-            }}
-        >
-            {isModal && isYoYEligible ? (
-                <button
-                    type="button"
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        setShowYoY((prev) => !prev);
-                    }}
-                    style={{
-                        position: 'absolute',
-                        top: '-1.7rem',
-                        left: '-0.3rem',
-                        fontSize: '0.75rem',
-                        padding: '0.4rem 0.8rem',
-                        borderRadius: '999px',
-                        border: `1px solid ${showYoY ? 'var(--accent)' : 'var(--border)'}`,
-                        background: showYoY ? 'var(--bg-hover)' : 'var(--bg-card)',
-                        color: showYoY ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        fontWeight: 700,
-                        boxShadow: 'var(--shadow-sm)',
-                        zIndex: 3
-                    }}
-                >
-                    Variacion 12 meses
-                </button>
-            ) : null}
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
-                <div>
-                    <span style={{ fontSize: isFeatured ? '1.05rem' : '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
-                    {displaySubtitle ? (
-                        <div style={{ fontSize: isFeatured ? '0.78rem' : '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                            ({displaySubtitle})
-                        </div>
-                    ) : null}
-                </div>
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    {(isModal ? MODAL_RANGE_OPTIONS : RANGE_OPTIONS).map((option) => {
-                        const isActive = timeRange === option.id;
-                        return (
-                            <button
-                                key={option.id}
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setTimeRange(option.id);
-                                }}
-                                aria-pressed={isActive}
-                            style={{
-                                fontSize: isFeatured ? '0.65rem' : '0.6rem',
-                                padding: isFeatured ? '0.25rem 0.5rem' : '0.2rem 0.4rem',
-                                borderRadius: '999px',
-                                border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                                background: isActive ? 'var(--bg-hover)' : 'transparent',
-                                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                fontWeight: isActive ? 700 : 500,
-                                boxShadow: isActive ? '0 0 0 1px rgba(14, 165, 233, 0.18)' : 'none'
-                            }}
-                            >
-                                {option.label}
-                            </button>
-                        );
-                    })}
-                    {isModal ? (
-                        <button
-                            type="button"
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                setShowDataTable(true);
-                            }}
-                            style={{
-                                fontSize: '0.6rem',
-                                padding: '0.2rem 0.55rem',
-                                borderRadius: '999px',
-                                border: `1px solid ${showDataTable ? 'var(--accent)' : 'var(--border)'}`,
-                                background: showDataTable ? 'var(--bg-hover)' : 'transparent',
-                                color: showDataTable ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                fontWeight: 700
-                            }}
-                        >
-                            Datos
-                        </button>
-                    ) : null}
-                </div>
-            </div>
+    const isPercentUnit = yoyEnabled || PERCENT_UNIT_INDICATORS.has(indicator.id);
+    const periodLabel = PERIOD_LABELS[timeRange] || 'en el período';
+    const isCurrency = indicator.id === 'dolar' || indicator.id === 'cobre';
+    const mainAxisFormatter = makeAxisFormatter(isPercentUnit ? { suffix: '%' } : isCurrency ? { prefix: '$' } : {});
+    const percentFormatter = makeValueFormatter({ suffix: '%' });
+    const indexFormatter = makeValueFormatter({ decimals: 1 });
+    const subFormatter = yoyEnabled ? percentFormatter : indexFormatter;
+    const subAxisFormatter = makeAxisFormatter(yoyEnabled ? { suffix: '%' } : {});
+    const fxFormatter = (value) => (
+        yoyEnabled
+            ? percentFormatter(value)
+            : makeValueFormatter({ prefix: '$', decimals: Math.abs(Number(value)) < 10 ? 2 : 1 })(value)
+    );
+    const fxAxisFormatter = makeAxisFormatter(yoyEnabled ? { suffix: '%' } : { prefix: '$' });
+    const subUnitLabel = yoyEnabled ? 'Var. % en 12 meses' : 'Índice 2018=100';
 
-            {isModal && timeRange === 'custom' ? (
-                <div ref={customRangeRef} style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', marginBottom: '0.45rem', position: 'relative' }}>
+    // Tablas y CSV del detalle: la fila más reciente arriba.
+    const buildSingleTable = (series, label, formatter) => {
+        const daily = isDailySeries(series);
+        return {
+            columns: [
+                { key: 'date', label: 'Fecha' },
+                { key: 'value', label, align: 'right', emphasis: true }
+            ],
+            rows: [...(series || [])].reverse().map((entry, index) => ({
+                id: `${entry.date || entry.name}-${index}`,
+                date: formatShortDate(entry.date || entry.name, daily),
+                value: formatter(entry.value)
+            }))
+        };
+    };
+    const buildMultiTable = (data, seriesDefs, formatter) => {
+        const daily = isDailySeries(data);
+        return {
+            columns: [
+                { key: 'date', label: 'Fecha' },
+                ...seriesDefs.map((def, index) => ({ key: def.key, label: def.label, align: 'right', emphasis: index === 0 }))
+            ],
+            rows: [...(data || [])].reverse().map((row) => {
+                const formatted = { id: row.date, date: formatShortDate(row.date, daily) };
+                seriesDefs.forEach((def) => {
+                    formatted[def.key] = formatter(row[def.key]);
+                });
+                return formatted;
+            })
+        };
+    };
+    const buildCsv = (data, seriesDefs, decimals = 1) => {
+        const header = ['fecha', ...seriesDefs.map((def) => def.key)].join(';');
+        const lines = (data || []).map((row) => {
+            const values = seriesDefs.map((def) => (
+                row[def.key] === undefined || row[def.key] === null ? '' : formatNumber(Number(row[def.key]), decimals)
+            ));
+            return [row.date || row.name || '', ...values].join(';');
+        });
+        return [header, ...lines].join('\n');
+    };
+    const fileSuffix = yoyEnabled ? '-var12m' : '';
+    const panelChange = (series, percentUnit = yoyEnabled) => formatPeriodChange(computeSeriesStats(series), percentUnit);
+    const panelLatest = (series, formatter) => {
+        const stats = computeSeriesStats(series);
+        return stats ? formatter(stats.last.value) : null;
+    };
+
+    const renderCustomRange = () => (
+                <div ref={customRangeRef} className="detail-custom-range" style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', position: 'relative' }}>
                     {['start', 'end'].map((kind) => {
                         const parts = kind === 'start' ? startParts : endParts;
                         const yearOptions = kind === 'start' ? startYearOptions : endYearOptions;
@@ -1208,7 +929,376 @@ boxShadow: isModal ? 'none' : 'var(--shadow-md)',
                         );
                     })}
                 </div>
-            ) : null}
+    );
+
+    if (isModal) {
+        const mainStats = computeSeriesStats(displayChartData);
+        const mainIsDaily = isDailySeries(displayChartData);
+        const mainChange = formatPeriodChange(mainStats, isPercentUnit);
+        const mainTable = mainView === 'table'
+            ? buildSingleTable(displayChartData, indicator.title, formatTooltipValue)
+            : null;
+
+        const goodsSelected = imacecGoodsSelection.length ? imacecGoodsSelection : ['total'];
+        const goodsIsSingle = imacecGoodsChart.series.length === 0;
+        const goodsSingleDef = imacecGoodsSeriesMap?.[goodsSelected[0]] || imacecGoodsSeriesMap?.total;
+        const goodsSeries = imacecGoodsChart.series.map((entry) => ({ ...entry, fill: false }));
+        const goodsDefs = goodsIsSingle && goodsSingleDef
+            ? [{ key: 'value', label: goodsSingleDef.label }]
+            : goodsSeries;
+        const commerceDefs = [
+            { key: 'comercio', label: 'Comercio', color: '#22c55e' },
+            { key: 'servicios', label: 'Servicios', color: '#60a5fa' }
+        ];
+        const ipcDefs = [
+            { key: 'general', label: 'IPC general', color: 'var(--chart-neon)', strokeWidth: 2.5 },
+            { key: 'core', label: 'Subyacente', color: '#38bdf8' },
+            { key: 'volatile', label: 'Volátiles', color: '#f59e0b' }
+        ];
+        const ipcCombinedData = ipcDetailSeries
+            ? mergeSeriesByDate({
+                general: displayChartData,
+                core: ipcDetailSeries.core,
+                volatile: ipcDetailSeries.volatile
+            })
+            : [];
+        const fxPanels = [
+            { key: 'cny', title: 'Yuan chino', code: 'CNY', color: '#22d3ee' },
+            { key: 'eur', title: 'Euro', code: 'EUR', color: '#60a5fa' },
+            { key: 'ars', title: 'Peso argentino', code: 'ARS', color: '#f97316' },
+            { key: 'jpy', title: 'Yen japonés', code: 'JPY', color: '#22c55e' }
+        ];
+        const tcrDefs = [
+            { key: 'tcr', label: 'TCR', color: '#38bdf8' },
+            { key: 'tcr5', label: 'TCR-5', color: '#f97316' }
+        ];
+        const hasBreakdown = (indicator.id === 'imacec' && imacecDetailSeries)
+            || (indicator.id === 'ipc' && ipcCombinedData.length)
+            || (indicator.id === 'dolar' && (fxHasData || tcrChartData.length));
+
+        return (
+            <div className="detail">
+                <div className="detail-sticky">
+                    <header className="detail-header">
+                        <div className="detail-heading">
+                            <h2 className="detail-title">{indicator.title}</h2>
+                            <p className="detail-subtitle">
+                                {displaySubtitle}
+                                {indicator.period ? <span> · Último dato: {indicator.period}</span> : null}
+                            </p>
+                        </div>
+                        <div className="detail-header-actions">
+                            <IconButton icon={Download} label="Descargar CSV" showLabel onClick={handleDownloadCsv} />
+                            {onClose ? <IconButton icon={X} label="Cerrar" onClick={onClose} /> : null}
+                        </div>
+                    </header>
+                    <div className="detail-toolbar">
+                        <Segmented ariaLabel="Período" options={MODAL_RANGE_OPTIONS} value={timeRange} onChange={setTimeRange} />
+                        {isYoYEligible ? (
+                            <Segmented
+                                ariaLabel="Unidad"
+                                options={UNIT_OPTIONS}
+                                value={showYoY ? 'yoy' : 'level'}
+                                onChange={(id) => setShowYoY(id === 'yoy')}
+                            />
+                        ) : null}
+                        <span className="detail-toolbar-spacer" />
+                        <Segmented ariaLabel="Vista" options={VIEW_OPTIONS} value={mainView} onChange={setMainView} />
+                    </div>
+                    {timeRange === 'custom' ? renderCustomRange() : null}
+                </div>
+
+                <section className="detail-main">
+                    <div className="detail-hero">
+                        <div className="detail-hero-value">
+                            <span className="detail-value">{displayValue}</span>
+                            {showVariation ? (
+                                <span className={`detail-variation is-${indicator.trend || 'neutral'}`}>{indicator.variation}</span>
+                            ) : null}
+                        </div>
+                        {mainStats ? (
+                            <StatStrip
+                                items={[
+                                    { label: 'Máximo', value: formatTooltipValue(mainStats.max.value), hint: formatShortDate(mainStats.max.date, mainIsDaily) },
+                                    { label: 'Mínimo', value: formatTooltipValue(mainStats.min.value), hint: formatShortDate(mainStats.min.date, mainIsDaily) },
+                                    { label: 'Promedio', value: formatTooltipValue(mainStats.average), hint: 'línea punteada' },
+                                    mainChange ? { label: 'Cambio', value: mainChange.text, hint: periodLabel } : null
+                                ]}
+                            />
+                        ) : null}
+                    </div>
+                    <div className="detail-main-chart">
+                        {mainTable ? (
+                            <DataTable columns={mainTable.columns} rows={mainTable.rows} maxHeight={320} />
+                        ) : (
+                            <TrendChart
+                                data={displayChartData}
+                                color="var(--chart-neon)"
+                                height={300}
+                                averageFormatter={formatAverage}
+                                valueFormatter={formatTooltipValue}
+                                axisFormatter={mainAxisFormatter}
+                                theme={theme}
+                                detailed
+                            />
+                        )}
+                    </div>
+                </section>
+
+                {hasBreakdown ? (
+                    <section className="detail-section">
+                        <div className="detail-section-heading">
+                            <h3 className="detail-section-title">Desglose</h3>
+                            <span className="detail-section-note">Mismo período y unidad que el gráfico principal</span>
+                        </div>
+                        <div className="detail-grid">
+                            {indicator.id === 'imacec' && imacecDetailSeries ? (
+                                <>
+                                    <DetailPanel
+                                        wide
+                                        title="Producción de bienes"
+                                        subtitle={subUnitLabel}
+                                        latest={goodsIsSingle ? panelLatest(imacecGoodsChart.data, subFormatter) : null}
+                                        change={goodsIsSingle ? panelChange(imacecGoodsChart.data) : null}
+                                        legend={(
+                                            <Legend
+                                                items={IMACEC_GOODS_OPTIONS.map((option) => ({
+                                                    id: option.id,
+                                                    label: option.label,
+                                                    color: imacecGoodsSeriesMap?.[option.id]?.color
+                                                }))}
+                                                activeKeys={goodsSelected}
+                                                onToggle={toggleImacecSelection}
+                                            />
+                                        )}
+                                        table={() => (goodsIsSingle
+                                            ? buildSingleTable(imacecGoodsChart.data, goodsSingleDef?.label, subFormatter)
+                                            : buildMultiTable(imacecGoodsChart.data, goodsSeries, subFormatter))}
+                                        onDownload={() => downloadCsv(
+                                            buildCsv(imacecGoodsChart.data, goodsDefs),
+                                            `imacec-bienes${fileSuffix}.csv`
+                                        )}
+                                    >
+                                        <TrendChart
+                                            data={imacecGoodsChart.data}
+                                            color={goodsSingleDef?.color || '#38bdf8'}
+                                            height={220}
+                                            averageFormatter={formatAverage}
+                                            valueFormatter={subFormatter}
+                                            axisFormatter={subAxisFormatter}
+                                            theme={theme}
+                                            series={goodsSeries.length ? goodsSeries : undefined}
+                                            showAverage={goodsIsSingle}
+                                            detailed
+                                        />
+                                    </DetailPanel>
+                                    <DetailPanel
+                                        title="Comercio y servicios"
+                                        subtitle={subUnitLabel}
+                                        legend={<Legend items={commerceDefs.map((def) => ({ id: def.key, ...def }))} />}
+                                        table={() => buildMultiTable(imacecCommerceServicesData, commerceDefs, subFormatter)}
+                                        onDownload={() => downloadCsv(
+                                            buildCsv(imacecCommerceServicesData, commerceDefs),
+                                            `imacec-comercio-servicios${fileSuffix}.csv`
+                                        )}
+                                    >
+                                        <TrendChart
+                                            data={imacecCommerceServicesData}
+                                            height={190}
+                                            valueFormatter={subFormatter}
+                                            axisFormatter={subAxisFormatter}
+                                            theme={theme}
+                                            series={commerceDefs}
+                                            showAverage={false}
+                                            detailed
+                                        />
+                                    </DetailPanel>
+                                    <DetailPanel
+                                        title="IMACEC no minero"
+                                        subtitle={subUnitLabel}
+                                        latest={panelLatest(imacecDetailSeries.noMinero, subFormatter)}
+                                        change={panelChange(imacecDetailSeries.noMinero)}
+                                        table={() => buildSingleTable(imacecDetailSeries.noMinero, 'IMACEC no minero', subFormatter)}
+                                        onDownload={() => downloadCsv(
+                                            buildCsv(imacecDetailSeries.noMinero, [{ key: 'value' }]),
+                                            `imacec-no-minero${fileSuffix}.csv`
+                                        )}
+                                    >
+                                        <TrendChart
+                                            data={imacecDetailSeries.noMinero}
+                                            color="#f97316"
+                                            height={190}
+                                            averageFormatter={formatAverage}
+                                            valueFormatter={subFormatter}
+                                            axisFormatter={subAxisFormatter}
+                                            theme={theme}
+                                            detailed
+                                        />
+                                    </DetailPanel>
+                                </>
+                            ) : null}
+
+                            {indicator.id === 'ipc' && ipcCombinedData.length ? (
+                                <DetailPanel
+                                    wide
+                                    title="General, subyacente y volátiles"
+                                    subtitle="Var. % en 12 meses · la línea gris marca la meta de 3% del Banco Central"
+                                    legend={<Legend items={ipcDefs.map((def) => ({ id: def.key, ...def }))} />}
+                                    table={() => buildMultiTable(ipcCombinedData, ipcDefs, percentFormatter)}
+                                    onDownload={() => downloadCsv(buildCsv(ipcCombinedData, ipcDefs), 'ipc-componentes.csv')}
+                                >
+                                    <TrendChart
+                                        data={ipcCombinedData}
+                                        height={260}
+                                        valueFormatter={percentFormatter}
+                                        axisFormatter={makeAxisFormatter({ suffix: '%' })}
+                                        theme={theme}
+                                        series={ipcDefs}
+                                        showAverage={false}
+                                        referenceLines={[{ y: 3, label: 'Meta 3%' }]}
+                                        detailed
+                                    />
+                                </DetailPanel>
+                            ) : null}
+
+                            {indicator.id === 'dolar' && fxHasData ? fxPanels.map((panel) => {
+                                const series = fxDetailSeries[panel.key] || [];
+                                if (!series.length) return null;
+                                return (
+                                    <DetailPanel
+                                        key={panel.key}
+                                        title={`${panel.title} (${panel.code})`}
+                                        subtitle={yoyEnabled ? 'Var. % en 12 meses' : `Pesos por ${panel.code}`}
+                                        latest={panelLatest(series, fxFormatter)}
+                                        change={panelChange(series)}
+                                        table={() => buildSingleTable(series, `${panel.code}/CLP`, fxFormatter)}
+                                        onDownload={() => downloadCsv(
+                                            buildCsv(series, [{ key: 'value' }], 2),
+                                            `${panel.key}-clp${fileSuffix}.csv`
+                                        )}
+                                    >
+                                        <TrendChart
+                                            data={series}
+                                            color={panel.color}
+                                            height={170}
+                                            averageFormatter={fxFormatter}
+                                            valueFormatter={fxFormatter}
+                                            axisFormatter={fxAxisFormatter}
+                                            theme={theme}
+                                            detailed
+                                        />
+                                    </DetailPanel>
+                                );
+                            }) : null}
+
+                            {indicator.id === 'dolar' && tcrChartData.length ? (
+                                <DetailPanel
+                                    wide
+                                    title="Tipo de cambio real"
+                                    subtitle={yoyEnabled ? 'Var. % en 12 meses' : 'Índice promedio 1986=100'}
+                                    info="Mide la competitividad cambiaria ajustando por inflación. Un valor más alto indica un tipo de cambio real más depreciado."
+                                    legend={<Legend items={tcrDefs.map((def) => ({ id: def.key, ...def }))} />}
+                                    table={() => buildMultiTable(tcrChartData, tcrDefs, subFormatter)}
+                                    onDownload={() => downloadCsv(buildCsv(tcrChartData, tcrDefs), `tcr${fileSuffix}.csv`)}
+                                >
+                                    <TrendChart
+                                        data={tcrChartData}
+                                        height={220}
+                                        valueFormatter={subFormatter}
+                                        axisFormatter={subAxisFormatter}
+                                        theme={theme}
+                                        series={tcrDefs}
+                                        showAverage={false}
+                                        detailed
+                                    />
+                                </DetailPanel>
+                            ) : null}
+                        </div>
+                    </section>
+                ) : null}
+
+                <footer className="detail-footer">
+                    Fuente: Banco Central de Chile. La línea punteada marca el promedio del período mostrado.
+                </footer>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            role={isInteractive ? 'button' : undefined}
+            tabIndex={isInteractive ? 0 : undefined}
+            onClick={handleCardClick}
+            onKeyDown={handleCardKeyDown}
+            style={{
+                background: 'var(--bg-card)',
+                padding: isFeatured ? '1.25rem' : '0.85rem',
+                paddingBottom: isFeatured ? '2rem' : '1.7rem',
+                borderRadius: isFeatured ? '14px' : '10px',
+                boxShadow: 'var(--shadow-md)',
+                cursor: isInteractive ? 'pointer' : 'default',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: isFeatured ? 'flex-start' : 'space-between',
+                gap: isFeatured ? '0.85rem' : undefined,
+                height: '100%',
+                boxSizing: 'border-box',
+                position: 'relative',
+                outline: isInteractive ? '2px solid transparent' : 'none',
+                outlineOffset: '2px',
+                transition: 'transform 0.2s, box-shadow 0.2s, outline-color 0.2s'
+            }}
+            onMouseEnter={(e) => {
+                if (!isInteractive) return;
+                e.currentTarget.style.outlineColor = 'var(--accent)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+            }}
+            onMouseLeave={(e) => {
+                if (!isInteractive) return;
+                e.currentTarget.style.outlineColor = 'transparent';
+                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+            }}
+        >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                <div>
+                    <span style={{ fontSize: isFeatured ? '1.05rem' : '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{indicator.title}</span>
+                    {displaySubtitle ? (
+                        <div style={{ fontSize: isFeatured ? '0.78rem' : '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                            ({displaySubtitle})
+                        </div>
+                    ) : null}
+                </div>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {RANGE_OPTIONS.map((option) => {
+                        const isActive = timeRange === option.id;
+                        return (
+                            <button
+                                key={option.id}
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setTimeRange(option.id);
+                                }}
+                                aria-pressed={isActive}
+                            style={{
+                                fontSize: isFeatured ? '0.65rem' : '0.6rem',
+                                padding: isFeatured ? '0.25rem 0.5rem' : '0.2rem 0.4rem',
+                                borderRadius: '999px',
+                                border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                                background: isActive ? 'var(--bg-hover)' : 'transparent',
+                                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontWeight: isActive ? 700 : 500,
+                                boxShadow: isActive ? '0 0 0 1px rgba(14, 165, 233, 0.18)' : 'none'
+                            }}
+                            >
+                                {option.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
 
             {/* Main Value */}
             <div>
@@ -1265,514 +1355,6 @@ boxShadow: isModal ? 'none' : 'var(--shadow-md)',
                     </span>
                 ) : null}
             </div>
-            {isModal && indicator.id === 'imacec' && imacecDetailSeries ? (
-                <div style={{ marginTop: '1.2rem' }}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Produccion de bienes</span>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{yoyEnabled ? 'Var. % en 12 meses' : 'Indice 2018=100'}</div>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                <div ref={imacecGoodsRef} style={{ position: 'relative' }}>
-                                    <button
-                                        type="button"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            setImacecGoodsDropdownOpen((prev) => !prev);
-                                        }}
-                                        className="period-select"
-                                        style={{ minWidth: '170px', textAlign: 'left', fontSize: '0.65rem' }}
-                                    >
-                                        {buildImacecSelectionLabel()}
-                                    </button>
-                                    {imacecGoodsDropdownOpen ? (
-                                        <div
-                                            style={{
-                                                position: 'absolute',
-                                                top: 'calc(100% + 6px)',
-                                                right: 0,
-                                                background: 'var(--bg-card)',
-                                                border: '1px solid var(--border)',
-                                                borderRadius: '12px',
-                                                boxShadow: 'var(--shadow-md)',
-                                                padding: '0.6rem',
-                                                width: '220px',
-                                                zIndex: 6
-                                            }}
-                                        >
-                                            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-                                                Series (seleccion multiple)
-                                            </div>
-                                            <div style={{ display: 'grid', gap: '0.4rem' }}>
-                                                {IMACEC_GOODS_OPTIONS.map((option) => {
-                                                    const totalActive = imacecGoodsSelection.includes('total');
-                                                    const isChecked = totalActive || imacecGoodsSelection.includes(option.id);
-                                                    const isMuted = totalActive && option.id !== 'total';
-                                                    return (
-                                                        <button
-                                                            key={option.id}
-                                                            type="button"
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                toggleImacecSelection(option.id);
-                                                            }}
-                                                            style={{
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.5rem',
-                                                                padding: '0.35rem 0.4rem',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid transparent',
-                                                                background: isChecked ? 'var(--bg-hover)' : 'transparent',
-                                                                color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                                                fontSize: '0.7rem',
-                                                                cursor: 'pointer',
-                                                                textAlign: 'left',
-                                                                opacity: isMuted ? 0.6 : 1
-                                                            }}
-                                                        >
-                                                            <span
-                                                                style={{
-                                                                    width: '14px',
-                                                                    height: '14px',
-                                                                    borderRadius: '4px',
-                                                                    border: `1px solid ${isChecked ? 'var(--accent)' : 'var(--border)'}`,
-                                                                    background: isChecked ? 'var(--accent)' : 'transparent',
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    fontSize: '0.65rem',
-                                                                    color: 'white'
-                                                                }}
-                                                            >
-                                                                {isChecked ? '✓' : ''}
-                                                            </span>
-                                                            <span>{option.label}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ) : null}
-                                </div>
-                                <span style={{ width: '1px', height: '16px', background: 'var(--border)', display: 'inline-flex' }}></span>
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        setImacecDetailTable('bienes');
-                                    }}
-                                    style={buildActionButtonStyle(imacecDetailTable === 'bienes')}
-                                >
-                                    Datos
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        downloadCsv(imacecGoodsTableData?.csv, imacecGoodsTableData?.filename);
-                                    }}
-                                    style={buildActionButtonStyle(false)}
-                                >
-                                    Descargar CSV
-                                </button>
-                            </div>
-                        </div>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            {imacecGoodsChart.series.length ? (
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.3rem' }}>
-                                    {imacecGoodsChart.series.map((series) => (
-                                        <span
-                                            key={series.key}
-                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}
-                                        >
-                                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: series.color }}></span>
-                                            {series.label}
-                                        </span>
-                                    ))}
-                                </div>
-                            ) : null}
-                            <TrendChart
-                                data={imacecGoodsChart.data}
-                                color="#38bdf8"
-                                height={170}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                                series={imacecGoodsChart.series.length ? imacecGoodsChart.series : undefined}
-                            />
-                            {buildSeriesStartLabel(imacecGoodsChart.data) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(imacecGoodsChart.data)}
-                                </span>
-                            ) : null}
-                        </div>
-                    </div>
-
-                    <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Comercio y servicios</span>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{yoyEnabled ? 'Var. % en 12 meses' : 'Indice 2018=100'}</div>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        setImacecDetailTable('comercio');
-                                    }}
-                                    style={buildActionButtonStyle(imacecDetailTable === 'comercio')}
-                                >
-                                    Datos
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        downloadCsv(imacecCommerceTableData?.csv, imacecCommerceTableData?.filename);
-                                    }}
-                                    style={buildActionButtonStyle(false)}
-                                >
-                                    Descargar CSV
-                                </button>
-                            </div>
-                        </div>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.3rem' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }}></span>
-                                    Comercio
-                                </span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#60a5fa' }}></span>
-                                    Servicios
-                                </span>
-                            </div>
-                            <TrendChart
-                                data={imacecCommerceServicesData}
-                                height={170}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                                series={[
-                                    { key: 'comercio', color: '#22c55e', label: 'Comercio', fill: true, fillOpacity: 0.22 },
-                                    { key: 'servicios', color: '#60a5fa', label: 'Servicios', fill: true, fillOpacity: 0.2 }
-                                ]}
-                            />
-                            {buildSeriesStartLabel(imacecCommerceServicesData) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(imacecCommerceServicesData)}
-                                </span>
-                            ) : null}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>IMACEC no minero</span>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{yoyEnabled ? 'Var. % en 12 meses' : 'Indice 2018=100'}</div>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        setImacecDetailTable('no-minero');
-                                    }}
-                                    style={buildActionButtonStyle(imacecDetailTable === 'no-minero')}
-                                >
-                                    Datos
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        downloadCsv(imacecNoMineroTableData?.csv, imacecNoMineroTableData?.filename);
-                                    }}
-                                    style={buildActionButtonStyle(false)}
-                                >
-                                    Descargar CSV
-                                </button>
-                            </div>
-                        </div>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <TrendChart
-                                data={imacecDetailSeries.noMinero}
-                                color="#f97316"
-                                height={170}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                            />
-                            {buildSeriesStartLabel(imacecDetailSeries.noMinero) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(imacecDetailSeries.noMinero)}
-                                </span>
-                            ) : null}
-                        </div>
-                    </div>
-                </div>
-            ) : null}
-            {isModal && indicator.id === 'ipc' && ipcDetailSeries ? (
-                <div style={{ marginTop: '1.2rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Detalle IPC</span>
-                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Subyacente vs volatiles</span>
-                            <button
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setShowDetailTable(true);
-                                }}
-                                style={{
-                                    fontSize: '0.6rem',
-                                    padding: '0.2rem 0.55rem',
-                                    borderRadius: '999px',
-                                    border: `1px solid ${showDetailTable ? 'var(--accent)' : 'var(--border)'}`,
-                                    background: showDetailTable ? 'var(--bg-hover)' : 'transparent',
-                                    color: showDetailTable ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    fontWeight: 700
-                                }}
-                            >
-                                Datos
-                            </button>
-                        </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Subyacente (Core)</span>
-                            <TrendChart
-                                data={ipcDetailSeries.core}
-                                color="var(--trend-up)"
-                                height={160}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                            />
-                            {buildSeriesStartLabel(ipcDetailSeries.core) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(ipcDetailSeries.core)}
-                                </span>
-                            ) : null}
-                        </div>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Volatiles</span>
-                            <TrendChart
-                                data={ipcDetailSeries.volatile}
-                                color="var(--trend-down)"
-                                height={160}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                            />
-                            {buildSeriesStartLabel(ipcDetailSeries.volatile) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(ipcDetailSeries.volatile)}
-                                </span>
-                            ) : null}
-                        </div>
-                    </div>
-                    <div style={{ marginTop: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Componentes con mayor alza (mock)</span>
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Top 5 contribuciones</span>
-                        </div>
-                        <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.8fr 0.8fr', padding: '0.45rem 0.7rem', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', background: 'color-mix(in srgb, var(--bg-card) 80%, transparent)' }}>
-                                <span>Componente</span>
-                                <span style={{ textAlign: 'right' }}>Variacion</span>
-                                <span style={{ textAlign: 'right' }}>Peso</span>
-                            </div>
-                            {ipcTopComponents.map((item) => (
-                                <div key={item.name} style={{ display: 'grid', gridTemplateColumns: '1.4fr 0.8fr 0.8fr', padding: '0.4rem 0.7rem', borderTop: '1px solid var(--border)', fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-                                    <span>{item.name}</span>
-                                    <span style={{ textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>
-                                        {formatNumber(item.change, 1)}pp
-                                    </span>
-                                    <span style={{ textAlign: 'right' }}>{formatNumber(item.weight * 100, 1)}%</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            ) : null}
-            {isModal && indicator.id === 'dolar' && fxHasData ? (
-                <div style={{ marginTop: '1.2rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Detalle tipo de cambio</span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>CLP vs monedas</span>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Yuan chino (CNY)</span>
-                            <TrendChart
-                                data={fxDetailSeries.cny}
-                                color="#22d3ee"
-                                height={150}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                            />
-                            {buildSeriesStartLabel(fxDetailSeries.cny) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(fxDetailSeries.cny)}
-                                </span>
-                            ) : null}
-                        </div>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Euro (EUR)</span>
-                            <TrendChart
-                                data={fxDetailSeries.eur}
-                                color="#60a5fa"
-                                height={150}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                            />
-                            {buildSeriesStartLabel(fxDetailSeries.eur) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(fxDetailSeries.eur)}
-                                </span>
-                            ) : null}
-                        </div>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Peso argentino (ARS)</span>
-                            <TrendChart
-                                data={fxDetailSeries.ars}
-                                color="#f97316"
-                                height={150}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                            />
-                            {buildSeriesStartLabel(fxDetailSeries.ars) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(fxDetailSeries.ars)}
-                                </span>
-                            ) : null}
-                        </div>
-                        <div style={{ padding: '0.65rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Yen japones (JPY)</span>
-                            <TrendChart
-                                data={fxDetailSeries.jpy}
-                                color="#22c55e"
-                                height={150}
-                                averageFormatter={formatAverage}
-                                valueFormatter={formatTooltipValue}
-                                theme={theme}
-                            />
-                            {buildSeriesStartLabel(fxDetailSeries.jpy) ? (
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    {buildSeriesStartLabel(fxDetailSeries.jpy)}
-                                </span>
-                            ) : null}
-                        </div>
-                    </div>
-                </div>
-            ) : null}
-            {isModal && indicator.id === 'dolar' && tcrChartData.length ? (
-                <div style={{ marginTop: '1.4rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Tipo de Cambio Real</span>
-                            <span
-                                title="Indice que mide la competitividad cambiaria ajustando por inflacion. Un valor mas alto indica tipo de cambio real mas depreciado."
-                                style={{
-                                    width: '18px',
-                                    height: '18px',
-                                    borderRadius: '50%',
-                                    border: '1px solid var(--border)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '0.65rem',
-                                    color: 'var(--text-secondary)',
-                                    cursor: 'help'
-                                }}
-                            >
-                                ?
-                            </span>
-                        </div>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Indice promedio 1986=100</span>
-                    </div>
-                    <div style={{ padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'color-mix(in srgb, var(--bg-card) 86%, transparent)' }}>
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.3rem' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#38bdf8' }}></span>
-                                TCR
-                            </span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f97316' }}></span>
-                                TCR-5
-                            </span>
-                        </div>
-                        <TrendChart
-                            data={tcrChartData}
-                            height={180}
-                            averageFormatter={(val) => formatNumber(val, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-                            valueFormatter={(val) => formatNumber(val, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-                            theme={theme}
-                            series={[
-                                { key: 'tcr', color: '#38bdf8', label: 'TCR', fill: true, fillOpacity: 0.2 },
-                                { key: 'tcr5', color: '#f97316', label: 'TCR-5', fill: true, fillOpacity: 0.26 }
-                            ]}
-                        />
-                        {buildSeriesStartLabel(tcrDetailSeries?.tcr) ? (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                {buildSeriesStartLabel(tcrDetailSeries?.tcr)}
-                            </span>
-                        ) : null}
-                    </div>
-                </div>
-            ) : null}
-            {isModal && indicator.id === 'imacec' && activeImacecTable ? (
-                <DataTableModal
-                    title={activeImacecTable.title}
-                    columns={activeImacecTable.columns}
-                    rows={activeImacecTable.rows}
-                    onClose={() => setImacecDetailTable(null)}
-                    onDownload={() => downloadCsv(activeImacecTable.csv, activeImacecTable.filename)}
-                />
-            ) : null}
-            {isModal && showDataTable ? (
-                <DataTableModal
-                    title={yoyEnabled ? 'Datos del grafico (Var. 12m)' : 'Datos del grafico'}
-                    columns={fxTableData?.columns || [
-                        { key: 'date', label: 'Fecha' },
-                        { key: 'value', label: 'Valor', align: 'right', emphasis: true }
-                    ]}
-                    rows={fxTableData?.rows || displayChartData.map((entry, index) => ({
-                        id: `${entry.date || entry.name}-${index}`,
-                        date: formatStartDate(entry.date || entry.name),
-                        value: formatTooltipValue(entry.value)
-                    }))}
-                    onClose={() => setShowDataTable(false)}
-                    onDownload={handleDownloadCsv}
-                />
-            ) : null}
-            {isModal && showDetailTable && ipcDetailSeries ? (
-                <DataTableModal
-                    title="Datos IPC subyacente/volatiles"
-                    columns={[
-                        { key: 'date', label: 'Fecha' },
-                        { key: 'core', label: 'Subyacente (Core)', align: 'right', emphasis: true },
-                        { key: 'volatile', label: 'Volatiles', align: 'right', emphasis: true }
-                    ]}
-                    rows={ipcDetailSeries.core.map((entry, index) => ({
-                        id: `detail-${entry.date || entry.name}-${index}`,
-                        date: formatStartDate(entry.date || entry.name),
-                        core: formatNumber(entry.value, 1),
-                        volatile: formatNumber(ipcDetailSeries.volatile[index]?.value, 1)
-                    }))}
-                    onClose={() => setShowDetailTable(false)}
-                    onDownload={handleDownloadDetailCsv}
-                />
-            ) : null}
         </div>
     );
 };

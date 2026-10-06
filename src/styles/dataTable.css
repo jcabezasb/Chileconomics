@@ -1,0 +1,89 @@
+.data-table {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.data-table-head {
+    display: grid;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+}
+
+.data-table-body {
+    overflow-y: auto;
+}
+
+.data-table-row {
+    display: grid;
+    padding: 0.45rem 0.8rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.data-table-row:hover {
+    background: var(--bg-hover);
+}
+
+.data-table-row .is-emphasis {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.data-table-empty {
+    padding: 1rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* Tooltip de los gráficos en modo detalle */
+.trend-tooltip {
+    min-width: 128px;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-md);
+    font-size: 0.75rem;
+    color: var(--text-primary);
+}
+
+.trend-tooltip-date {
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.trend-tooltip-main {
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.trend-tooltip-row {
+    display: grid;
+    grid-template-columns: 8px 1fr auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.08rem 0;
+}
+
+.trend-tooltip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.trend-tooltip-label {
+    color: var(--text-secondary);
+}
+
+.trend-tooltip-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
