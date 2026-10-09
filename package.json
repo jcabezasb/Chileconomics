@@ -2,7 +2,11 @@
   "name": "chileconomics",
   "private": true,
   "version": "0.1.0",
+  "description": "Dashboard macroeconómico de Chile con datos oficiales del Banco Central",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "sync-data": "python python/sync_bcch_data.py",
