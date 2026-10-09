@@ -1,190 +1,54 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guía para agentes que trabajan en este repositorio. Detalles en `docs/arquitectura.md` y
+`docs/flujo-de-trabajo.md`.
 
-## Project Overview
+## Contexto
 
-ChilEconomics is a macroeconomic dashboard for Chile that displays official data from the Central Bank of Chile (BCCH). Built as a scrollytelling one-pager, it presents economic indicators hierarchically: overview, GDP composition, labor market, prices, and external sector.
+Chileconomics (https://chileconomics.cl) es un dashboard macroeconómico de Chile con datos del Banco
+Central. El dueño es economista y está aprendiendo desarrollo: explicar conceptos con claridad y en
+español, y preferir soluciones simples y legibles.
 
-**Key Context**: The project owner is an economist learning development through this project. The codebase is "vibe-coded" — functional but built with limited coding experience. Economic concepts are well understood; technical implementation may need refinement.
+## Reglas importantes
 
-**Live site**: https://chileconomics.cl/
+- `main` es producción (Vercel publica cada push). Trabajar en ramas; la vista previa de Vercel y el
+  CI (`.github/workflows/ci.yml`) validan antes del merge.
+- `public/data/bcch_series.json` lo genera `python/sync_bcch_data.py`: no editarlo a mano.
+- Las series se referencian por **clave** (`dolar`, `pib_reg_RM`), definidas en
+  `python/bcch_shared.py` y `src/data/bcch/seriesKeys.js`. Nunca por el código del Banco Central
+  dentro del frontend.
+- Nada de datos inventados o de relleno en la interfaz: si falta un dato, mostrar estado vacío.
+- Antes de terminar: `npm run lint`, `npm test`, `npm run build` y, si se tocó Python,
+  `python -m pytest python/tests`.
 
-## Architecture
-
-### Data Flow (Critical Understanding)
-
-1. **Data Source**: Python script (`sync_bcch_data.py`) fetches time series from BCCH API using credentials stored in `.env` (BCCH_USER, BCCH_PASSWORD)
-2. **Static Data**: Script writes to `public/data/bcch_series.json` — this is the single source of truth for the frontend
-3. **Automation**: GitHub Actions workflow (`.github/workflows/hourly_sync.yml`) runs daily, fetching fresh data and committing updates
-4. **Frontend Consumption**: React app reads the static JSON file — no runtime API calls in production
-
-**Important**: `public/data/bcch_series.json` is auto-generated. Never edit manually. The JSON structure:
-```json
-{
-  "last_update": "YYYY-MM-DD HH:MM:SS",
-  "series": {
-    "series_key": {
-      "data": [{"date": "YYYY-MM-DD", "value": 123.45}, ...],
-      "latest": {"date": "YYYY-MM-DD", "value": 123.45}
-    }
-  }
-}
-```
-
-### Series Configuration
-
-All BCCH series IDs and metadata live in `bcch_shared.py` under `SERIES_CONFIG_SYNC`. This is the single registry for:
-- National GDP (real/nominal)
-- GDP components (consumption, investment, government, exports, imports)
-- Regional GDP for all 16 Chilean regions
-- Price indices (IPC general, core, volatile)
-- Exchange rates (USD, EUR, CNY, ARS, JPY)
-- Labor market data (unemployment, workforce, occupied by region)
-- Population data (national and regional, by gender)
-- Activity indices (IMACEC and components)
-- Commodity prices (copper)
-
-**Adding a new series**: Add entry to `SERIES_CONFIG_SYNC` in `bcch_shared.py`, then run `npm run sync-data`.
-
-### Frontend Stack
-
-- **Framework**: React 18 + Vite
-- **Charts**: Recharts (line/bar charts), react-simple-maps (Chile regional map)
-- **Styling**: Global CSS with CSS variables for theming (`src/styles/`)
-- **State**: React hooks; `useBcchData` custom hook centralizes all data loading and transformation
-- **Deployment**: Vercel with security headers configured in `vercel.json`
-
-## Development Commands
+## Comandos
 
 ```bash
-# Install dependencies (both frontend and Python)
-npm install
-pip install -r requirements.txt
-
-# Configure credentials (create .env file)
-# BCCH_USER=your_username
-# BCCH_PASSWORD=your_password
-
-# Sync data from BCCH API (downloads all series)
-npm run sync-data
-
-# Development server (http://localhost:5173)
-npm run dev
-
-# Production build
+npm run dev          # http://localhost:5173
+npm run lint         # ESLint (.js y .jsx, sin avisos permitidos)
+npm test             # Vitest
 npm run build
-
-# Preview production build locally
-npm run preview
-
-# Lint code
-npm run lint
+npm run sync-data    # requiere .env con BCCH_USER/BCCH_PASSWORD y el venv de Python activo
+python -m pytest python/tests
 ```
 
-## Code Organization
+## Mapa del código
 
-```
-src/
-├── app/              # Shell components (header, nav, routing logic)
-├── features/         # Domain sections (overview, regional, blog, contact, development)
-│   ├── overview/     # Main indicators, GDP modals, PIB composition
-│   ├── regional/     # Interactive map and regional data
-│   ├── blog/         # Blog post listing
-│   └── blog-posts/   # Individual long-form posts (e.g., price coordinator)
-├── data/bcch/        # BCCH data loading and transformation
-│   ├── api.js        # Fetches and parses bcch_series.json
-│   └── useBcchData.js # React hook - transforms raw data for UI consumption
-├── shared/
-│   ├── components/   # Reusable UI (DataTableModal, TrendChart, PlaceholderSection)
-│   ├── utils/        # Pure functions (format, series calculations, sparkline generation)
-│   └── constants/    # Static data (regions metadata with codes, names, coordinates)
-└── styles/           # Global CSS and modal-specific styles
-```
+- `src/app/`: `App.jsx` elige la vista según la URL (`routes.js`); hooks de ruta, tema y animaciones.
+- `src/data/bcch/`: `client.js` (carga el JSON una vez), `indicators.js` (tarjetas y series de detalle),
+  `useBcchData.js` (datos de la página Datos).
+- `src/features/overview/`: `IndicatorCard` y la vista de detalle en `detail/` (desgloses por
+  indicador en `detail/breakdowns/`). Rango de fechas y variación en 12 meses en `useIndicatorSeries`.
+- `src/features/regional/`: `useRegionalView` (cálculos) + componentes de cada ficha.
+- `src/features/pib/`: composición del PIB (`usePibComposition`).
+- `src/shared/components/TrendChart.jsx`: todos los gráficos de línea (`detailed` agrega ejes).
+- `src/shared/utils/`: funciones puras con pruebas (`*.test.js`).
+- `src/styles/`: `global.css` importa las partes en orden; variables de tema en `variables.css`.
+- `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, pruebas en `python/tests/`.
 
-### Key Files
+## Convenciones
 
-- **`src/app/App.jsx`**: Main application component, section routing, global state management
-- **`src/data/bcch/useBcchData.js`**: Central hook that loads JSON, derives indicators, handles date selection
-- **`src/shared/utils/series.js`**: Series math (YoY growth, moving averages, residual calculations)
-- **`src/shared/utils/format.js`**: Number/date formatting (Chilean locale conventions)
-- **`src/shared/constants/regions.js`**: Regional metadata mapping (ISO codes, names, centroid coordinates for map)
-- **`bcch_shared.py`**: Python module with series config and DataFrame normalization
-
-## Technical Decisions
-
-### Why Static JSON Instead of Runtime API?
-- BCCH API requires credentials (user/password)
-- Avoids exposing credentials in frontend
-- Data updates daily; real-time fetching unnecessary
-- Improves frontend performance (no API latency)
-- Simplifies deployment (static hosting on Vercel)
-
-### GDP Composition Calculation
-The frontend merges Investment (FBKF) and Inventory Changes (Existencias) because inventory changes are volatile and small. See `mergeInvestmentSeries` in `src/shared/utils/series.js`.
-
-Government spending series has data gaps; when missing, it's calculated as a residual: `Government = PIB - (Consumption + Investment + Exports - Imports)`. See `buildGovernmentResidualSeries`.
-
-### Regional Data
-Chile has 16 regions. Regional codes in BCCH API don't match standard ISO codes. Mapping lives in `regions.js` with three code systems:
-- `REGION_IDS`: Standardized keys (e.g., "RM", "I", "XV")
-- `REGION_NUMERIC_CODE_BY_ID`: BCCH series codes for regional GDP
-- `REGION_POB_CODE_BY_ID`: BCCH series codes for population
-
-### Date Handling
-- Most series are quarterly (PIB) or monthly (IPC, labor)
-- Dates stored as `"YYYY-MM-DD"` strings in JSON
-- Frontend allows period selection via date picker in overview section
-- Selected date propagates through `useBcchData` hook to recompute stats at that point in time
-
-## Common Tasks
-
-**Add a new macroeconomic indicator:**
-1. Find series ID in BCCH API documentation
-2. Add to `SERIES_CONFIG_SYNC` in `bcch_shared.py`
-3. Run `npm run sync-data` to fetch data
-4. Add indicator display logic in `src/features/overview/OverviewSection.jsx`
-5. Update `getKeyIndicators()` in `src/data/bcch/api.js` if needed
-
-**Modify chart visualization:**
-- Most charts use Recharts library
-- Chart configs in respective feature components (e.g., `PIBComparisonChart.jsx`)
-- Sparklines use custom SVG path generation (`src/shared/utils/sparkline.js`)
-
-**Update regional map:**
-- GeoJSON for Chile regions: `src/assets/chile.json`
-- Map component: `src/features/regional/MacroMap.jsx`
-- Uses react-simple-maps with D3 projections
-
-**Change styling/theme:**
-- CSS variables: `src/styles/variables.css`
-- Global styles: `src/styles/global.css`
-- Modal-specific: `src/styles/indicatorModal.css`, `src/styles/pibModal.css`
-
-## Data Sync Workflow
-
-The GitHub Actions workflow runs daily at midnight UTC:
-1. Checkout repository
-2. Install Python dependencies
-3. Execute `sync_bcch_data.py` with secrets (BCCH_USER, BCCH_PASSWORD)
-4. Commit `public/data/bcch_series.json` if changed
-5. Push to main branch (triggers Vercel redeployment)
-
-Manual sync: Run workflow from GitHub Actions UI or locally with `npm run sync-data`.
-
-## Security Notes
-
-- BCCH credentials stored as GitHub Secrets (BCCH_USER, BCCH_PASSWORD)
-- Never commit `.env` file
-- Production uses Content Security Policy headers (see `vercel.json`)
-
-## Economics Context
-
-The dashboard follows Central Bank reporting structure:
-- **Overview**: Economic traffic light (growth, inflation, employment)
-- **PIB**: GDP from expenditure approach (C + I + G + X - M)
-- **Labor**: National unemployment rate and regional workforce data
-- **Prices**: CPI decomposition (general, core, volatile components)
-- **External**: Trade balance indicators (copper price, exchange rates)
-
-When modifying economic calculations or adding indicators, consult Chilean Central Bank methodology documents (Cuentas Nacionales, IPC methodology, etc.).
+- Componentes funcionales con hooks; lógica de datos en hooks o funciones puras, no en el JSX.
+- Fechas como texto `YYYY-MM-DD` (`shared/utils/dates.js`); números con `formatNumber` (formato es-CL).
+- Estilos en archivos CSS con variables de tema; evitar estilos en línea salvo valores dinámicos.
+- Comentarios y textos de la interfaz en español.
