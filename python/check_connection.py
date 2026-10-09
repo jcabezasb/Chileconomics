@@ -1,5 +1,6 @@
 """
-Script de prueba para verificar la conexión a la API del Banco Central de Chile
+Prueba manual de la conexión a la API del Banco Central (no es una prueba automática).
+Uso: python python/check_connection.py
 """
 import os
 from dotenv import load_dotenv

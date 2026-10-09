@@ -1,3 +1,120 @@
+"""Registro de series del Banco Central de Chile (BDE) que usa el sitio.
+
+Cada entrada de SERIES_CONFIG queda como una clave en public/data/bcch_series.json; el frontend
+las referencia por esa clave (ver src/data/bcch/seriesKeys.js). Para agregar una serie:
+1. Sumarla a NATIONAL_SERIES (o a la tabla de regiones si es regional).
+2. Correr `npm run sync-data` (o esperar la sincronización diaria de GitHub Actions).
+3. Usar la clave en el frontend.
+"""
+
+# Frecuencias: D diaria, M mensual, T trimestral, A anual.
+NATIONAL_SERIES = {
+    # Cuentas nacionales (miles de millones de pesos, referencia 2018)
+    "pib_total": ("F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T", "PIB Nominal", "T"),
+    "pib_real": ("F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T", "PIB Real Nacional", "T"),
+    "consumo_privado": ("F033.CPR.FLU.N.CLP.EP18.0.T", "Consumo Privado", "T"),
+    "gasto_gob_nominal": ("F033.COG.FLU.N.CLP.EP18.0.T", "Gasto de Gobierno", "T"),
+    "inversion": ("F033.FKF.FLU.N.CLP.EP18.0.T", "Inversion (FBKF)", "T"),
+    "existencias": ("F033.VAX.FLU.N.CLP.EP18.0.T", "Variacion Existencias", "T"),
+    "exportaciones": ("F033.XBS.FLU.N.CLP.EP18.0.T", "Exportaciones", "T"),
+    "importaciones": ("F033.IBS.FLU.N.CLP.EP18.0.T", "Importaciones", "T"),
+    # Precios
+    "ipc_general": ("G073.IPC.IND.2023.M", "IPC General", "M"),
+    "ipc_core": ("G073.IPCSV.IND.2023.M", "IPC Subyacente", "M"),
+    "ipc_volatile": ("G073.IPCV.IND.2023.M", "IPC Volatil", "M"),
+    # Tipo de cambio y commodities
+    "dolar": ("F073.TCO.PRE.Z.D", "Dolar Observado", "D"),
+    "tcr": ("F073.TCR.IND.199101.M", "Tipo de cambio real", "M"),
+    "tcr_5": ("F073.TR5.IND.198601.M", "Tipo de cambio real TCR-5", "M"),
+    "tc_cny": ("F072.CLP.CNY.N.O.D", "Tipo de cambio Yuan", "D"),
+    "tc_eur": ("F072.CLP.EUR.N.O.D", "Tipo de cambio Euro", "D"),
+    "tc_ars": ("F072.CLP.ARS.N.O.D", "Tipo de cambio Peso Argentino", "D"),
+    "tc_jpy": ("F072.CLP.JPY.N.O.D", "Tipo de cambio Yen", "D"),
+    "cobre": ("F019.PPB.PRE.100.D", "Precio del Cobre", "D"),
+    # Mercado laboral
+    "desempleo": ("F049.DES.TAS.INE9.10.M", "Desempleo", "M"),
+    # Actividad (IMACEC, índice 2018=100)
+    "imacec": ("F032.IMC.IND.Z.Z.EP18.Z.Z.0.M", "IMACEC", "M"),
+    "imacec_bienes": ("F032.IMC.IND.Z.Z.EP18.PB.Z.0.M", "Produccion de bienes", "M"),
+    "imacec_mineria": ("F032.IMC.IND.Z.Z.EP18.03.Z.0.M", "Mineria", "M"),
+    "imacec_industria": ("F032.IMC.IND.Z.Z.EP18.04.Z.0.M", "Industria", "M"),
+    "imacec_resto_bienes": ("F032.IMC.IND.Z.Z.EP18.RB.Z.0.M", "Resto de bienes", "M"),
+    "imacec_comercio": ("F032.IMC.IND.Z.Z.EP18.COM.Z.0.M", "Comercio", "M"),
+    "imacec_servicios": ("F032.IMC.IND.Z.Z.EP18.SERV.Z.0.M", "Servicios", "M"),
+    "imacec_no_minero": ("F032.IMC.IND.Z.Z.EP18.N03.Z.0.M", "IMACEC no minero", "M"),
+    # Población (INE, anual, incluye proyecciones)
+    "pob_total": ("F049.POB.STO.INE1.01.A", "Poblacion total nacional", "A"),
+    "pob_mujeres": ("F049.POB.STO.INE1.03.A", "Poblacion mujeres nacional", "A"),
+    "pob_hombres": ("F049.POB.STO.INE1.02.A", "Poblacion hombres nacional", "A"),
+}
+
+# Regiones y sus códigos en el BDE, que no siguen un único estándar:
+# (id, nombre, código PIB, código población, código fuerza de trabajo, código ocupados/desocupación,
+#  segmento de las series de PIB por actividad: 'Z' salvo Tarapacá, que usa '21').
+REGIONS = [
+    ("XV", "Arica y Parinacota", "15", "AP", "RAP", "25", "Z"),
+    ("I", "Tarapaca", "01", "TA", "RTA", "11", "21"),
+    ("II", "Antofagasta", "02", "AN", "RAN", "12", "Z"),
+    ("III", "Atacama", "03", "AT", "RAT", "13", "Z"),
+    ("IV", "Coquimbo", "04", "CO", "RCO", "14", "Z"),
+    ("V", "Valparaiso", "05", "VA", "RVA", "15", "Z"),
+    ("RM", "Metropolitana", "13", "RM", "RRM", "23", "Z"),
+    ("VI", "O'Higgins", "06", "LI", "RLI", "16", "Z"),
+    ("VII", "Maule", "07", "ML", "RML", "17", "Z"),
+    ("XVI", "Nuble", "16", "NB", "RNB", "26", "Z"),
+    ("VIII", "Biobio", "08", "BI", "RBI", "18N", "Z"),
+    ("IX", "La Araucania", "09", "AR", "RAR", "19", "Z"),
+    ("XIV", "Los Rios", "14", "LR", "RLR", "24", "Z"),
+    ("X", "Los Lagos", "10", "LL", "RLL", "20", "Z"),
+    ("XI", "Aysen", "11", "AI", "RAI", "21", "Z"),
+    ("XII", "Magallanes", "12", "MA", "RMA", "22", "Z"),
+]
+
+# Actividades del PIB regional: clave -> código BDE.
+PIB_ACTIVITIES = {
+    "bienes": "PB",
+    "mineria": "03",
+    "industria": "04",
+    "resto": "RB",
+    "comercio": "COM",
+    "servicios": "SERV",
+}
+
+
+def _regional_series(region):
+    region_id, name, pib_code, pob_code, ftr_code, labor_code, activity_segment = region
+    series = {
+        f"pib_reg_{region_id}": (f"F035.PIB.FLU.R.CLP.2018.Z.Z.Z.{pib_code}.0.T", f"PIB {name}", "T"),
+        f"pob_reg_{region_id}": (f"F049.POB{pob_code}.STO.INE.AT.A", f"Poblacion {name}", "A"),
+        f"pob_reg_{region_id}_m": (f"F049.POB{pob_code}.STO.INE.MT.A", f"Poblacion Mujeres {name}", "A"),
+        f"pob_reg_{region_id}_h": (f"F049.POB{pob_code}.STO.INE.HT.A", f"Poblacion Hombres {name}", "A"),
+        f"labor_ftr_reg_{region_id}": (f"F049.FTR.STO.INE9.{ftr_code}.M", f"Fuerza de trabajo {name}", "M"),
+        f"labor_ocu_reg_{region_id}": (f"F049.OCU.PMT.INE9.{labor_code}.M", f"Ocupados {name}", "M"),
+        f"labor_des_reg_{region_id}": (f"F049.DES.TAS.INE9.{labor_code}.M", f"Desocupacion {name}", "M"),
+    }
+    for activity, code in PIB_ACTIVITIES.items():
+        series[f"pib_reg_{region_id}_{activity}"] = (
+            f"F035.PIB.FLU.R.CLP.2018.{code}.{activity_segment}.Z.{pib_code}.0.T",
+            f"PIB {activity} {name}",
+            "T",
+        )
+    return series
+
+
+def build_series_config():
+    """Todas las series a sincronizar: {clave: {"id", "name", "frequency"}}."""
+    entries = dict(NATIONAL_SERIES)
+    for region in REGIONS:
+        entries.update(_regional_series(region))
+    return {
+        key: {"id": series_id, "name": name, "frequency": frequency}
+        for key, (series_id, name, frequency) in entries.items()
+    }
+
+
+SERIES_CONFIG = build_series_config()
+
+
 def parse_float(value):
     try:
         return float(value)
@@ -6,6 +123,7 @@ def parse_float(value):
 
 
 def normalize_dataframe(df):
+    """DataFrame de bcchapi -> [{"date": "YYYY-MM-DD", "value": float | None}]."""
     if df is None:
         return []
 
@@ -15,12 +133,10 @@ def normalize_dataframe(df):
     records = []
     for _, row in df.iterrows():
         date = None
-        if "index" in row:
-            date = row["index"]
-        elif "fecha" in row:
-            date = row["fecha"]
-        elif "date" in row:
-            date = row["date"]
+        for column in ("index", "fecha", "date"):
+            if column in row:
+                date = row[column]
+                break
 
         value = None
         if "value" in row:
@@ -31,379 +147,6 @@ def normalize_dataframe(df):
         if date is not None and hasattr(date, "strftime"):
             date = date.strftime("%Y-%m-%d")
 
-        records.append({
-            "date": date,
-            "value": parse_float(value)
-        })
+        records.append({"date": date, "value": parse_float(value)})
 
     return records
-
-
-SERIES_CONFIG_BUNDLE = {
-    "pib_real": {"id": "F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T", "name": "PIB Real Nacional"},
-    "pib_nominal": {"id": "F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T", "name": "PIB Nominal Nacional"},
-    "consumo_privado": {"id": "F033.CPR.FLU.N.CLP.EP18.0.T", "name": "Consumo Privado (Hogares + IPSFL)"},
-    "gasto_gob_nominal": {"id": "F033.COG.FLU.N.CLP.EP18.0.T", "name": "Gasto de Gobierno"},
-    "fbkf_nominal": {"id": "F033.FKF.FLU.N.CLP.EP18.0.T", "name": "Formacion Bruta de Capital Fijo"},
-    "existencias_nominal": {"id": "F033.VAX.FLU.N.CLP.EP18.0.T", "name": "Variacion de Existencias"},
-    "export_nominal": {"id": "F033.XBS.FLU.N.CLP.EP18.0.T", "name": "Exportaciones Bienes y Servicios"},
-    "import_nominal": {"id": "F033.IBS.FLU.N.CLP.EP18.0.T", "name": "Importaciones Bienes y Servicios"},
-    "ipc_index": {"id": "F074.IPC.IND.Z.EP23.C.M", "name": "IPC Indice"},
-    "ipc_general": {"id": "G073.IPC.IND.2023.M", "name": "IPC General"},
-    "ipc_core": {"id": "G073.IPCSV.IND.2023.M", "name": "IPC Subyacente"},
-    "ipc_volatile": {"id": "G073.IPCV.IND.2023.M", "name": "IPC Volatil"},
-    "dolar": {"id": "F073.TCO.PRE.Z.D", "name": "Dolar Observado"},
-    "tcr": {"id": "F073.TCR.IND.199101.M", "name": "Tipo de cambio real"},
-    "tcr_5": {"id": "F073.TR5.IND.198601.M", "name": "Tipo de cambio real TCR-5"},
-    "tc_cny": {"id": "F072.CLP.CNY.N.O.D", "name": "Tipo de cambio Yuan"},
-    "tc_eur": {"id": "F072.CLP.EUR.N.O.D", "name": "Tipo de cambio Euro"},
-    "tc_ars": {"id": "F072.CLP.ARS.N.O.D", "name": "Tipo de cambio Peso Argentino"},
-    "tc_jpy": {"id": "F072.CLP.JPY.N.O.D", "name": "Tipo de cambio Yen"},
-    "cobre": {"id": "F019.PPB.PRE.100.D", "name": "Precio del Cobre"},
-    "desempleo": {"id": "F049.DES.TAS.INE9.10.M", "name": "Desempleo"},
-    "imacec": {"id": "F032.IMC.IND.Z.Z.EP18.Z.Z.0.M", "name": "IMACEC"},
-    "imacec_bienes": {"id": "F032.IMC.IND.Z.Z.EP18.PB.Z.0.M", "name": "Produccion de bienes"},
-    "imacec_mineria": {"id": "F032.IMC.IND.Z.Z.EP18.03.Z.0.M", "name": "Mineria"},
-    "imacec_industria": {"id": "F032.IMC.IND.Z.Z.EP18.04.Z.0.M", "name": "Industria"},
-    "imacec_resto_bienes": {"id": "F032.IMC.IND.Z.Z.EP18.RB.Z.0.M", "name": "Resto de bienes"},
-    "imacec_comercio": {"id": "F032.IMC.IND.Z.Z.EP18.COM.Z.0.M", "name": "Comercio"},
-    "imacec_servicios": {"id": "F032.IMC.IND.Z.Z.EP18.SERV.Z.0.M", "name": "Servicios"},
-    "imacec_no_minero": {"id": "F032.IMC.IND.Z.Z.EP18.N03.Z.0.M", "name": "IMACEC no minero"},
-    # Regionales
-    "pib_reg_XV": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.15.0.T", "name": "PIB Arica y Parinacota"},
-    "pib_reg_I": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.01.0.T", "name": "PIB Tarapaca"},
-    "pib_reg_II": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.02.0.T", "name": "PIB Antofagasta"},
-    "pib_reg_III": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.03.0.T", "name": "PIB Atacama"},
-    "pib_reg_IV": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.04.0.T", "name": "PIB Coquimbo"},
-    "pib_reg_V": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.05.0.T", "name": "PIB Valparaiso"},
-    "pib_reg_RM": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.13.0.T", "name": "PIB Metropolitana"},
-    "pib_reg_VI": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.06.0.T", "name": "PIB O'Higgins"},
-    "pib_reg_VII": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.07.0.T", "name": "PIB Maule"},
-    "pib_reg_XVI": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.16.0.T", "name": "PIB Nuble"},
-    "pib_reg_VIII": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.08.0.T", "name": "PIB Biobio"},
-    "pib_reg_IX": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.09.0.T", "name": "PIB La Araucania"},
-    "pib_reg_XIV": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.14.0.T", "name": "PIB Los Rios"},
-    "pib_reg_X": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.10.0.T", "name": "PIB Los Lagos"},
-    "pib_reg_XI": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.11.0.T", "name": "PIB Aysen"},
-"pib_reg_XII": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.12.0.T", "name": "PIB Magallanes"},
-    # PIB Regional por Actividad - Arica y Parinacota (XV)
-    "pib_reg_XV_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.15.0.T", "name": "RIB Produccion de bienes Arica"},
-    "pib_reg_XV_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.15.0.T", "name": "RIB Mineria Arica"},
-    "pib_reg_XV_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.15.0.T", "name": "RIB Industria Arica"},
-    "pib_reg_XV_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.15.0.T", "name": "RIB Resto bienes Arica"},
-    "pib_reg_XV_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.15.0.T", "name": "RIB Comercio Arica"},
-    "pib_reg_XV_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.15.0.T", "name": "RIB Servicios Arica"},
-    # PIB Regional por Actividad - Tarapaca (I)
-    "pib_reg_I_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.21.Z.01.0.T", "name": "RIB Produccion de bienes Tarapaca"},
-    "pib_reg_I_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.21.Z.01.0.T", "name": "RIB Mineria Tarapaca"},
-    "pib_reg_I_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.21.Z.01.0.T", "name": "RIB Industria Tarapaca"},
-    "pib_reg_I_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.21.Z.01.0.T", "name": "RIB Resto bienes Tarapaca"},
-    "pib_reg_I_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.21.Z.01.0.T", "name": "RIB Comercio Tarapaca"},
-    "pib_reg_I_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.21.Z.01.0.T", "name": "RIB Servicios Tarapaca"},
-    # PIB Regional por Actividad - Antofagasta (II)
-    "pib_reg_II_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.02.0.T", "name": "RIB Produccion de bienes Antofagasta"},
-    "pib_reg_II_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.02.0.T", "name": "RIB Mineria Antofagasta"},
-    "pib_reg_II_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.02.0.T", "name": "RIB Industria Antofagasta"},
-    "pib_reg_II_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.02.0.T", "name": "RIB Resto bienes Antofagasta"},
-    "pib_reg_II_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.02.0.T", "name": "RIB Comercio Antofagasta"},
-    "pib_reg_II_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.02.0.T", "name": "RIB Servicios Antofagasta"},
-    # PIB Regional por Actividad - Atacama (III)
-    "pib_reg_III_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.03.0.T", "name": "RIB Produccion de bienes Atacama"},
-    "pib_reg_III_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.03.0.T", "name": "RIB Mineria Atacama"},
-    "pib_reg_III_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.03.0.T", "name": "RIB Industria Atacama"},
-    "pib_reg_III_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.03.0.T", "name": "RIB Resto bienes Atacama"},
-    "pib_reg_III_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.03.0.T", "name": "RIB Comercio Atacama"},
-    "pib_reg_III_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.03.0.T", "name": "RIB Servicios Atacama"},
-    # PIB Regional por Actividad - Coquimbo (IV)
-    "pib_reg_IV_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.04.0.T", "name": "RIB Produccion de bienes Coquimbo"},
-    "pib_reg_IV_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.04.0.T", "name": "RIB Mineria Coquimbo"},
-    "pib_reg_IV_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.04.0.T", "name": "RIB Industria Coquimbo"},
-    "pib_reg_IV_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.04.0.T", "name": "RIB Resto bienes Coquimbo"},
-    "pib_reg_IV_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.04.0.T", "name": "RIB Comercio Coquimbo"},
-    "pib_reg_IV_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.04.0.T", "name": "RIB Servicios Coquimbo"},
-    # PIB Regional por Actividad - Valparaiso (V)
-    "pib_reg_V_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.05.0.T", "name": "RIB Produccion de bienes Valparaiso"},
-    "pib_reg_V_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.05.0.T", "name": "RIB Mineria Valparaiso"},
-    "pib_reg_V_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.05.0.T", "name": "RIB Industria Valparaiso"},
-    "pib_reg_V_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.05.0.T", "name": "RIB Resto bienes Valparaiso"},
-    "pib_reg_V_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.05.0.T", "name": "RIB Comercio Valparaiso"},
-    "pib_reg_V_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.05.0.T", "name": "RIB Servicios Valparaiso"},
-    # PIB Regional por Actividad - Metropolitana (RM)
-    "pib_reg_RM_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.13.0.T", "name": "RIB Produccion de bienes RM"},
-    "pib_reg_RM_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.13.0.T", "name": "RIB Mineria RM"},
-    "pib_reg_RM_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.13.0.T", "name": "RIB Industria RM"},
-    "pib_reg_RM_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.13.0.T", "name": "RIB Resto bienes RM"},
-    "pib_reg_RM_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.13.0.T", "name": "RIB Comercio RM"},
-    "pib_reg_RM_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.13.0.T", "name": "RIB Servicios RM"},
-    # PIB Regional por Actividad - O'Higgins (VI)
-    "pib_reg_VI_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.06.0.T", "name": "RIB Produccion de bienes O'Higgins"},
-    "pib_reg_VI_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.06.0.T", "name": "RIB Mineria O'Higgins"},
-    "pib_reg_VI_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.06.0.T", "name": "RIB Industria O'Higgins"},
-    "pib_reg_VI_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.06.0.T", "name": "RIB Resto bienes O'Higgins"},
-    "pib_reg_VI_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.06.0.T", "name": "RIB Comercio O'Higgins"},
-    "pib_reg_VI_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.06.0.T", "name": "RIB Servicios O'Higgins"},
-    # PIB Regional por Actividad - Maule (VII)
-    "pib_reg_VII_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.07.0.T", "name": "RIB Produccion de bienes Maule"},
-    "pib_reg_VII_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.07.0.T", "name": "RIB Mineria Maule"},
-    "pib_reg_VII_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.07.0.T", "name": "RIB Industria Maule"},
-    "pib_reg_VII_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.07.0.T", "name": "RIB Resto bienes Maule"},
-    "pib_reg_VII_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.07.0.T", "name": "RIB Comercio Maule"},
-    "pib_reg_VII_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.07.0.T", "name": "RIB Servicios Maule"},
-    # PIB Regional por Actividad - Nuble (XVI)
-    "pib_reg_XVI_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.16.0.T", "name": "RIB Produccion de bienes Nuble"},
-    "pib_reg_XVI_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.16.0.T", "name": "RIB Mineria Nuble"},
-    "pib_reg_XVI_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.16.0.T", "name": "RIB Industria Nuble"},
-    "pib_reg_XVI_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.16.0.T", "name": "RIB Resto bienes Nuble"},
-    "pib_reg_XVI_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.16.0.T", "name": "RIB Comercio Nuble"},
-    "pib_reg_XVI_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.16.0.T", "name": "RIB Servicios Nuble"},
-    # PIB Regional por Actividad - Biobio (VIII)
-    "pib_reg_VIII_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.08.0.T", "name": "RIB Produccion de bienes Biobio"},
-    "pib_reg_VIII_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.08.0.T", "name": "RIB Mineria Biobio"},
-    "pib_reg_VIII_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.08.0.T", "name": "RIB Industria Biobio"},
-    "pib_reg_VIII_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.08.0.T", "name": "RIB Resto bienes Biobio"},
-    "pib_reg_VIII_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.08.0.T", "name": "RIB Comercio Biobio"},
-    "pib_reg_VIII_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.08.0.T", "name": "RIB Servicios Biobio"},
-    # PIB Regional por Actividad - La Araucania (IX)
-    "pib_reg_IX_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.09.0.T", "name": "RIB Produccion de bienes La Araucania"},
-    "pib_reg_IX_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.09.0.T", "name": "RIB Mineria La Araucania"},
-    "pib_reg_IX_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.09.0.T", "name": "RIB Industria La Araucania"},
-    "pib_reg_IX_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.09.0.T", "name": "RIB Resto bienes La Araucania"},
-    "pib_reg_IX_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.09.0.T", "name": "RIB Comercio La Araucania"},
-    "pib_reg_IX_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.09.0.T", "name": "RIB Servicios La Araucania"},
-    # PIB Regional por Actividad - Los Rios (XIV)
-    "pib_reg_XIV_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.14.0.T", "name": "RIB Produccion de bienes Los Rios"},
-    "pib_reg_XIV_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.14.0.T", "name": "RIB Mineria Los Rios"},
-    "pib_reg_XIV_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.14.0.T", "name": "RIB Industria Los Rios"},
-    "pib_reg_XIV_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.14.0.T", "name": "RIB Resto bienes Los Rios"},
-    "pib_reg_XIV_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.14.0.T", "name": "RIB Comercio Los Rios"},
-    "pib_reg_XIV_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.14.0.T", "name": "RIB Servicios Los Rios"},
-    # PIB Regional por Actividad - Los Lagos (X)
-    "pib_reg_X_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.10.0.T", "name": "RIB Produccion de bienes Los Lagos"},
-    "pib_reg_X_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.10.0.T", "name": "RIB Mineria Los Lagos"},
-    "pib_reg_X_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.10.0.T", "name": "RIB Industria Los Lagos"},
-    "pib_reg_X_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.10.0.T", "name": "RIB Resto bienes Los Lagos"},
-    "pib_reg_X_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.10.0.T", "name": "RIB Comercio Los Lagos"},
-    "pib_reg_X_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.10.0.T", "name": "RIB Servicios Los Lagos"},
-    # PIB Regional por Actividad - Aysen (XI)
-    "pib_reg_XI_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.11.0.T", "name": "RIB Produccion de bienes Aysen"},
-    "pib_reg_XI_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.11.0.T", "name": "RIB Mineria Aysen"},
-    "pib_reg_XI_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.11.0.T", "name": "RIB Industria Aysen"},
-    "pib_reg_XI_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.11.0.T", "name": "RIB Resto bienes Aysen"},
-    "pib_reg_XI_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.11.0.T", "name": "RIB Comercio Aysen"},
-    "pib_reg_XI_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.11.0.T", "name": "RIB Servicios Aysen"},
-    # PIB Regional por Actividad - Magallanes (XII)
-    "pib_reg_XII_bienes": {"id": "F035.PIB.FLU.R.CLP.2018.PB.Z.Z.12.0.T", "name": "RIB Produccion de bienes Magallanes"},
-    "pib_reg_XII_mineria": {"id": "F035.PIB.FLU.R.CLP.2018.03.Z.Z.12.0.T", "name": "RIB Mineria Magallanes"},
-    "pib_reg_XII_industria": {"id": "F035.PIB.FLU.R.CLP.2018.04.Z.Z.12.0.T", "name": "RIB Industria Magallanes"},
-    "pib_reg_XII_resto": {"id": "F035.PIB.FLU.R.CLP.2018.RB.Z.Z.12.0.T", "name": "RIB Resto bienes Magallanes"},
-    "pib_reg_XII_comercio": {"id": "F035.PIB.FLU.R.CLP.2018.COM.Z.Z.12.0.T", "name": "RIB Comercio Magallanes"},
-    "pib_reg_XII_servicios": {"id": "F035.PIB.FLU.R.CLP.2018.SERV.Z.Z.12.0.T", "name": "RIB Servicios Magallanes"},
-    # Poblacion Nacional
-    "pob_total": {"id": "F049.POB.STO.INE1.01.A", "name": "Poblacion total nacional"},
-    "pob_mujeres": {"id": "F049.POB.STO.INE1.03.A", "name": "Poblacion mujeres nacional"},
-    "pob_hombres": {"id": "F049.POB.STO.INE1.02.A", "name": "Poblacion hombres nacional"},
-    # Poblacion Regional - Total
-    "pob_reg_XV": {"id": "F049.POBAP.STO.INE.AT.A", "name": "Poblacion Arica y Parinacota"},
-    "pob_reg_I": {"id": "F049.POBTA.STO.INE.AT.A", "name": "Poblacion Tarapaca"},
-    "pob_reg_II": {"id": "F049.POBAN.STO.INE.AT.A", "name": "Poblacion Antofagasta"},
-    "pob_reg_III": {"id": "F049.POBAT.STO.INE.AT.A", "name": "Poblacion Atacama"},
-    "pob_reg_IV": {"id": "F049.POBCO.STO.INE.AT.A", "name": "Poblacion Coquimbo"},
-    "pob_reg_V": {"id": "F049.POBVA.STO.INE.AT.A", "name": "Poblacion Valparaiso"},
-    "pob_reg_RM": {"id": "F049.POBRM.STO.INE.AT.A", "name": "Poblacion Metropolitana"},
-    "pob_reg_VI": {"id": "F049.POBLI.STO.INE.AT.A", "name": "Poblacion O'Higgins"},
-    "pob_reg_VII": {"id": "F049.POBML.STO.INE.AT.A", "name": "Poblacion Maule"},
-    "pob_reg_VIII": {"id": "F049.POBBI.STO.INE.AT.A", "name": "Poblacion Biobio"},
-    "pob_reg_XVI": {"id": "F049.POBNB.STO.INE.AT.A", "name": "Poblacion Nuble"},
-    "pob_reg_IX": {"id": "F049.POBAR.STO.INE.AT.A", "name": "Poblacion La Araucania"},
-    "pob_reg_XIV": {"id": "F049.POBLR.STO.INE.AT.A", "name": "Poblacion Los Rios"},
-    "pob_reg_X": {"id": "F049.POBLL.STO.INE.AT.A", "name": "Poblacion Los Lagos"},
-    "pob_reg_XI": {"id": "F049.POBAI.STO.INE.AT.A", "name": "Poblacion Aysen"},
-    "pob_reg_XII": {"id": "F049.POBMA.STO.INE.AT.A", "name": "Poblacion Magallanes"},
-    # Poblacion Regional - Mujeres
-    "pob_reg_XV_m": {"id": "F049.POBAP.STO.INE.MT.A", "name": "Poblacion Mujeres Arica y Parinacota"},
-    "pob_reg_I_m": {"id": "F049.POBTA.STO.INE.MT.A", "name": "Poblacion Mujeres Tarapaca"},
-    "pob_reg_II_m": {"id": "F049.POBAN.STO.INE.MT.A", "name": "Poblacion Mujeres Antofagasta"},
-    "pob_reg_III_m": {"id": "F049.POBAT.STO.INE.MT.A", "name": "Poblacion Mujeres Atacama"},
-    "pob_reg_IV_m": {"id": "F049.POBCO.STO.INE.MT.A", "name": "Poblacion Mujeres Coquimbo"},
-    "pob_reg_V_m": {"id": "F049.POBVA.STO.INE.MT.A", "name": "Poblacion Mujeres Valparaiso"},
-    "pob_reg_RM_m": {"id": "F049.POBRM.STO.INE.MT.A", "name": "Poblacion Mujeres Metropolitana"},
-    "pob_reg_VI_m": {"id": "F049.POBLI.STO.INE.MT.A", "name": "Poblacion Mujeres O'Higgins"},
-    "pob_reg_VII_m": {"id": "F049.POBML.STO.INE.MT.A", "name": "Poblacion Mujeres Maule"},
-    "pob_reg_VIII_m": {"id": "F049.POBBI.STO.INE.MT.A", "name": "Poblacion Mujeres Biobio"},
-    "pob_reg_XVI_m": {"id": "F049.POBNB.STO.INE.MT.A", "name": "Poblacion Mujeres Nuble"},
-    "pob_reg_IX_m": {"id": "F049.POBAR.STO.INE.MT.A", "name": "Poblacion Mujeres La Araucania"},
-    "pob_reg_XIV_m": {"id": "F049.POBLR.STO.INE.MT.A", "name": "Poblacion Mujeres Los Rios"},
-    "pob_reg_X_m": {"id": "F049.POBLL.STO.INE.MT.A", "name": "Poblacion Mujeres Los Lagos"},
-    "pob_reg_XI_m": {"id": "F049.POBAI.STO.INE.MT.A", "name": "Poblacion Mujeres Aysen"},
-    "pob_reg_XII_m": {"id": "F049.POBMA.STO.INE.MT.A", "name": "Poblacion Mujeres Magallanes"},
-    # Poblacion Regional - Hombres
-    "pob_reg_XV_h": {"id": "F049.POBAP.STO.INE.HT.A", "name": "Poblacion Hombres Arica y Parinacota"},
-    "pob_reg_I_h": {"id": "F049.POBTA.STO.INE.HT.A", "name": "Poblacion Hombres Tarapaca"},
-    "pob_reg_II_h": {"id": "F049.POBAN.STO.INE.HT.A", "name": "Poblacion Hombres Antofagasta"},
-    "pob_reg_III_h": {"id": "F049.POBAT.STO.INE.HT.A", "name": "Poblacion Hombres Atacama"},
-    "pob_reg_IV_h": {"id": "F049.POBCO.STO.INE.HT.A", "name": "Poblacion Hombres Coquimbo"},
-    "pob_reg_V_h": {"id": "F049.POBVA.STO.INE.HT.A", "name": "Poblacion Hombres Valparaiso"},
-    "pob_reg_RM_h": {"id": "F049.POBRM.STO.INE.HT.A", "name": "Poblacion Hombres Metropolitana"},
-    "pob_reg_VI_h": {"id": "F049.POBLI.STO.INE.HT.A", "name": "Poblacion Hombres O'Higgins"},
-    "pob_reg_VII_h": {"id": "F049.POBML.STO.INE.HT.A", "name": "Poblacion Hombres Maule"},
-    "pob_reg_VIII_h": {"id": "F049.POBBI.STO.INE.HT.A", "name": "Poblacion Hombres Biobio"},
-    "pob_reg_XVI_h": {"id": "F049.POBNB.STO.INE.HT.A", "name": "Poblacion Hombres Nuble"},
-    "pob_reg_IX_h": {"id": "F049.POBAR.STO.INE.HT.A", "name": "Poblacion Hombres La Araucania"},
-    "pob_reg_XIV_h": {"id": "F049.POBLR.STO.INE.HT.A", "name": "Poblacion Hombres Los Rios"},
-    "pob_reg_X_h": {"id": "F049.POBLL.STO.INE.HT.A", "name": "Poblacion Hombres Los Lagos"},
-    "pob_reg_XI_h": {"id": "F049.POBAI.STO.INE.HT.A", "name": "Poblacion Hombres Aysen"},
-    "pob_reg_XII_h": {"id": "F049.POBMA.STO.INE.HT.A", "name": "Poblacion Hombres Magallanes"}
-}
-
-SERIES_CONFIG_SYNC = {
-    "pib_total": {"id": "F032.PIB.FLU.N.CLP.EP18.Z.Z.0.T", "name": "PIB Nominal", "frequency": "T"},
-    "pib_real": {"id": "F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T", "name": "PIB Real Nacional", "frequency": "T"},
-    "consumo_privado": {"id": "F033.CPR.FLU.N.CLP.EP18.0.T", "name": "Consumo Privado", "frequency": "T"},
-    "gasto_gob_nominal": {"id": "F033.COG.FLU.N.CLP.EP18.0.T", "name": "Gasto de Gobierno", "frequency": "T"},
-    "inversion": {"id": "F033.FKF.FLU.N.CLP.EP18.0.T", "name": "Inversion (FBKF)", "frequency": "T"},
-    "existencias": {"id": "F033.VAX.FLU.N.CLP.EP18.0.T", "name": "Variacion Existencias", "frequency": "T"},
-    "exportaciones": {"id": "F033.XBS.FLU.N.CLP.EP18.0.T", "name": "Exportaciones", "frequency": "T"},
-    "importaciones": {"id": "F033.IBS.FLU.N.CLP.EP18.0.T", "name": "Importaciones", "frequency": "T"},
-    "ipc_index": {"id": "F074.IPC.IND.Z.EP23.C.M", "name": "IPC Indice", "frequency": "M"},
-    "ipc_general": {"id": "G073.IPC.IND.2023.M", "name": "IPC General", "frequency": "M"},
-    "ipc_core": {"id": "G073.IPCSV.IND.2023.M", "name": "IPC Subyacente", "frequency": "M"},
-    "ipc_volatile": {"id": "G073.IPCV.IND.2023.M", "name": "IPC Volatil", "frequency": "M"},
-    "dolar": {"id": "F073.TCO.PRE.Z.D", "name": "Dolar Observado", "frequency": "D"},
-    "tcr": {"id": "F073.TCR.IND.199101.M", "name": "Tipo de cambio real", "frequency": "M"},
-    "tcr_5": {"id": "F073.TR5.IND.198601.M", "name": "Tipo de cambio real TCR-5", "frequency": "M"},
-    "tc_cny": {"id": "F072.CLP.CNY.N.O.D", "name": "Tipo de cambio Yuan", "frequency": "D"},
-    "tc_eur": {"id": "F072.CLP.EUR.N.O.D", "name": "Tipo de cambio Euro", "frequency": "D"},
-    "tc_ars": {"id": "F072.CLP.ARS.N.O.D", "name": "Tipo de cambio Peso Argentino", "frequency": "D"},
-    "tc_jpy": {"id": "F072.CLP.JPY.N.O.D", "name": "Tipo de cambio Yen", "frequency": "D"},
-    "cobre": {"id": "F019.PPB.PRE.100.D", "name": "Precio del Cobre", "frequency": "D"},
-    "desempleo": {"id": "F049.DES.TAS.INE9.10.M", "name": "Desempleo", "frequency": "M"},
-    "imacec": {"id": "F032.IMC.IND.Z.Z.EP18.Z.Z.0.M", "name": "IMACEC", "frequency": "M"},
-    "imacec_bienes": {"id": "F032.IMC.IND.Z.Z.EP18.PB.Z.0.M", "name": "Produccion de bienes", "frequency": "M"},
-    "imacec_mineria": {"id": "F032.IMC.IND.Z.Z.EP18.03.Z.0.M", "name": "Mineria", "frequency": "M"},
-    "imacec_industria": {"id": "F032.IMC.IND.Z.Z.EP18.04.Z.0.M", "name": "Industria", "frequency": "M"},
-    "imacec_resto_bienes": {"id": "F032.IMC.IND.Z.Z.EP18.RB.Z.0.M", "name": "Resto de bienes", "frequency": "M"},
-    "imacec_comercio": {"id": "F032.IMC.IND.Z.Z.EP18.COM.Z.0.M", "name": "Comercio", "frequency": "M"},
-    "imacec_servicios": {"id": "F032.IMC.IND.Z.Z.EP18.SERV.Z.0.M", "name": "Servicios", "frequency": "M"},
-    "imacec_no_minero": {"id": "F032.IMC.IND.Z.Z.EP18.N03.Z.0.M", "name": "IMACEC no minero", "frequency": "M"},
-    # PIB Regional Real
-    "pib_reg_XV": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.15.0.T", "name": "PIB Arica y Parinacota", "frequency": "T"},
-    "pib_reg_I": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.01.0.T", "name": "PIB Tarapaca", "frequency": "T"},
-    "pib_reg_II": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.02.0.T", "name": "PIB Antofagasta", "frequency": "T"},
-    "pib_reg_III": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.03.0.T", "name": "PIB Atacama", "frequency": "T"},
-    "pib_reg_IV": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.04.0.T", "name": "PIB Coquimbo", "frequency": "T"},
-    "pib_reg_V": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.05.0.T", "name": "PIB Valparaiso", "frequency": "T"},
-    "pib_reg_RM": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.13.0.T", "name": "PIB Metropolitana", "frequency": "T"},
-    "pib_reg_VI": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.06.0.T", "name": "PIB O'Higgins", "frequency": "T"},
-    "pib_reg_VII": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.07.0.T", "name": "PIB Maule", "frequency": "T"},
-    "pib_reg_XVI": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.16.0.T", "name": "PIB Nuble", "frequency": "T"},
-    "pib_reg_VIII": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.08.0.T", "name": "PIB Biobio", "frequency": "T"},
-    "pib_reg_IX": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.09.0.T", "name": "PIB La Araucania", "frequency": "T"},
-    "pib_reg_XIV": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.14.0.T", "name": "PIB Los Rios", "frequency": "T"},
-    "pib_reg_X": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.10.0.T", "name": "PIB Los Lagos", "frequency": "T"},
-    "pib_reg_XI": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.11.0.T", "name": "PIB Aysen", "frequency": "T"},
-    "pib_reg_XII": {"id": "F035.PIB.FLU.R.CLP.2018.Z.Z.Z.12.0.T", "name": "PIB Magallanes", "frequency": "T"},
-    # Poblacion Nacional
-    "pob_total": {"id": "F049.POB.STO.INE1.01.A", "name": "Poblacion total nacional", "frequency": "A"},
-    "pob_mujeres": {"id": "F049.POB.STO.INE1.03.A", "name": "Poblacion mujeres nacional", "frequency": "A"},
-    "pob_hombres": {"id": "F049.POB.STO.INE1.02.A", "name": "Poblacion hombres nacional", "frequency": "A"},
-    # Poblacion Regional - Total
-    "pob_reg_XV": {"id": "F049.POBAP.STO.INE.AT.A", "name": "Poblacion Arica y Parinacota", "frequency": "A"},
-    "pob_reg_I": {"id": "F049.POBTA.STO.INE.AT.A", "name": "Poblacion Tarapaca", "frequency": "A"},
-    "pob_reg_II": {"id": "F049.POBAN.STO.INE.AT.A", "name": "Poblacion Antofagasta", "frequency": "A"},
-    "pob_reg_III": {"id": "F049.POBAT.STO.INE.AT.A", "name": "Poblacion Atacama", "frequency": "A"},
-    "pob_reg_IV": {"id": "F049.POBCO.STO.INE.AT.A", "name": "Poblacion Coquimbo", "frequency": "A"},
-    "pob_reg_V": {"id": "F049.POBVA.STO.INE.AT.A", "name": "Poblacion Valparaiso", "frequency": "A"},
-    "pob_reg_RM": {"id": "F049.POBRM.STO.INE.AT.A", "name": "Poblacion Metropolitana", "frequency": "A"},
-    "pob_reg_VI": {"id": "F049.POBLI.STO.INE.AT.A", "name": "Poblacion O'Higgins", "frequency": "A"},
-    "pob_reg_VII": {"id": "F049.POBML.STO.INE.AT.A", "name": "Poblacion Maule", "frequency": "A"},
-    "pob_reg_VIII": {"id": "F049.POBBI.STO.INE.AT.A", "name": "Poblacion Biobio", "frequency": "A"},
-    "pob_reg_XVI": {"id": "F049.POBNB.STO.INE.AT.A", "name": "Poblacion Nuble", "frequency": "A"},
-    "pob_reg_IX": {"id": "F049.POBAR.STO.INE.AT.A", "name": "Poblacion La Araucania", "frequency": "A"},
-    "pob_reg_XIV": {"id": "F049.POBLR.STO.INE.AT.A", "name": "Poblacion Los Rios", "frequency": "A"},
-    "pob_reg_X": {"id": "F049.POBLL.STO.INE.AT.A", "name": "Poblacion Los Lagos", "frequency": "A"},
-    "pob_reg_XI": {"id": "F049.POBAI.STO.INE.AT.A", "name": "Poblacion Aysen", "frequency": "A"},
-    "pob_reg_XII": {"id": "F049.POBMA.STO.INE.AT.A", "name": "Poblacion Magallanes", "frequency": "A"},
-    # Poblacion Regional - Mujeres
-    "pob_reg_XV_m": {"id": "F049.POBAP.STO.INE.MT.A", "name": "Poblacion Mujeres Arica y Parinacota", "frequency": "A"},
-    "pob_reg_I_m": {"id": "F049.POBTA.STO.INE.MT.A", "name": "Poblacion Mujeres Tarapaca", "frequency": "A"},
-    "pob_reg_II_m": {"id": "F049.POBAN.STO.INE.MT.A", "name": "Poblacion Mujeres Antofagasta", "frequency": "A"},
-    "pob_reg_III_m": {"id": "F049.POBAT.STO.INE.MT.A", "name": "Poblacion Mujeres Atacama", "frequency": "A"},
-    "pob_reg_IV_m": {"id": "F049.POBCO.STO.INE.MT.A", "name": "Poblacion Mujeres Coquimbo", "frequency": "A"},
-    "pob_reg_V_m": {"id": "F049.POBVA.STO.INE.MT.A", "name": "Poblacion Mujeres Valparaiso", "frequency": "A"},
-    "pob_reg_RM_m": {"id": "F049.POBRM.STO.INE.MT.A", "name": "Poblacion Mujeres Metropolitana", "frequency": "A"},
-    "pob_reg_VI_m": {"id": "F049.POBLI.STO.INE.MT.A", "name": "Poblacion Mujeres O'Higgins", "frequency": "A"},
-    "pob_reg_VII_m": {"id": "F049.POBML.STO.INE.MT.A", "name": "Poblacion Mujeres Maule", "frequency": "A"},
-    "pob_reg_VIII_m": {"id": "F049.POBBI.STO.INE.MT.A", "name": "Poblacion Mujeres Biobio", "frequency": "A"},
-    "pob_reg_XVI_m": {"id": "F049.POBNB.STO.INE.MT.A", "name": "Poblacion Mujeres Nuble", "frequency": "A"},
-    "pob_reg_IX_m": {"id": "F049.POBAR.STO.INE.MT.A", "name": "Poblacion Mujeres La Araucania", "frequency": "A"},
-    "pob_reg_XIV_m": {"id": "F049.POBLR.STO.INE.MT.A", "name": "Poblacion Mujeres Los Rios", "frequency": "A"},
-    "pob_reg_X_m": {"id": "F049.POBLL.STO.INE.MT.A", "name": "Poblacion Mujeres Los Lagos", "frequency": "A"},
-    "pob_reg_XI_m": {"id": "F049.POBAI.STO.INE.MT.A", "name": "Poblacion Mujeres Aysen", "frequency": "A"},
-    "pob_reg_XII_m": {"id": "F049.POBMA.STO.INE.MT.A", "name": "Poblacion Mujeres Magallanes", "frequency": "A"},
-    # Poblacion Regional - Hombres
-    "pob_reg_XV_h": {"id": "F049.POBAP.STO.INE.HT.A", "name": "Poblacion Hombres Arica y Parinacota", "frequency": "A"},
-    "pob_reg_I_h": {"id": "F049.POBTA.STO.INE.HT.A", "name": "Poblacion Hombres Tarapaca", "frequency": "A"},
-    "pob_reg_II_h": {"id": "F049.POBAN.STO.INE.HT.A", "name": "Poblacion Hombres Antofagasta", "frequency": "A"},
-    "pob_reg_III_h": {"id": "F049.POBAT.STO.INE.HT.A", "name": "Poblacion Hombres Atacama", "frequency": "A"},
-    "pob_reg_IV_h": {"id": "F049.POBCO.STO.INE.HT.A", "name": "Poblacion Hombres Coquimbo", "frequency": "A"},
-    "pob_reg_V_h": {"id": "F049.POBVA.STO.INE.HT.A", "name": "Poblacion Hombres Valparaiso", "frequency": "A"},
-    "pob_reg_RM_h": {"id": "F049.POBRM.STO.INE.HT.A", "name": "Poblacion Hombres Metropolitana", "frequency": "A"},
-    "pob_reg_VI_h": {"id": "F049.POBLI.STO.INE.HT.A", "name": "Poblacion Hombres O'Higgins", "frequency": "A"},
-    "pob_reg_VII_h": {"id": "F049.POBML.STO.INE.HT.A", "name": "Poblacion Hombres Maule", "frequency": "A"},
-    "pob_reg_VIII_h": {"id": "F049.POBBI.STO.INE.HT.A", "name": "Poblacion Hombres Biobio", "frequency": "A"},
-    "pob_reg_XVI_h": {"id": "F049.POBNB.STO.INE.HT.A", "name": "Poblacion Hombres Nuble", "frequency": "A"},
-    "pob_reg_IX_h": {"id": "F049.POBAR.STO.INE.HT.A", "name": "Poblacion Hombres La Araucania", "frequency": "A"},
-    "pob_reg_XIV_h": {"id": "F049.POBLR.STO.INE.HT.A", "name": "Poblacion Hombres Los Rios", "frequency": "A"},
-    "pob_reg_X_h": {"id": "F049.POBLL.STO.INE.HT.A", "name": "Poblacion Hombres Los Lagos", "frequency": "A"},
-    "pob_reg_XI_h": {"id": "F049.POBAI.STO.INE.HT.A", "name": "Poblacion Hombres Aysen", "frequency": "A"},
-    "pob_reg_XII_h": {"id": "F049.POBMA.STO.INE.HT.A", "name": "Poblacion Hombres Magallanes", "frequency": "A"},
-    # Fuerza de trabajo, ocupados y desocupacion (Regional)
-    "labor_ftr_reg_XV": {"id": "F049.FTR.STO.INE9.RAP.M", "name": "Fuerza de trabajo Arica y Parinacota", "frequency": "M"},
-    "labor_ocu_reg_XV": {"id": "F049.OCU.PMT.INE9.25.M", "name": "Ocupados Arica y Parinacota", "frequency": "M"},
-    "labor_des_reg_XV": {"id": "F049.DES.TAS.INE9.25.M", "name": "Desocupacion Arica y Parinacota", "frequency": "M"},
-    "labor_ftr_reg_I": {"id": "F049.FTR.STO.INE9.RTA.M", "name": "Fuerza de trabajo Tarapaca", "frequency": "M"},
-    "labor_ocu_reg_I": {"id": "F049.OCU.PMT.INE9.11.M", "name": "Ocupados Tarapaca", "frequency": "M"},
-    "labor_des_reg_I": {"id": "F049.DES.TAS.INE9.11.M", "name": "Desocupacion Tarapaca", "frequency": "M"},
-    "labor_ftr_reg_II": {"id": "F049.FTR.STO.INE9.RAN.M", "name": "Fuerza de trabajo Antofagasta", "frequency": "M"},
-    "labor_ocu_reg_II": {"id": "F049.OCU.PMT.INE9.12.M", "name": "Ocupados Antofagasta", "frequency": "M"},
-    "labor_des_reg_II": {"id": "F049.DES.TAS.INE9.12.M", "name": "Desocupacion Antofagasta", "frequency": "M"},
-    "labor_ftr_reg_III": {"id": "F049.FTR.STO.INE9.RAT.M", "name": "Fuerza de trabajo Atacama", "frequency": "M"},
-    "labor_ocu_reg_III": {"id": "F049.OCU.PMT.INE9.13.M", "name": "Ocupados Atacama", "frequency": "M"},
-    "labor_des_reg_III": {"id": "F049.DES.TAS.INE9.13.M", "name": "Desocupacion Atacama", "frequency": "M"},
-    "labor_ftr_reg_IV": {"id": "F049.FTR.STO.INE9.RCO.M", "name": "Fuerza de trabajo Coquimbo", "frequency": "M"},
-    "labor_ocu_reg_IV": {"id": "F049.OCU.PMT.INE9.14.M", "name": "Ocupados Coquimbo", "frequency": "M"},
-    "labor_des_reg_IV": {"id": "F049.DES.TAS.INE9.14.M", "name": "Desocupacion Coquimbo", "frequency": "M"},
-    "labor_ftr_reg_V": {"id": "F049.FTR.STO.INE9.RVA.M", "name": "Fuerza de trabajo Valparaiso", "frequency": "M"},
-    "labor_ocu_reg_V": {"id": "F049.OCU.PMT.INE9.15.M", "name": "Ocupados Valparaiso", "frequency": "M"},
-    "labor_des_reg_V": {"id": "F049.DES.TAS.INE9.15.M", "name": "Desocupacion Valparaiso", "frequency": "M"},
-    "labor_ftr_reg_RM": {"id": "F049.FTR.STO.INE9.RRM.M", "name": "Fuerza de trabajo Metropolitana", "frequency": "M"},
-    "labor_ocu_reg_RM": {"id": "F049.OCU.PMT.INE9.23.M", "name": "Ocupados Metropolitana", "frequency": "M"},
-    "labor_des_reg_RM": {"id": "F049.DES.TAS.INE9.23.M", "name": "Desocupacion Metropolitana", "frequency": "M"},
-    "labor_ftr_reg_VI": {"id": "F049.FTR.STO.INE9.RLI.M", "name": "Fuerza de trabajo O'Higgins", "frequency": "M"},
-    "labor_ocu_reg_VI": {"id": "F049.OCU.PMT.INE9.16.M", "name": "Ocupados O'Higgins", "frequency": "M"},
-    "labor_des_reg_VI": {"id": "F049.DES.TAS.INE9.16.M", "name": "Desocupacion O'Higgins", "frequency": "M"},
-    "labor_ftr_reg_VII": {"id": "F049.FTR.STO.INE9.RML.M", "name": "Fuerza de trabajo Maule", "frequency": "M"},
-    "labor_ocu_reg_VII": {"id": "F049.OCU.PMT.INE9.17.M", "name": "Ocupados Maule", "frequency": "M"},
-    "labor_des_reg_VII": {"id": "F049.DES.TAS.INE9.17.M", "name": "Desocupacion Maule", "frequency": "M"},
-    "labor_ftr_reg_VIII": {"id": "F049.FTR.STO.INE9.RBI.M", "name": "Fuerza de trabajo Biobio", "frequency": "M"},
-    "labor_ocu_reg_VIII": {"id": "F049.OCU.PMT.INE9.18N.M", "name": "Ocupados Biobio", "frequency": "M"},
-    "labor_des_reg_VIII": {"id": "F049.DES.TAS.INE9.18N.M", "name": "Desocupacion Biobio", "frequency": "M"},
-    "labor_ftr_reg_XVI": {"id": "F049.FTR.STO.INE9.RNB.M", "name": "Fuerza de trabajo Nuble", "frequency": "M"},
-    "labor_ocu_reg_XVI": {"id": "F049.OCU.PMT.INE9.26.M", "name": "Ocupados Nuble", "frequency": "M"},
-    "labor_des_reg_XVI": {"id": "F049.DES.TAS.INE9.26.M", "name": "Desocupacion Nuble", "frequency": "M"},
-    "labor_ftr_reg_IX": {"id": "F049.FTR.STO.INE9.RAR.M", "name": "Fuerza de trabajo La Araucania", "frequency": "M"},
-    "labor_ocu_reg_IX": {"id": "F049.OCU.PMT.INE9.19.M", "name": "Ocupados La Araucania", "frequency": "M"},
-    "labor_des_reg_IX": {"id": "F049.DES.TAS.INE9.19.M", "name": "Desocupacion La Araucania", "frequency": "M"},
-    "labor_ftr_reg_XIV": {"id": "F049.FTR.STO.INE9.RLR.M", "name": "Fuerza de trabajo Los Rios", "frequency": "M"},
-    "labor_ocu_reg_XIV": {"id": "F049.OCU.PMT.INE9.24.M", "name": "Ocupados Los Rios", "frequency": "M"},
-    "labor_des_reg_XIV": {"id": "F049.DES.TAS.INE9.24.M", "name": "Desocupacion Los Rios", "frequency": "M"},
-    "labor_ftr_reg_X": {"id": "F049.FTR.STO.INE9.RLL.M", "name": "Fuerza de trabajo Los Lagos", "frequency": "M"},
-    "labor_ocu_reg_X": {"id": "F049.OCU.PMT.INE9.20.M", "name": "Ocupados Los Lagos", "frequency": "M"},
-    "labor_des_reg_X": {"id": "F049.DES.TAS.INE9.20.M", "name": "Desocupacion Los Lagos", "frequency": "M"},
-    "labor_ftr_reg_XI": {"id": "F049.FTR.STO.INE9.RAI.M", "name": "Fuerza de trabajo Aysen", "frequency": "M"},
-    "labor_ocu_reg_XI": {"id": "F049.OCU.PMT.INE9.21.M", "name": "Ocupados Aysen", "frequency": "M"},
-    "labor_des_reg_XI": {"id": "F049.DES.TAS.INE9.21.M", "name": "Desocupacion Aysen", "frequency": "M"},
-    "labor_ftr_reg_XII": {"id": "F049.FTR.STO.INE9.RMA.M", "name": "Fuerza de trabajo Magallanes", "frequency": "M"},
-    "labor_ocu_reg_XII": {"id": "F049.OCU.PMT.INE9.22.M", "name": "Ocupados Magallanes", "frequency": "M"},
-    "labor_des_reg_XII": {"id": "F049.DES.TAS.INE9.22.M", "name": "Desocupacion Magallanes", "frequency": "M"}
-}

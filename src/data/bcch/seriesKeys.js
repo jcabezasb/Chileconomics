@@ -24,7 +24,6 @@ export const SERIES = {
     imacecNoMinero: 'imacec_no_minero',
 
     // Precios (mensual, índices)
-    ipcIndex: 'ipc_index',
     ipcGeneral: 'ipc_general',
     ipcCore: 'ipc_core',
     ipcVolatile: 'ipc_volatile',
