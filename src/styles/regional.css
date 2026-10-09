@@ -96,7 +96,7 @@
 }
 
 .regional-pib-card {
-    background: var(--bg-app);
+    background: transparent;
     padding: 1.5rem;
     border-radius: 16px;
     border: 1px solid var(--border);
@@ -207,7 +207,7 @@
 }
 
 .regional-pop-total {
-    background: var(--bg-app);
+    background: transparent;
     padding: 1.2rem;
     border-radius: 16px;
     border: 1px solid var(--border);
@@ -251,7 +251,7 @@
 }
 
 .regional-pop-card {
-    background: var(--bg-app);
+    background: transparent;
     padding: 1rem;
     border-radius: 16px;
     border: 1px solid var(--border);
@@ -266,7 +266,7 @@
 }
 
 .regional-labor-card {
-    background: var(--bg-app);
+    background: transparent;
     padding: 0.85rem 0.95rem;
     border-radius: 16px;
     border: 1px solid var(--border);
