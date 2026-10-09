@@ -1,0 +1,187 @@
+/* Animaciones de aparición y movimiento reducido */
+
+.reveal {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal-delay-1 {
+    transition-delay: 0.15s;
+}
+
+.reveal-delay-2 {
+    transition-delay: 0.3s;
+}
+
+.reveal-delay-3 {
+    transition-delay: 0.45s;
+}
+
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.trend-chart {
+    opacity: 0;
+    transform: translateY(6px);
+    animation: trendChartFade 220ms ease-out forwards;
+}
+
+@keyframes trendChartFade {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes neonPulse {
+    0% {
+        fill: var(--map-fill);
+        filter: none;
+    }
+
+    50% {
+        fill: var(--map-fill-hover);
+        filter: var(--map-glow-filter);
+    }
+
+    100% {
+        fill: var(--map-fill);
+        filter: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .trend-chart {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+
+    .landing-reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .blog-table-row,
+    .demand-line,
+    .demand-point {
+        transition: none;
+    }
+
+    .blog-demand .blog-table-row,
+    .blog-demand .demand-line,
+    .blog-demand .demand-point {
+        opacity: 1;
+        transform: none;
+        stroke-dashoffset: 0;
+    }
+
+    .blog-demand-freeze .demand-axis,
+    .blog-demand-freeze .demand-axis-label,
+    .blog-demand-freeze .demand-title,
+    .blog-demand-freeze .demand-line,
+    .blog-demand-freeze .demand-point,
+    .demand-animate-label,
+    .demand-animate-dot {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
+
+    .demand-animate-layer {
+        display: none;
+    }
+
+    .blog-demand-freeze .demand-line {
+        stroke-dashoffset: 0;
+    }
+
+    .blog-demand-freeze .blog-table-price,
+    .blog-demand-freeze .blog-table-qty,
+    .blog-demand-freeze.is-ready .blog-table-price,
+    .blog-demand-freeze.is-ready .blog-table-qty {
+        opacity: 1;
+    }
+
+    .blog-demand-freeze .blog-table {
+        animation: none !important;
+        opacity: 1;
+    }
+
+    .equilibrium-left,
+    .equilibrium-right,
+    .equilibrium-card-title,
+    .equilibrium-line,
+    .equilibrium-axis,
+    .equilibrium-axis-label,
+    .equilibrium-price-line,
+    .equilibrium-price-label,
+    .equilibrium-price-dot,
+    .equilibrium-move {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
+
+    .equilibrium-right .equilibrium-axis,
+    .equilibrium-right .equilibrium-axis-label,
+    .equilibrium-right .equilibrium-line,
+    .equilibrium-right .equilibrium-price-line,
+    .equilibrium-right .equilibrium-price-label,
+    .equilibrium-right .equilibrium-price-dot,
+    .equilibrium-right .equilibrium-result {
+        opacity: 1 !important;
+    }
+
+    .equilibrium-left .equilibrium-axis,
+    .equilibrium-left .equilibrium-axis-label,
+    .equilibrium-left .equilibrium-card-title,
+    .equilibrium-left .equilibrium-line {
+        opacity: 1 !important;
+    }
+
+    .shift-moving,
+    .shift-eq-inc,
+    .shift-eq-dec,
+    .shift-subtitle-inc,
+    .shift-subtitle-dec {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
+
+    .dollar-series-scan,
+    .dollar-demand-shift {
+        animation: none !important;
+        transform: none;
+    }
+
+    .quiz-card {
+        animation: none !important;
+    }
+
+    .quiz-card .quiz-demand.quiz-shift,
+    .quiz-card .quiz-supply.quiz-shift {
+        animation: none !important;
+        transform: none;
+    }
+
+    .quiz-card .quiz-price,
+    .quiz-card .quiz-gap {
+        animation: none !important;
+        transform: none;
+    }
+
+    .equilibrium-move-layer {
+        display: none;
+    }
+}

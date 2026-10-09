@@ -1,0 +1,351 @@
+/* Análisis geográfico: mapa, fichas regionales y PIB per cápita */
+
+.regional-card {
+    background: var(--bg-card);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+}
+
+.regional-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+
+.regional-title {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.regional-subtitle {
+    color: var(--text-secondary);
+    max-width: 650px;
+    margin: 0 auto;
+    font-size: 1rem;
+}
+
+.regional-layout {
+    display: flex;
+    gap: 2rem;
+    min-height: 550px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.regional-map {
+    flex: 0 0 300px;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.macro-map-container {
+    border-radius: 12px;
+    background: var(--bg-card);
+    padding: 0.8rem;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
+}
+
+.macro-map-frame {
+    width: 100%;
+    max-width: 260px;
+    height: 620px;
+    margin: 0 auto;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--map-fill);
+    border-radius: 12px;
+    --map-invert-fill: var(--bg-card);
+    --map-invert-stroke: var(--border);
+}
+
+.regional-cards {
+    flex: 1 1 760px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 860px;
+}
+
+.regional-highlight {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.regional-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.regional-pib-card {
+    background: var(--bg-app);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.regional-pib-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.regional-pib-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.45rem;
+}
+
+.regional-pib-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.regional-pib-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0.2rem 0;
+}
+
+.regional-pib-trend {
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.regional-pib-trend-note {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.regional-range {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.regional-range-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.regional-download {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+}
+
+.regional-download:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.regional-download[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.regional-pib-chart {
+    margin-top: 1.2rem;
+    height: 140px;
+}
+
+.regional-metrics-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+    gap: 1.25rem;
+    align-items: stretch;
+}
+
+.regional-metrics-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+}
+
+.regional-pop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.regional-pop-total {
+    background: var(--bg-app);
+    padding: 1.2rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.regional-pop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.regional-pop-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.2rem;
+}
+
+.regional-pop-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.regional-pop-meta {
+    text-align: right;
+}
+
+.regional-pop-source {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.regional-pop-updated {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--trend-up);
+}
+
+.regional-pop-card {
+    background: var(--bg-app);
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+}
+
+.regional-labor-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    height: 100%;
+    grid-auto-rows: 1fr;
+}
+
+.regional-labor-card {
+    background: var(--bg-app);
+    padding: 0.85rem 0.95rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.regional-labor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.regional-labor-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.regional-labor-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-top: 0.35rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.regional-labor-card .trend-chart {
+    margin-top: 0.4rem !important;
+}
+
+.regional-labor-card .trend-chart>div:last-child {
+    width: 36px !important;
+}
+
+.regional-labor-unit {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.regional-labor-empty {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.regional-labor-range {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.regional-labor-card .trend-chart {
+    margin-top: 0.4rem !important;
+    flex: 1;
+    align-items: stretch;
+}
+
+.regional-pop-card-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.regional-pop-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.regional-pop-card-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 0.3rem;
+}

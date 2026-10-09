@@ -3,6 +3,7 @@ import TrendChart from '../../shared/components/TrendChart';
 import { formatShortDate } from '../../shared/utils/format';
 import useIndicatorSeries from './useIndicatorSeries';
 import { formatIndicatorValue } from './indicatorFormat';
+import '../../styles/indicatorCard.css';
 
 const RANGE_OPTIONS = [
     { id: '1y', label: '1A' },

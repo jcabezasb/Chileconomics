@@ -1,0 +1,43 @@
+/* Utilidades y controles compartidos (selects de período) */
+
+p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+}
+
+.container.is-landing {
+    max-width: none;
+    padding: 0;
+    background: var(--bg-primary);
+}
+
+/* Utilities */
+
+.period-select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    padding: 0.3rem 0.55rem;
+    border-radius: 7px;
+    outline: none;
+    box-shadow: 0 0 0 1px var(--border) inset;
+    background-clip: padding-box;
+}
+
+.period-select:focus,
+.period-select:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.period-select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
