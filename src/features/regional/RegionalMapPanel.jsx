@@ -1,5 +1,5 @@
 import MacroMap from './MacroMap';
-import { Segmented } from '../overview/detail/DetailParts';
+import { Segmented } from '../../shared/components/controls';
 import { REGION_SHORT_NAME_BY_ID } from '../../shared/constants/regions';
 import { formatNumber } from '../../shared/utils/format';
 

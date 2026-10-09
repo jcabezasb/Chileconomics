@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Download, LineChart, Table2, X } from 'lucide-react';
 import TrendChart from '../../../shared/components/TrendChart';
-import DataTable from '../../../shared/components/DataTable';
+import SeriesTable from '../../../shared/components/SeriesTable';
 import { downloadCsv } from '../../../shared/utils/download';
 import { formatNumber } from '../../../shared/utils/format';
 import {
@@ -13,9 +13,10 @@ import {
 } from '../../../shared/utils/detailStats';
 import useIndicatorSeries from '../useIndicatorSeries';
 import { YOY_ELIGIBLE, axisUnit, formatIndicatorValue, isPercentUnit } from '../indicatorFormat';
-import { IconButton, Segmented, StatStrip } from './DetailParts';
+import { IconButton, Segmented } from '../../../shared/components/controls';
+import { StatStrip } from './DetailParts';
 import DateRangePicker from './DateRangePicker';
-import { buildCsv, buildSingleTable } from './tables';
+import { buildCsv, singleSeriesTable } from './tables';
 import ImacecBreakdown from './breakdowns/ImacecBreakdown';
 import IpcBreakdown from './breakdowns/IpcBreakdown';
 import FxBreakdown from './breakdowns/FxBreakdown';
@@ -49,7 +50,9 @@ const IndicatorDetail = ({ indicator, theme, onClose }) => {
     const id = indicator.id;
     const {
         chartData,
+        fullData,
         displayData,
+        range,
         timeRange,
         setTimeRange,
         customRange,
@@ -57,6 +60,7 @@ const IndicatorDetail = ({ indicator, theme, onClose }) => {
         showYoY,
         setShowYoY,
         yoyEnabled,
+        transform,
         prepare
     } = useIndicatorSeries(id, { allowYoY: true });
     const [view, setView] = useState('chart');
@@ -72,7 +76,7 @@ const IndicatorDetail = ({ indicator, theme, onClose }) => {
         ? (latestYoY ? `${formatNumber(latestYoY.value, 1)}%` : '--')
         : indicator.value;
     const subtitle = yoyEnabled ? 'Var. % en 12 meses' : indicator.subtitle;
-    const breakdownProps = { theme, prepare, yoyEnabled };
+    const breakdownProps = { theme, prepare, transform, range, yoyEnabled };
 
     return (
         <div className="detail">
@@ -134,7 +138,14 @@ const IndicatorDetail = ({ indicator, theme, onClose }) => {
                 </div>
                 <div className="detail-main-chart">
                     {view === 'table' ? (
-                        <DataTable {...buildSingleTable(displayData, indicator.title, format)} maxHeight={320} />
+                        <SeriesTable
+                            {...singleSeriesTable(fullData, indicator.title, format, {
+                                percentUnit,
+                                range,
+                                filename: `${id}-tabla${yoyEnabled ? '-var12m' : ''}.csv`
+                            })}
+                            maxHeight={340}
+                        />
                     ) : (
                         <TrendChart
                             data={displayData}

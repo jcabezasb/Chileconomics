@@ -30,20 +30,26 @@ const useIndicatorSeries = (indicatorId, { allowYoY = false } = {}) => {
         (series) => filterByRange(series, timeRange, customRange),
         [timeRange, customRange]
     );
-    const prepare = useCallback(
-        (series) => applyRange(yoyEnabled ? buildYoYSeries(series) : series),
-        [applyRange, yoyEnabled]
+    // Misma unidad que el gráfico (nivel o variación en 12 meses), sin recortar al rango.
+    const transform = useCallback(
+        (series) => (yoyEnabled ? buildYoYSeries(series) : series),
+        [yoyEnabled]
     );
+    const prepare = useCallback((series) => applyRange(transform(series)), [applyRange, transform]);
 
     const yoySeries = useMemo(() => (allowYoY ? buildYoYSeries(chartData) : []), [allowYoY, chartData]);
-    const displayData = useMemo(
-        () => applyRange(yoyEnabled ? yoySeries : chartData),
-        [applyRange, yoyEnabled, yoySeries, chartData]
-    );
+    const fullData = yoyEnabled ? yoySeries : chartData;
+    const displayData = useMemo(() => applyRange(fullData), [applyRange, fullData]);
+    // Fechas visibles: las tablas calculan variaciones con toda la serie y muestran solo este tramo.
+    const range = useMemo(() => (
+        displayData.length ? { start: displayData[0].date, end: displayData[displayData.length - 1].date } : null
+    ), [displayData]);
 
     return {
         chartData,
+        fullData,
         displayData,
+        range,
         timeRange,
         setTimeRange,
         customRange,
@@ -51,6 +57,7 @@ const useIndicatorSeries = (indicatorId, { allowYoY = false } = {}) => {
         showYoY,
         setShowYoY,
         yoyEnabled,
+        transform,
         prepare
     };
 };

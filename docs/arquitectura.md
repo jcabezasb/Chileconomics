@@ -43,7 +43,7 @@ Las fechas son texto `YYYY-MM-DD`. Las series mensuales y trimestrales vienen co
 | `features/regional/` | Mapa y fichas regionales. `useRegionalView` concentra los cálculos; los componentes solo dibujan |
 | `features/pib/` | Composición del PIB por el lado del gasto (`usePibComposition`) |
 | `features/blog*`, `contact/`, `development/` | Secciones de contenido |
-| `shared/components/` | `TrendChart` (todos los gráficos de línea), `DataTable`, `DataTableModal` |
+| `shared/components/` | `TrendChart` (todos los gráficos de línea), `SeriesTable` (tablas de series de tiempo: agrupar por período, variaciones, ordenar, copiar), `DataTable` (tablas simples), `DataTableModal`, `controls` |
 | `shared/utils/` | Funciones puras con pruebas: fechas, formato, estadísticas, per cápita, correlación, reducción de puntos |
 
 Datos y gráficos se cargan solo al entrar a /datos (`React.lazy`), y las librerías grandes
@@ -64,6 +64,10 @@ Datos y gráficos se cargan solo al entrar a /datos (`React.lazy`), y las librer
 - **Correlación cobre–dólar** (`shared/utils/correlation.js`): Pearson sobre variaciones semanales.
   Semanales porque el dólar observado de cada día se calcula con transacciones del día anterior,
   lo que hace que la comparación diaria subestime la relación.
+- **Tablas** (`shared/utils/tableData.js`): las variaciones se calculan con la serie completa y luego
+  se muestran solo las filas del rango elegido (así la primera fila también tiene su variación anual).
+  Al agrupar se usa el promedio del período, salvo flujos como el PIB, que se suman. En tasas (IPC,
+  desempleo) las variaciones van en puntos porcentuales. Solo se dibujan las filas visibles.
 - **Gráficos largos** (`shared/utils/downsample.js`): con más de 600 puntos se dibujan con LTTB, que
   conserva peaks y caídas. Tablas, CSV y estadísticas usan siempre la serie completa.
 

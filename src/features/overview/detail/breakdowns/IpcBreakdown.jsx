@@ -4,7 +4,7 @@ import { getIpcDetailSeries } from '../../../../data/bcch/indicators';
 import { mergeSeriesByDate } from '../../../../shared/utils/dates';
 import { downloadCsv } from '../../../../shared/utils/download';
 import { DetailPanel, Legend } from '../DetailParts';
-import { buildCsv, buildMultiTable } from '../tables';
+import { buildCsv, multiSeriesTable } from '../tables';
 import BreakdownSection from './BreakdownSection';
 import { legendItems, percentAxis, percentFormatter, useAsyncData } from './breakdownUtils';
 
@@ -33,7 +33,7 @@ const IpcBreakdown = ({ theme, mainSeries, prepare }) => {
                 title="General, subyacente y volátiles"
                 subtitle="Var. % en 12 meses · la línea gris marca la meta de 3% del Banco Central"
                 legend={<Legend items={legendItems(IPC_SERIES)} />}
-                table={() => buildMultiTable(data, IPC_SERIES, percentFormatter)}
+                table={() => multiSeriesTable(data, IPC_SERIES, percentFormatter)}
                 onDownload={() => downloadCsv(buildCsv(data, IPC_SERIES), 'ipc-componentes.csv')}
             >
                 <TrendChart

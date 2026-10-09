@@ -5,7 +5,7 @@ import { mergeSeriesByDate } from '../../../../shared/utils/dates';
 import { downloadCsv } from '../../../../shared/utils/download';
 import { latestValueOf, makeAxisFormatter, makeValueFormatter, periodChangeOf } from '../../../../shared/utils/detailStats';
 import { DetailPanel, Legend } from '../DetailParts';
-import { buildCsv, buildMultiTable, buildSingleTable } from '../tables';
+import { buildCsv, multiSeriesTable, singleSeriesTable } from '../tables';
 import BreakdownSection from './BreakdownSection';
 import { indexOrPercent, legendItems, percentFormatter, useAsyncData } from './breakdownUtils';
 
@@ -23,7 +23,7 @@ const TCR_SERIES = [
 const loadFx = () => Promise.all([getFxDetailSeries(), getTcrDetailSeries()]).then(([fx, tcr]) => ({ fx, tcr }));
 
 // Tipo de cambio: peso contra otras monedas y tipo de cambio real.
-const FxBreakdown = ({ theme, prepare, yoyEnabled }) => {
+const FxBreakdown = ({ theme, prepare, transform, range, yoyEnabled }) => {
     const raw = useAsyncData(loadFx);
     const fileSuffix = yoyEnabled ? '-var12m' : '';
     // Monedas de valor bajo (ARS, JPY) necesitan 2 decimales.
@@ -57,7 +57,7 @@ const FxBreakdown = ({ theme, prepare, yoyEnabled }) => {
                         subtitle={yoyEnabled ? 'Var. % en 12 meses' : `Pesos por ${currency.code}`}
                         latest={latestValueOf(series, fxFormat)}
                         change={periodChangeOf(series, yoyEnabled)}
-                        table={() => buildSingleTable(series, `${currency.code}/CLP`, fxFormat)}
+                        table={() => singleSeriesTable(transform(raw.fx[currency.key] || []), `${currency.code}/CLP`, fxFormat, { percentUnit: yoyEnabled, range })}
                         onDownload={() => downloadCsv(buildCsv(series, [{ key: 'value' }], 2), `${currency.key}-clp${fileSuffix}.csv`)}
                     >
                         <TrendChart
@@ -80,7 +80,7 @@ const FxBreakdown = ({ theme, prepare, yoyEnabled }) => {
                     subtitle={yoyEnabled ? 'Var. % en 12 meses' : 'Índice promedio 1986=100'}
                     info="Mide la competitividad cambiaria ajustando por inflación. Un valor más alto indica un tipo de cambio real más depreciado."
                     legend={<Legend items={legendItems(TCR_SERIES)} />}
-                    table={() => buildMultiTable(prepared.tcr, TCR_SERIES, tcrUnits.format)}
+                    table={() => multiSeriesTable(prepared.tcr, TCR_SERIES, tcrUnits.format)}
                     onDownload={() => downloadCsv(buildCsv(prepared.tcr, TCR_SERIES), `tcr${fileSuffix}.csv`)}
                 >
                     <TrendChart

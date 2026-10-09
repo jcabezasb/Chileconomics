@@ -6,7 +6,7 @@ import { downloadCsv } from '../../../../shared/utils/download';
 import { formatNumber } from '../../../../shared/utils/format';
 import { buildJoinedReturns, buildRollingCorrelation, correlationBetween, toWeekly } from '../../../../shared/utils/correlation';
 import { DetailPanel, Legend } from '../DetailParts';
-import { buildCsv, buildMultiTable } from '../tables';
+import { buildCsv, multiSeriesTable } from '../tables';
 import BreakdownSection from './BreakdownSection';
 import { indexFormatter, legendItems, percentAxis, percentFormatter, plainAxis, useAsyncData } from './breakdownUtils';
 
@@ -64,7 +64,7 @@ const CobreBreakdown = ({ theme, cobreSeries, mainSeries, yoyEnabled, periodLabe
                     ? 'Var. % en 12 meses de cada serie'
                     : 'Índice: inicio del período = 100 · cuando el cobre sube, el dólar suele bajar (el peso se aprecia)'}
                 legend={<Legend items={legendItems(PAIR)} />}
-                table={() => buildMultiTable(pairData, PAIR, pairFormat)}
+                table={() => multiSeriesTable(pairData, PAIR, pairFormat)}
                 onDownload={() => downloadCsv(buildCsv(pairData, PAIR), `cobre-dolar${yoyEnabled ? '-var12m' : '-base100'}.csv`)}
             >
                 <TrendChart
@@ -88,7 +88,7 @@ const CobreBreakdown = ({ theme, cobreSeries, mainSeries, yoyEnabled, periodLabe
                     latest={periodCorrelation !== null ? formatCorrelation(periodCorrelation) : null}
                     change={periodCorrelation !== null ? { text: `correlación ${periodLabel}`, direction: 'flat' } : null}
                     legend={<Legend items={legendItems(CORRELATION)} />}
-                    table={() => buildMultiTable(correlationData, CORRELATION, formatCorrelation)}
+                    table={() => multiSeriesTable(correlationData, CORRELATION, formatCorrelation)}
                     onDownload={() => downloadCsv(buildCsv(correlationData, CORRELATION, 3), 'correlacion-cobre-dolar.csv')}
                 >
                     <TrendChart

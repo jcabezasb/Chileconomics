@@ -1,48 +1,44 @@
-
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import DataTable from './DataTable';
+import { X } from 'lucide-react';
+import { IconButton } from './controls';
+import '../../styles/indicatorModal.css';
 
-const DataTableModal = ({ title, columns, rows, onClose, onDownload }) => createPortal(
-    <div className="indicator-modal-backdrop data-modal-backdrop" onClick={onClose}>
-        <div
-            className="indicator-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            onClick={(event) => event.stopPropagation()}
-        >
-            <button
-                type="button"
-                className="indicator-modal-close"
-                onClick={onClose}
+// Ventana para mostrar una tabla: título, acciones opcionales (ej. descargar) y cerrar.
+// El contenido (SeriesTable o DataTable) va como children.
+const DataTableModal = ({ title, subtitle, actions, onClose, children }) => {
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
+
+    return createPortal(
+        <div className="indicator-modal-backdrop data-modal-backdrop" onClick={onClose}>
+            <div
+                className="indicator-modal table-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={title}
+                onClick={(event) => event.stopPropagation()}
             >
-                Cerrar
-            </button>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.7rem' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</span>
-                {onDownload ? (
-                    <button
-                        type="button"
-                        onClick={onDownload}
-                        style={{
-                            fontSize: '0.65rem',
-                            padding: '0.25rem 0.55rem',
-                            borderRadius: '999px',
-                            border: '1px solid var(--border)',
-                            background: 'transparent',
-                            color: 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            fontWeight: 700
-                        }}
-                    >
-                        Descargar CSV
-                    </button>
-                ) : null}
+                <header className="table-modal-header">
+                    <div>
+                        <h2 className="table-modal-title">{title}</h2>
+                        {subtitle ? <p className="table-modal-subtitle">{subtitle}</p> : null}
+                    </div>
+                    <div className="table-modal-actions">
+                        {actions}
+                        <IconButton icon={X} label="Cerrar" onClick={onClose} />
+                    </div>
+                </header>
+                {children}
             </div>
-            <DataTable columns={columns} rows={rows} />
-        </div>
-    </div>,
-    document.body
-);
+        </div>,
+        document.body
+    );
+};
 
 export default DataTableModal;

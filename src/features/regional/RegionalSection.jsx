@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { Download } from 'lucide-react';
+import DataTable from '../../shared/components/DataTable';
 import DataTableModal from '../../shared/components/DataTableModal';
+import SeriesTable from '../../shared/components/SeriesTable';
+import { IconButton } from '../../shared/components/controls';
 import { downloadCsv } from '../../shared/utils/download';
 import useRegionalView from './useRegionalView';
 import RegionalMapPanel from './RegionalMapPanel';
@@ -14,12 +18,13 @@ import { laborTable, perCapitaRankingTable, pibTable, populationTable } from './
 // Sin región elegida se muestran datos nacionales.
 const RegionalSection = ({ sectionRef, theme, regionalData, realPibData, populationData }) => {
     const view = useRegionalView({ regionalData, realPibData, populationData });
-    const { selectedRegion, regionId, timeRange } = view;
+    const { selectedRegion, regionId } = view;
     const [table, setTable] = useState(null);
     const [showActivities, setShowActivities] = useState(false);
 
-    const context = { selectedRegion, regionId, timeRange };
+    const context = { selectedRegion, regionId };
     const openTable = (content) => setTable(content);
+    const closeTable = useCallback(() => setTable(null), []);
 
     return (
         <>
@@ -48,7 +53,7 @@ const RegionalSection = ({ sectionRef, theme, regionalData, realPibData, populat
                                     <RegionalPibCard
                                         view={view}
                                         theme={theme}
-                                        onOpenTable={() => openTable(pibTable({ ...context, chartData: view.pib.chartData }))}
+                                        onOpenTable={() => openTable(pibTable({ ...context, pib: view.pib }))}
                                         onOpenActivities={() => setShowActivities(true)}
                                     />
                                     <PerCapitaCard
@@ -75,11 +80,19 @@ const RegionalSection = ({ sectionRef, theme, regionalData, realPibData, populat
             {table ? (
                 <DataTableModal
                     title={table.title}
-                    columns={table.columns}
-                    rows={table.rows}
-                    onClose={() => setTable(null)}
-                    onDownload={() => downloadCsv(table.csv, table.filename)}
-                />
+                    subtitle={table.subtitle}
+                    onClose={closeTable}
+                    actions={table.ranking ? (
+                        <IconButton
+                            icon={Download}
+                            label="Descargar CSV"
+                            onClick={() => downloadCsv(table.ranking.csv, table.ranking.filename)}
+                        />
+                    ) : null}
+                >
+                    {table.series ? <SeriesTable {...table.series} maxHeight={420} /> : null}
+                    {table.ranking ? <DataTable columns={table.ranking.columns} rows={table.ranking.rows} maxHeight={480} /> : null}
+                </DataTableModal>
             ) : null}
             {showActivities && regionId ? (
                 <PibActivitiesModal

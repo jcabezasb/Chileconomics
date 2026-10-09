@@ -82,6 +82,7 @@ const useRegionalView = ({ regionalData, realPibData, populationData }) => {
         }
         return {
             ...headline,
+            raw,
             chartData,
             startLabel: edgeLabel(chartData[0]),
             endLabel: edgeLabel(chartData[chartData.length - 1])

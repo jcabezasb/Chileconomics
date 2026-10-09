@@ -138,77 +138,6 @@
     margin-top: 0.75rem;
 }
 
-/* Control segmentado: un grupo de píldoras dentro de una píldora */
-.detail-segmented {
-    display: inline-flex;
-    padding: 3px;
-    gap: 2px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--bg-primary) 45%, var(--bg-card));
-}
-
-.detail-segment {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    border: 0;
-    background: transparent;
-    color: var(--text-secondary);
-    font: 700 0.72rem var(--font-sans);
-    padding: 0.32rem 0.75rem;
-    border-radius: 999px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.detail-segment:hover {
-    color: var(--text-primary);
-}
-
-.detail-segment.is-active {
-    background: var(--bg-card);
-    color: var(--text-primary);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-primary) 20%, var(--border)), var(--shadow-sm);
-}
-
-.detail-icon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.detail-icon-btn.has-label {
-    width: auto;
-    padding: 0 0.8rem;
-    font: 700 0.72rem var(--font-sans);
-}
-
-.detail-icon-btn:hover {
-    color: var(--text-primary);
-    border-color: var(--text-secondary);
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-}
-
-.detail-segment:focus-visible,
-.detail-icon-btn:focus-visible,
-.detail-legend-item.is-toggle:focus-visible {
-    outline: 2px solid var(--map-fill-hover);
-    outline-offset: 2px;
-}
-
 /* Valor principal + estadísticas del período */
 .detail-main {
     padding: 1.25rem 1.4rem 0.25rem;
@@ -614,4 +543,43 @@
 .range-option.is-selected {
     background: var(--bg-hover);
     color: var(--text-primary);
+}
+
+/* Ventana de tabla (DataTableModal) */
+.table-modal {
+    width: min(760px, calc(100vw - 3rem));
+    padding: 1.2rem 1.4rem 1.3rem;
+}
+
+.table-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.table-modal-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.table-modal-subtitle {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.table-modal-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+    .table-modal {
+        padding: 1rem;
+    }
 }

@@ -5,7 +5,7 @@ import { mergeSeriesByDate } from '../../../../shared/utils/dates';
 import { downloadCsv } from '../../../../shared/utils/download';
 import { latestValueOf, periodChangeOf } from '../../../../shared/utils/detailStats';
 import { DetailPanel, Legend } from '../DetailParts';
-import { buildCsv, buildMultiTable, buildSingleTable } from '../tables';
+import { buildCsv, multiSeriesTable, singleSeriesTable } from '../tables';
 import BreakdownSection from './BreakdownSection';
 import { indexOrPercent, legendItems, useAsyncData } from './breakdownUtils';
 
@@ -29,7 +29,7 @@ const toggleGoods = (selection, id) => {
 };
 
 // IMACEC: producción de bienes (con selección de componentes), comercio y servicios, y no minero.
-const ImacecBreakdown = ({ theme, prepare, yoyEnabled }) => {
+const ImacecBreakdown = ({ theme, prepare, transform, range, yoyEnabled }) => {
     const raw = useAsyncData(getImacecDetailSeries);
     const [selection, setSelection] = useState(['total']);
     const { format, axis, unitLabel } = indexOrPercent(yoyEnabled);
@@ -65,8 +65,8 @@ const ImacecBreakdown = ({ theme, prepare, yoyEnabled }) => {
                     />
                 )}
                 table={() => (isSingle
-                    ? buildSingleTable(goodsData, selectedGoods[0].seriesLabel, format)
-                    : buildMultiTable(goodsData, goodsDefs, format))}
+                    ? singleSeriesTable(transform(raw[selectedGoods[0].key]), selectedGoods[0].seriesLabel, format, { percentUnit: yoyEnabled, range })
+                    : multiSeriesTable(goodsData, goodsDefs, format))}
                 onDownload={() => downloadCsv(
                     buildCsv(goodsData, isSingle ? [{ key: 'value' }] : goodsDefs),
                     `imacec-bienes${fileSuffix}.csv`
@@ -89,7 +89,7 @@ const ImacecBreakdown = ({ theme, prepare, yoyEnabled }) => {
                 title="Comercio y servicios"
                 subtitle={unitLabel}
                 legend={<Legend items={legendItems(COMMERCE)} />}
-                table={() => buildMultiTable(commerceData, COMMERCE, format)}
+                table={() => multiSeriesTable(commerceData, COMMERCE, format)}
                 onDownload={() => downloadCsv(buildCsv(commerceData, COMMERCE), `imacec-comercio-servicios${fileSuffix}.csv`)}
             >
                 <TrendChart
@@ -108,7 +108,7 @@ const ImacecBreakdown = ({ theme, prepare, yoyEnabled }) => {
                 subtitle={unitLabel}
                 latest={latestValueOf(series.no_minero, format)}
                 change={periodChangeOf(series.no_minero, yoyEnabled)}
-                table={() => buildSingleTable(series.no_minero, 'IMACEC no minero', format)}
+                table={() => singleSeriesTable(transform(raw.no_minero), 'IMACEC no minero', format, { percentUnit: yoyEnabled, range })}
                 onDownload={() => downloadCsv(buildCsv(series.no_minero, [{ key: 'value' }]), `imacec-no-minero${fileSuffix}.csv`)}
             >
                 <TrendChart

@@ -1,10 +1,12 @@
-
 import '../../styles/dataTable.css';
 
+// Tabla simple (no temporal), p. ej. el ranking de regiones.
+//   columns: [{ key, label, align, width, emphasis, bar }]
+//   bar: clave de la fila con un valor entre 0 y 1 para dibujar una barra detrás del valor.
 const DataTable = ({ columns, rows, maxHeight = 360 }) => {
     const safeRows = rows || [];
     const safeColumns = columns || [];
-    const gridTemplateColumns = `repeat(${safeColumns.length}, minmax(0, 1fr))`;
+    const gridTemplateColumns = safeColumns.map((col) => col.width || 'minmax(0, 1fr)').join(' ');
 
     return (
         <div className="data-table">
@@ -20,10 +22,12 @@ const DataTable = ({ columns, rows, maxHeight = 360 }) => {
                             {safeColumns.map((col) => (
                                 <span
                                     key={`${row.id || index}-${col.key}`}
-                                    className={col.emphasis ? 'is-emphasis' : undefined}
-                                    style={{ textAlign: col.align || 'left' }}
+                                    className={`data-table-cell${col.emphasis ? ' is-emphasis' : ''}${col.align === 'right' ? ' is-right' : ''}`}
                                 >
-                                    {typeof col.render === 'function' ? col.render(row) : row[col.key]}
+                                    {col.bar && Number.isFinite(row[col.bar]) ? (
+                                        <i className="data-table-bar" style={{ width: `${Math.max(0, Math.min(1, row[col.bar])) * 100}%` }} aria-hidden="true" />
+                                    ) : null}
+                                    <span>{typeof col.render === 'function' ? col.render(row) : row[col.key]}</span>
                                 </span>
                             ))}
                         </div>

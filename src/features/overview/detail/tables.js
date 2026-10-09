@@ -1,39 +1,18 @@
-// Tablas y CSV de la vista de detalle. Las tablas muestran la fila más reciente arriba;
-// los CSV van en orden cronológico (más cómodo para planillas).
+// Tablas y CSV de la vista de detalle.
 import { formatNumber } from '../../../shared/utils/format';
-import { formatShortDate, isDailySeries } from '../../../shared/utils/detailStats';
 
-export const buildSingleTable = (series, label, formatter) => {
-    const daily = isDailySeries(series);
-    return {
-        columns: [
-            { key: 'date', label: 'Fecha' },
-            { key: 'value', label, align: 'right', emphasis: true }
-        ],
-        rows: [...(series || [])].reverse().map((entry, index) => ({
-            id: `${entry.date}-${index}`,
-            date: formatShortDate(entry.date, daily),
-            value: formatter(entry.value)
-        }))
-    };
-};
+// Props para SeriesTable: una serie (con columnas de variación) o varias en filas compartidas.
+export const singleSeriesTable = (series, label, format, options = {}) => ({
+    data: series,
+    columns: [{ key: 'value', label, format }],
+    ...options
+});
 
-export const buildMultiTable = (data, seriesDefs, formatter) => {
-    const daily = isDailySeries(data);
-    return {
-        columns: [
-            { key: 'date', label: 'Fecha' },
-            ...seriesDefs.map((def, index) => ({ key: def.key, label: def.label, align: 'right', emphasis: index === 0 }))
-        ],
-        rows: [...(data || [])].reverse().map((row) => {
-            const formatted = { id: row.date, date: formatShortDate(row.date, daily) };
-            seriesDefs.forEach((def) => {
-                formatted[def.key] = formatter(row[def.key]);
-            });
-            return formatted;
-        })
-    };
-};
+export const multiSeriesTable = (data, seriesDefs, format, options = {}) => ({
+    data,
+    columns: seriesDefs.map((def) => ({ key: def.key, label: def.label, color: def.color, format })),
+    ...options
+});
 
 export const buildCsv = (data, seriesDefs, decimals = 1) => {
     const header = ['fecha', ...seriesDefs.map((def) => def.header || def.key)].join(';');
