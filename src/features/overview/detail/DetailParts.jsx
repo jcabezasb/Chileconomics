@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Download, LineChart, Table2 } from 'lucide-react';
-import DataTable from '../../shared/components/DataTable';
+import DataTable from '../../../shared/components/DataTable';
 
 export const Segmented = ({ options, value, onChange, ariaLabel }) => (
     <div className="detail-segmented" role="group" aria-label={ariaLabel}>

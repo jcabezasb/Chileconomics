@@ -14,7 +14,20 @@ export const normalizeSeries = (series) => (
         .filter(entry => !Number.isNaN(entry.value))
 );
 
-export const getQuarterFromDate = (dateStr) => {
+// Variación % respecto a `lag` observaciones atrás (12 en series mensuales = variación en 12 meses).
+export const yoyByLag = (series, lag = 12) => {
+    const valid = normalizeSeries(series);
+    return valid
+        .map((entry, index) => {
+            const previous = index >= lag ? valid[index - lag] : null;
+            return previous && previous.value
+                ? { date: entry.date, value: ((entry.value - previous.value) / previous.value) * 100 }
+                : null;
+        })
+        .filter(Boolean);
+};
+
+const getQuarterFromDate = (dateStr) => {
     if (!dateStr || dateStr.length < 7) return null;
     const month = Number(dateStr.slice(5, 7));
     if (month <= 3) return 'Q1';

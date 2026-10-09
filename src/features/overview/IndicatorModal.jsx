@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import MacroCard from './MacroCard';
+import IndicatorDetail from './detail/IndicatorDetail';
 import '../../styles/indicatorModal.css';
 
 const IndicatorModal = ({ indicator, theme, onClose }) => {
@@ -42,7 +42,7 @@ const IndicatorModal = ({ indicator, theme, onClose }) => {
                 tabIndex={-1}
                 onClick={(event) => event.stopPropagation()}
             >
-                <MacroCard indicator={indicator} theme={theme} variant="modal" onClose={onClose} />
+                <IndicatorDetail indicator={indicator} theme={theme} onClose={onClose} />
             </div>
         </div>,
         document.body

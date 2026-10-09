@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const HeroHeader = ({ children }) => (
     <header className="hero-header">

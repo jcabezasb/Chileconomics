@@ -63,3 +63,11 @@ export const formatPeriodChange = (stats, isPercentUnit) => {
         direction: amount > 0 ? 'up' : amount < 0 ? 'down' : 'flat'
     };
 };
+
+// Último valor formateado de una serie (o null si está vacía).
+export const latestValueOf = (series, formatter) => {
+    const stats = computeSeriesStats(series);
+    return stats ? formatter(stats.last.value) : null;
+};
+
+export const periodChangeOf = (series, isPercentUnit) => formatPeriodChange(computeSeriesStats(series), isPercentUnit);

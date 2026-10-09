@@ -1,17 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import PIBComparisonChart from './PIBComparisonChart';
+import PibComparisonChart from './PibComparisonChart';
+import { downloadCsv } from '../../shared/utils/download';
 import { formatNumber, formatQuarterLabel } from '../../shared/utils/format';
 import { buildGovernmentResidualSeries, mergeInvestmentSeries, normalizeSeries } from '../../shared/utils/series';
 import '../../styles/pibModal.css';
-
-const PIB_COMPONENTS = [
-    { key: 'consumo', label: 'Consumo' },
-    { key: 'inversion', label: 'Inversion (FBKF)' },
-    { key: 'gasto', label: 'Gasto Gobierno' },
-    { key: 'export', label: 'Exportaciones' },
-    { key: 'import', label: 'Importaciones' }
-];
 
 const buildCsv = (rows) => {
     if (!rows || !rows.length) return '';
@@ -24,7 +17,6 @@ const buildCsv = (rows) => {
 
 const PibModal = ({
     data,
-    theme,
     onClose,
     availablePeriods,
     nominalSeries
@@ -128,16 +120,7 @@ const PibModal = ({
         total: data.total ?? 0
     }] : [])), [rangeData, data]);
 
-    const handleDownload = () => {
-        if (!csvContent) return;
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'pib-corriente-composicion.csv';
-        link.click();
-        URL.revokeObjectURL(url);
-    };
+    const handleDownload = () => downloadCsv(csvContent, 'pib-corriente-composicion.csv');
 
     if (!data) return null;
 
@@ -211,7 +194,7 @@ const PibModal = ({
                         className="pib-modal-chart-inner"
                         style={{ minWidth: `${Math.max(520, (rangeData.length || 1) * 110)}px` }}
                     >
-                        <PIBComparisonChart data={rangeData.length ? rangeData : data} theme={theme} />
+                        <PibComparisonChart data={rangeData.length ? rangeData : data} />
                     </div>
                 </div>
                 <div className="pib-modal-scroll">

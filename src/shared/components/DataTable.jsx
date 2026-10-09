@@ -1,4 +1,4 @@
-import React from 'react';
+
 import '../../styles/dataTable.css';
 
 const DataTable = ({ columns, rows, maxHeight = 360 }) => {

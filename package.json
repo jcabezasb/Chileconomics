@@ -7,7 +7,9 @@
     "dev": "vite",
     "sync-data": "python python/sync_bcch_data.py",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint . --ext .js,.jsx --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -27,6 +29,7 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vitest": "^2.1.9"
   }
 }
