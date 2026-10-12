@@ -1,0 +1,218 @@
+/* Tabla de series de tiempo (SeriesTable) */
+
+.series-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.series-table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.series-table-toolbar-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.series-table-frame {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.series-table-head {
+    display: grid;
+    gap: 0 0.75rem;
+    padding: 0 0.9rem;
+    background: color-mix(in srgb, var(--bg-primary) 40%, var(--bg-card));
+    border-bottom: 1px solid var(--border);
+}
+
+.series-table-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 0.6rem 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font: 700 0.66rem var(--font-sans);
+    letter-spacing: 0.03em;
+    text-align: left;
+    line-height: 1.25;
+    cursor: pointer;
+}
+
+.series-table-sort.is-right {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.series-table-sort:hover,
+.series-table-sort.is-active {
+    color: var(--text-primary);
+}
+
+.series-table-sort:focus-visible {
+    outline: 2px solid var(--map-fill-hover);
+    outline-offset: -2px;
+    border-radius: 6px;
+}
+
+.series-table-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.series-table-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.series-table-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: grid;
+    align-items: center;
+    gap: 0 0.75rem;
+    padding: 0 0.9rem;
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.series-table-row.is-odd {
+    background: color-mix(in srgb, var(--bg-primary) 18%, transparent);
+}
+
+.series-table-row:hover {
+    background: var(--bg-hover);
+}
+
+.series-table-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.series-table-badge {
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+    color: var(--accent);
+    font-size: 0.58rem;
+    font-style: normal;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.series-table-value {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 22px;
+}
+
+.series-table-value b {
+    position: relative;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Barra sutil proporcional al valor dentro del rango de la tabla */
+.series-table-bar {
+    position: absolute;
+    right: 0;
+    top: 3px;
+    bottom: 3px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 22%, transparent));
+}
+
+.series-table-change {
+    text-align: right;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.series-table-change.is-1::before {
+    content: '▲ ';
+    font-size: 0.55rem;
+    color: var(--text-secondary);
+}
+
+.series-table-change.is--1::before {
+    content: '▼ ';
+    font-size: 0.55rem;
+    color: var(--text-secondary);
+}
+
+.series-table-empty {
+    padding: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.series-table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.series-table-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.series-table-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font: 700 0.68rem var(--font-sans);
+    cursor: pointer;
+}
+
+.series-table-action:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+@media (max-width: 720px) {
+    .series-table-head,
+    .series-table-row {
+        gap: 0 0.45rem;
+        padding: 0 0.6rem;
+    }
+
+    .series-table-row {
+        font-size: 0.7rem;
+    }
+
+    .series-table-badge {
+        display: none;
+    }
+}

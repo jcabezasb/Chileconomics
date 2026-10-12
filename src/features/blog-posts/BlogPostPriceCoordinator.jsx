@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { formatNumber } from '../../shared/utils/format';
@@ -93,6 +93,56 @@ const findEquilibrium = (demand, supply) => {
     }
     return null;
 };
+
+// Curva en coordenadas SVG (360x230) dentro de los límites comunes de precio y cantidad.
+const buildCurveLayout = (rows, bounds) => {
+    const width = 360;
+    const height = 230;
+    const padding = 36;
+    const sorted = [...rows].sort((a, b) => a.quantity - b.quantity);
+    const scaleX = (value) => {
+        if (bounds.maxQ === bounds.minQ) return padding;
+        const ratio = (value - bounds.minQ) / (bounds.maxQ - bounds.minQ);
+        return padding + ratio * (width - padding * 2);
+    };
+    const scaleY = (value) => {
+        if (bounds.maxP === bounds.minP) return height - padding;
+        const ratio = (value - bounds.minP) / (bounds.maxP - bounds.minP);
+        return height - padding - ratio * (height - padding * 2);
+    };
+    const points = sorted.map((point) => ({
+        ...point,
+        x: scaleX(point.quantity),
+        y: scaleY(point.price)
+    }));
+    const path = points
+        .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+        .join(' ');
+    return { width, height, padding, points, path, scaleX, scaleY };
+};
+
+// Redondeo de las etiquetas del nuevo equilibrio según hacia dónde se mueve cada variable.
+const ROUNDING = {
+    supplyIncrease: { price: 'down', quantity: 'up' },
+    demandIncrease: { price: 'up', quantity: 'up' },
+    supplyDecrease: { price: 'up', quantity: 'down' },
+    demandDecrease: { price: 'down', quantity: 'down' }
+};
+
+const roundValue = (value, mode) => {
+    if (mode === 'up') return Math.ceil(value);
+    if (mode === 'down') return Math.floor(value);
+    return Math.round(value);
+};
+
+const buildEquilibriumLabel = (point, rounding, layout) => (point
+    ? {
+        price: formatNumber(roundValue(point.price, rounding.price), 0),
+        quantity: formatNumber(roundValue(point.quantity, rounding.quantity), 0),
+        x: layout.scaleX(point.quantity),
+        y: layout.scaleY(point.price)
+    }
+    : null);
 
 const useScrollTrigger = (threshold = 0.3) => {
     const ref = useRef(null);
@@ -399,34 +449,8 @@ const EquilibriumBlock = ({ demand, supply }) => {
         };
     }, [demand, supply]);
 
-    const buildLayout = (rows) => {
-        const width = 360;
-        const height = 230;
-        const padding = 36;
-        const sorted = [...rows].sort((a, b) => a.quantity - b.quantity);
-        const scaleX = (value) => {
-            if (bounds.maxQ === bounds.minQ) return padding;
-            const ratio = (value - bounds.minQ) / (bounds.maxQ - bounds.minQ);
-            return padding + ratio * (width - padding * 2);
-        };
-        const scaleY = (value) => {
-            if (bounds.maxP === bounds.minP) return height - padding;
-            const ratio = (value - bounds.minP) / (bounds.maxP - bounds.minP);
-            return height - padding - ratio * (height - padding * 2);
-        };
-        const points = sorted.map((point) => ({
-            ...point,
-            x: scaleX(point.quantity),
-            y: scaleY(point.price)
-        }));
-        const path = points
-            .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-            .join(' ');
-        return { width, height, padding, points, path, scaleX, scaleY };
-    };
-
-    const demandLayout = useMemo(() => buildLayout(demand), [demand, bounds]);
-    const supplyLayout = useMemo(() => buildLayout(supply), [supply, bounds]);
+    const demandLayout = useMemo(() => buildCurveLayout(demand, bounds), [demand, bounds]);
+    const supplyLayout = useMemo(() => buildCurveLayout(supply, bounds), [supply, bounds]);
 
     const equilibriumPoint = useMemo(() => findEquilibrium(demand, supply), [demand, supply]);
     const equilibriumLabel = equilibriumPoint
@@ -721,34 +745,8 @@ const ShiftPanel = ({ title, moving, demand, supply, shift }) => {
         };
     }, [demand, supply, shiftedPlus, shiftedMinus]);
 
-    const buildLayout = (rows) => {
-        const width = 360;
-        const height = 230;
-        const padding = 36;
-        const sorted = [...rows].sort((a, b) => a.quantity - b.quantity);
-        const scaleX = (value) => {
-            if (bounds.maxQ === bounds.minQ) return padding;
-            const ratio = (value - bounds.minQ) / (bounds.maxQ - bounds.minQ);
-            return padding + ratio * (width - padding * 2);
-        };
-        const scaleY = (value) => {
-            if (bounds.maxP === bounds.minP) return height - padding;
-            const ratio = (value - bounds.minP) / (bounds.maxP - bounds.minP);
-            return height - padding - ratio * (height - padding * 2);
-        };
-        const points = sorted.map((point) => ({
-            ...point,
-            x: scaleX(point.quantity),
-            y: scaleY(point.price)
-        }));
-        const path = points
-            .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-            .join(' ');
-        return { width, height, padding, points, path, scaleX, scaleY };
-    };
-
-    const demandLayout = useMemo(() => buildLayout(demand), [demand, bounds]);
-    const supplyLayout = useMemo(() => buildLayout(supply), [supply, bounds]);
+    const demandLayout = useMemo(() => buildCurveLayout(demand, bounds), [demand, bounds]);
+    const supplyLayout = useMemo(() => buildCurveLayout(supply, bounds), [supply, bounds]);
 
     const shiftX = useMemo(() => {
         const baseValue = baseRows[0]?.quantity ?? 0;
@@ -770,34 +768,15 @@ const ShiftPanel = ({ title, moving, demand, supply, shift }) => {
         [movingSupply, demand, supply, shiftedMinus]
     );
 
-    const roundValue = (value, mode) => {
-        if (mode === 'up') return Math.ceil(value);
-        if (mode === 'down') return Math.floor(value);
-        return Math.round(value);
-    };
-
-    const buildLabel = (point, rounding) => (point
-        ? {
-            price: formatNumber(roundValue(point.price, rounding.price), 0),
-            quantity: formatNumber(roundValue(point.quantity, rounding.quantity), 0),
-            x: demandLayout.scaleX(point.quantity),
-            y: demandLayout.scaleY(point.price)
-        }
-        : null);
-
-    const roundingIncrease = movingSupply
-        ? { price: 'down', quantity: 'up' }
-        : { price: 'up', quantity: 'up' };
-    const roundingDecrease = movingSupply
-        ? { price: 'up', quantity: 'down' }
-        : { price: 'down', quantity: 'down' };
+    const roundingIncrease = movingSupply ? ROUNDING.supplyIncrease : ROUNDING.demandIncrease;
+    const roundingDecrease = movingSupply ? ROUNDING.supplyDecrease : ROUNDING.demandDecrease;
 
     const incLabel = useMemo(
-        () => buildLabel(eqIncrease, roundingIncrease),
+        () => buildEquilibriumLabel(eqIncrease, roundingIncrease, demandLayout),
         [eqIncrease, demandLayout, roundingIncrease]
     );
     const decLabel = useMemo(
-        () => buildLabel(eqDecrease, roundingDecrease),
+        () => buildEquilibriumLabel(eqDecrease, roundingDecrease, demandLayout),
         [eqDecrease, demandLayout, roundingDecrease]
     );
 

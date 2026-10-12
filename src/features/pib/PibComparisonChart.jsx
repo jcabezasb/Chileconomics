@@ -1,7 +1,7 @@
-import React from 'react';
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
-const PIBComparisonChart = ({ data, theme }) => {
+const PibComparisonChart = ({ data }) => {
     // data format: { name: 'PIB Structural', total: 51880, consumo: 31000, inversion: 11000, gasto: 7000, export: 16000, import: -13120 }
 
     // Premium Color Palette
@@ -32,8 +32,6 @@ const PIBComparisonChart = ({ data, theme }) => {
     const barSize = chartData.length > 1
         ? Math.max(28, Math.min(70, Math.round(320 / chartData.length)))
         : 120;
-
-    const glowStyle = () => ({});
 
     const formatYAxis = (value) => {
         return `${(value / 1000).toFixed(1)}k`;
@@ -100,15 +98,15 @@ const PIBComparisonChart = ({ data, theme }) => {
                     <ReferenceLine y={0} stroke="var(--text-muted)" strokeWidth={2} />
 
                     {/* Components - Recharts stacks positives on top and negatives on bottom automatically */}
-                    <Bar dataKey="consumo" stackId="pib" name="Consumo" fill={colors.consumo} stroke={colors.consumo} strokeWidth={0.8} style={glowStyle(colors.consumo)} />
-                    <Bar dataKey="inversion" stackId="pib" name="Inversion" fill={colors.inversion} stroke={colors.inversion} strokeWidth={0.8} style={glowStyle(colors.inversion)} />
-                    <Bar dataKey="gasto" stackId="pib" name="Gasto Gob." fill={colors.gasto} stroke={colors.gasto} strokeWidth={0.8} style={glowStyle(colors.gasto)} />
-                    <Bar dataKey="export" stackId="pib" name="Exportaciones" fill={colors.export} stroke={colors.export} strokeWidth={0.8} style={glowStyle(colors.export)} />
-                    <Bar dataKey="import" stackId="pib" name="Importaciones" fill={colors.import} stroke={colors.import} strokeWidth={0.8} style={glowStyle(colors.import)} />
+                    <Bar dataKey="consumo" stackId="pib" name="Consumo" fill={colors.consumo} stroke={colors.consumo} strokeWidth={0.8} />
+                    <Bar dataKey="inversion" stackId="pib" name="Inversion" fill={colors.inversion} stroke={colors.inversion} strokeWidth={0.8} />
+                    <Bar dataKey="gasto" stackId="pib" name="Gasto Gob." fill={colors.gasto} stroke={colors.gasto} strokeWidth={0.8} />
+                    <Bar dataKey="export" stackId="pib" name="Exportaciones" fill={colors.export} stroke={colors.export} strokeWidth={0.8} />
+                    <Bar dataKey="import" stackId="pib" name="Importaciones" fill={colors.import} stroke={colors.import} strokeWidth={0.8} />
                 </BarChart>
             </ResponsiveContainer>
         </div>
     );
 };
 
-export default PIBComparisonChart;
+export default PibComparisonChart;

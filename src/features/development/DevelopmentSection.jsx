@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const DevelopmentSection = ({ items }) => (
     <section className="placeholder-section">

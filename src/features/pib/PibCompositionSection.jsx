@@ -1,25 +1,28 @@
-import React, { useState } from 'react';
-import PIBComparisonChart from './PIBComparisonChart';
+import { useState } from 'react';
+import PibComparisonChart from './PibComparisonChart';
 import PibModal from './PibModal';
+import usePibComposition from './usePibComposition';
+import { buildSparklinePaths } from '../../shared/utils/sparkline';
 
-const PibCompositionSection = ({
-    sectionRef,
-    pibCompositionData,
-    theme,
-    periodYears,
-    periodQuarters,
-    selectedYear,
-    setSelectedYear,
-    selectedQuarter,
-    setSelectedQuarter,
-    availablePeriods,
-    nominalSeries,
-    pibTableIndicators,
-    buildSparklinePaths,
-    getSparklineTrend
-}) => {
+const sparklineTrend = (history) => {
+    const valid = (history || []).filter((value) => Number.isFinite(value));
+    if (valid.length < 2) return 'neutral';
+    return valid[valid.length - 1] >= valid[0] ? 'up' : 'down';
+};
+
+const PibCompositionSection = ({ sectionRef, nominalSeries, availablePeriods }) => {
     const [showPibInfo, setShowPibInfo] = useState(false);
     const [showPibModal, setShowPibModal] = useState(false);
+    const {
+        periodYears,
+        periodQuarters,
+        selectedYear,
+        setSelectedYear,
+        selectedQuarter,
+        setSelectedQuarter,
+        compositionData,
+        tableRows
+    } = usePibComposition(nominalSeries, availablePeriods);
 
     return (
         <section
@@ -35,6 +38,7 @@ const PibCompositionSection = ({
                             type="button"
                             className="overview-pib-detail"
                             onClick={() => setShowPibModal(true)}
+                            disabled={!compositionData}
                         >
                             Ver detalle
                         </button>
@@ -50,7 +54,7 @@ const PibCompositionSection = ({
                         {showPibInfo ? (
                             <div className="overview-pib-info-box">
                                 El PIB mide el valor total de los bienes y servicios finales producidos en el pais.
-                                "Corriente" significa que esta expresado a precios del periodo, sin ajuste por inflacion.
+                                &ldquo;Corriente&rdquo; significa que esta expresado a precios del periodo, sin ajuste por inflacion.
                             </div>
                         ) : null}
                     </div>
@@ -58,7 +62,7 @@ const PibCompositionSection = ({
 
                 <div className="overview-pib-body">
                     <div className="overview-pib-chart">
-                        <PIBComparisonChart data={pibCompositionData} theme={theme} />
+                        {compositionData ? <PibComparisonChart data={compositionData} /> : null}
                     </div>
 
                     <div className="overview-pib-table">
@@ -95,21 +99,17 @@ const PibCompositionSection = ({
                             <span className="pib-col-trend">TREND</span>
                         </div>
                         <div className="pib-table-rows">
-                            {pibTableIndicators.map((ind) => (
-                                <div key={ind.id} className="pib-table-row">
-                                    <span className="pib-col-name">{ind.title}</span>
-                                    <span className="pib-col-value">
-                                        {ind.value.split(' ')[0]}
-                                    </span>
-                                    <span className="pib-col-share">
-                                        {ind.weight}%
-                                    </span>
+                            {tableRows.map((row) => (
+                                <div key={row.id} className="pib-table-row">
+                                    <span className="pib-col-name">{row.title}</span>
+                                    <span className="pib-col-value">{row.value.split(' ')[0]}</span>
+                                    <span className="pib-col-share">{row.weight}%</span>
                                     <div className="pib-col-trend">
                                         <svg width="34" height="12" viewBox="0 0 40 16">
                                             <path
-                                                d={buildSparklinePaths(ind.history || [], 40, 16).linePath}
+                                                d={buildSparklinePaths(row.history, 40, 16).linePath}
                                                 fill="none"
-                                                stroke={getSparklineTrend(ind.history || []) === 'up' ? 'var(--trend-up-neon)' : 'var(--trend-down-neon)'}
+                                                stroke={sparklineTrend(row.history) === 'up' ? 'var(--trend-up-neon)' : 'var(--trend-down-neon)'}
                                                 strokeWidth="2"
                                             />
                                         </svg>
@@ -124,10 +124,9 @@ const PibCompositionSection = ({
                     Datos: Banco Central de Chile. <em>PIB corriente, referencia 2018.</em>
                 </p>
             </div>
-            {showPibModal ? (
+            {showPibModal && compositionData ? (
                 <PibModal
-                    data={pibCompositionData}
-                    theme={theme}
+                    data={compositionData}
                     availablePeriods={availablePeriods}
                     nominalSeries={nominalSeries}
                     onClose={() => setShowPibModal(false)}

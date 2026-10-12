@@ -1,0 +1,166 @@
+/* Análisis geográfico: PIB per cápita y ventana por actividad */
+
+/* ---------- PIB per cápita regional ---------- */
+
+.regional-map-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.regional-map-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    max-width: 260px;
+}
+
+.regional-map-legend-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.regional-map-legend-bar {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--map-fill-selected) 12%, var(--map-fill)),
+        var(--map-fill-selected)
+    );
+}
+
+.regional-map-legend-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.66rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.regional-percapita-value {
+    margin: 0.2rem 0;
+    font-size: 1.7rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.regional-percapita-unit {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.regional-percapita-context {
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.regional-percapita-context strong {
+    color: var(--text-primary);
+}
+
+/* Tarjeta de PIB regional: toda la tarjeta abre la tabla de datos */
+
+.regional-pib-card.is-clickable {
+    cursor: pointer;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition: outline-color 0.2s, box-shadow 0.2s;
+}
+
+.regional-pib-card.is-clickable:hover,
+.regional-pib-card.is-clickable:focus-visible {
+    outline-color: var(--accent);
+    box-shadow: var(--shadow-lg);
+}
+
+.regional-range-button {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.regional-range-button.is-active {
+    background: var(--accent);
+    color: white;
+}
+
+[data-theme="light"] .regional-range-button.is-active {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border: 1px solid rgba(37, 99, 235, 0.4);
+}
+
+.regional-pib-range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+/* Ventana "PIB por actividad" */
+
+.activity-modal-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.activity-modal-subtitle {
+    margin: 0.3rem 0 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.activity-modal-empty {
+    padding: 1.5rem 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.activity-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.activity-card {
+    padding: 0.75rem 0.85rem 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.activity-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.activity-card-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.activity-card-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+    .activity-modal-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

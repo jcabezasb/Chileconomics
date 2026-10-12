@@ -1,0 +1,56 @@
+# Sincronización de datos: descarga las series del Banco Central y, si cambiaron,
+# hace commit de public/data/bcch_series.json en main. Ese commit dispara la publicación
+# en Vercel (producción). Corre todos los días, al hacer merge a main y a mano desde
+# la pestaña Actions ("Run workflow").
+name: Data Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'public/data/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Descargar series del Banco Central
+        env:
+          BCCH_USER: ${{ secrets.BCCH_USER }}
+          BCCH_PASSWORD: ${{ secrets.BCCH_PASSWORD }}
+        run: python python/sync_bcch_data.py
+
+      - name: Commit de los datos (si cambiaron)
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add public/data/bcch_series.json
+          if git diff --staged --quiet; then
+            echo "Sin cambios en los datos."
+          else
+            git commit -m "data: daily update"
+            git pull --rebase origin main
+            git push
+          fi

@@ -1,0 +1,217 @@
+/* Sección Datos: grilla de indicadores y composición del PIB */
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1rem;
+    height: 550px;
+}
+
+.overview-featured {
+    grid-row: span 2;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.overview-pib {
+    background: var(--bg-card);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    grid-row: span 2;
+}
+
+.pib-composition-section {
+    padding: 4rem 0 5rem;
+}
+
+.overview-pib-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.overview-pib-info {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.overview-pib-detail {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 0.7rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+}
+
+.overview-pib-detail:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.overview-pib-tooltip {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.overview-pib-tooltip:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.overview-pib-info-box {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.6rem);
+    width: 280px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.8rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-md);
+    z-index: 5;
+}
+
+.overview-pib-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.overview-pib-body {
+    display: flex;
+    gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.overview-pib-chart {
+    flex: 0.95;
+    position: relative;
+}
+
+.overview-pib-table {
+    flex: 2.05;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+}
+
+.overview-pib-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.overview-pib-control {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.overview-pib-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.pib-table-header {
+    display: grid;
+    grid-template-columns: 1.9fr 1.15fr 0.9fr 1fr;
+    padding: 0 0.8rem 0.5rem 0.8rem;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.pib-table-rows {
+    display: grid;
+    grid-auto-rows: 1fr;
+    gap: 0.35rem;
+    overflow-y: auto;
+    padding-right: 4px;
+    flex: 1;
+    height: 100%;
+}
+
+.pib-table-row {
+    display: grid;
+    grid-template-columns: 1.9fr 1.15fr 0.9fr 1fr;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid transparent;
+    align-items: center;
+    transition: background 0.2s ease;
+    height: 100%;
+}
+
+.pib-col-name {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.pib-col-value,
+.pib-col-share,
+.pib-col-trend {
+    text-align: center;
+    border-left: 1px solid var(--border);
+    padding: 0 0.6rem;
+}
+
+.pib-col-value {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
+.pib-col-share {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.pib-table-row .pib-col-trend {
+    display: flex;
+    justify-content: center;
+    opacity: 0.8;
+}
+
+.overview-pib-footnote {
+    margin: 1rem 0 0 0;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-style: italic;
+}

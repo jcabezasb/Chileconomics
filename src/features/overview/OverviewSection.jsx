@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
-import MacroCard from './MacroCard';
+import { useCallback, useState } from 'react';
+import IndicatorCard from './IndicatorCard';
 import IndicatorModal from './IndicatorModal';
 
-const OverviewSection = ({
-    sectionRef,
-    theme,
-    chartIndicators,
-    imacecIndicator
-}) => {
+// Grilla principal: IMACEC destacado a la izquierda y 4 indicadores (2x2) a la derecha.
+const OverviewSection = ({ sectionRef, theme, chartIndicators, imacecIndicator }) => {
     const [activeIndicator, setActiveIndicator] = useState(null);
+    const closeModal = useCallback(() => setActiveIndicator(null), []);
 
     return (
         <section
@@ -17,41 +14,16 @@ const OverviewSection = ({
             ref={sectionRef}
             style={{ paddingBottom: '4rem' }}
         >
-            {/* Main Grid: Featured IMACEC | Charts (2x2) */}
             <div className="overview-grid">
                 <div className="overview-featured">
-                    <MacroCard
-                        indicator={imacecIndicator}
-                        theme={theme}
-                        onOpen={setActiveIndicator}
-                        variant="featured"
-                    />
+                    <IndicatorCard indicator={imacecIndicator} theme={theme} onOpen={setActiveIndicator} featured />
                 </div>
-
-                {/* Columns 2-3: 4 Charts in 2x2 grid */}
-                {chartIndicators.slice(0, 2).map(ind => (
-                    <MacroCard
-                        key={ind.id}
-                        indicator={ind}
-                        theme={theme}
-                        onOpen={setActiveIndicator}
-                    />
-                ))}
-                {chartIndicators.slice(2, 4).map(ind => (
-                    <MacroCard
-                        key={ind.id}
-                        indicator={ind}
-                        theme={theme}
-                        onOpen={setActiveIndicator}
-                    />
+                {chartIndicators.slice(0, 4).map((indicator) => (
+                    <IndicatorCard key={indicator.id} indicator={indicator} theme={theme} onOpen={setActiveIndicator} />
                 ))}
             </div>
             {activeIndicator ? (
-                <IndicatorModal
-                    indicator={activeIndicator}
-                    theme={theme}
-                    onClose={() => setActiveIndicator(null)}
-                />
+                <IndicatorModal indicator={activeIndicator} theme={theme} onClose={closeModal} />
             ) : null}
         </section>
     );

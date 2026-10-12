@@ -1,0 +1,18 @@
+/* Ajustes responsive de la portada */
+
+@media (max-width: 880px) {
+    .landing-ribbon {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .landing-ribbons {
+        margin-top: 1.6rem;
+    }
+
+    .landing-ribbon {
+        padding: 0.85rem 1.1rem;
+    }
+}

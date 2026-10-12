@@ -15,19 +15,3 @@ export const buildSparklinePaths = (values, width, height) => {
     const areaPath = `${linePath} L ${width},${height} L 0,${height} Z`;
     return { linePath, areaPath };
 };
-
-export const buildMiniSparklinePath = (history, width = 100, height = 20, padding = 2.5) => {
-    if (!history || history.length < 2) return null;
-    const min = Math.min(...history);
-    const max = Math.max(...history);
-    const range = max - min || 1;
-    const points = history.map((val, i) => {
-        const x = (i / (history.length - 1)) * width;
-        const y = (height + padding) - ((val - min) / range) * height;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' L ');
-    return {
-        path: `M ${points}`,
-        viewBox: `0 0 ${width} ${height + padding * 2}`
-    };
-};

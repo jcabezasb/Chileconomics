@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const PlaceholderSection = ({ title, subtitle, items }) => (
     <section className="placeholder-section">

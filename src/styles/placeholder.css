@@ -1,0 +1,105 @@
+/* Secciones informativas: videos, contacto, en desarrollo (tarjetas) */
+
+.placeholder-section {
+    padding: 6.5rem 0 4.5rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.placeholder-hero {
+    max-width: 720px;
+}
+
+.placeholder-kicker {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--chart-neon);
+    text-transform: uppercase;
+}
+
+.placeholder-title {
+    font-size: clamp(1.7rem, 4vw, 2.6rem);
+    margin-top: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.placeholder-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.placeholder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.placeholder-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.1rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.placeholder-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--chart-neon), var(--trend-up));
+    opacity: 0.75;
+}
+
+.placeholder-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.placeholder-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.placeholder-card-meta {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.placeholder-card-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.placeholder-email {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.placeholder-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--chart-neon) 45%, var(--border));
+    color: var(--chart-neon);
+    font-weight: 700;
+}
