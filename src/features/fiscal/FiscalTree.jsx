@@ -19,7 +19,7 @@ const TreeRow = ({ node, expanded, onToggle, selectedId, onSelect }) => {
                 className={`fiscal-row depth-${Math.min(node.depth, 3)}${isRoot ? ' is-root' : ''}${selectedId === node.id ? ' is-selected' : ''}`}
                 role="row"
             >
-                <div className="fiscal-row-name" role="cell" style={{ paddingLeft: `${node.depth * 0.95}rem` }}>
+                <div className="fiscal-row-name" role="cell" style={{ '--depth': node.depth }}>
                     {hasChildren ? (
                         <button
                             type="button"

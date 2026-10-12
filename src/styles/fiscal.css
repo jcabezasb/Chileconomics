@@ -167,6 +167,8 @@
 }
 
 .fiscal-row-name {
+    --indent: 0.95rem;
+    padding-left: calc(var(--depth, 0) * var(--indent));
     display: flex;
     align-items: center;
     gap: 0.2rem;
@@ -406,6 +408,10 @@
 
     .fiscal-col-pib {
         display: none;
+    }
+
+    .fiscal-row-name {
+        --indent: 0.55rem;
     }
 
     .fiscal-chart {
