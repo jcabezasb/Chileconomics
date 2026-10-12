@@ -1,0 +1,424 @@
+/* Sección de finanzas públicas (src/features/fiscal). */
+
+.fiscal-section {
+    padding: 4rem 0;
+}
+
+.fiscal-header {
+    margin-bottom: 1.75rem;
+}
+
+.fiscal-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.fiscal-period {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+/* Resumen: ingresos, gastos y balance */
+.fiscal-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.fiscal-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1rem 1.15rem;
+    text-align: left;
+    font: inherit;
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--bg-primary) 45%, var(--bg-card));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fiscal-kpi:hover {
+    border-color: var(--text-secondary);
+}
+
+.fiscal-kpi.is-active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.fiscal-kpi:focus-visible {
+    outline: 2px solid var(--map-fill-hover);
+    outline-offset: 2px;
+}
+
+.fiscal-kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.fiscal-kpi-label em {
+    font-style: normal;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+}
+
+.fiscal-kpi-value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+}
+
+.fiscal-kpi.is-deficit .fiscal-kpi-value,
+.fiscal-kpi.is-deficit .fiscal-kpi-label em {
+    color: var(--growth-neg);
+}
+
+.fiscal-kpi.is-surplus .fiscal-kpi-value,
+.fiscal-kpi.is-surplus .fiscal-kpi-label em {
+    color: var(--growth-pos);
+}
+
+.fiscal-kpi-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Árboles de ingresos y gastos */
+.fiscal-trees {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+    align-items: start;
+}
+
+.fiscal-tree {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.fiscal-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 76px 58px 68px;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.42rem 0.8rem 0.42rem 0.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    font-size: 0.84rem;
+}
+
+.fiscal-head {
+    border-top: none;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+    padding-left: 0.8rem;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--bg-primary) 55%, var(--bg-card));
+}
+
+.fiscal-row.is-root {
+    font-weight: 700;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+}
+
+.fiscal-row.depth-2,
+.fiscal-row.depth-3 {
+    font-size: 0.8rem;
+}
+
+.fiscal-row.depth-3 {
+    color: var(--text-secondary);
+}
+
+.fiscal-row.is-selected {
+    background: var(--bg-hover);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.fiscal-row-name {
+    --indent: 0.95rem;
+    padding-left: calc(var(--depth, 0) * var(--indent));
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.fiscal-toggle,
+.fiscal-toggle-spacer {
+    flex: none;
+    width: 22px;
+    height: 22px;
+}
+
+.fiscal-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.fiscal-toggle svg {
+    transition: transform 0.18s ease;
+}
+
+.fiscal-toggle.is-open svg {
+    transform: rotate(90deg);
+}
+
+.fiscal-toggle:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.fiscal-row-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0.1rem 0;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.fiscal-row-label:hover > span:first-child {
+    color: var(--accent);
+}
+
+.fiscal-toggle:focus-visible,
+.fiscal-row-label:focus-visible {
+    outline: 2px solid var(--map-fill-hover);
+    outline-offset: 1px;
+    border-radius: 4px;
+}
+
+.fiscal-share {
+    display: block;
+    width: 100%;
+    max-width: 160px;
+    height: 3px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--border) 70%, transparent);
+    overflow: hidden;
+}
+
+.fiscal-share > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    opacity: 0.7;
+}
+
+.fiscal-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.fiscal-change.is-up {
+    color: var(--growth-pos);
+}
+
+.fiscal-change.is-down {
+    color: var(--growth-neg);
+}
+
+/* Evolución de la partida elegida */
+.fiscal-detail {
+    margin-top: 1.5rem;
+    scroll-margin-top: 5rem;
+    padding: 1.1rem 1.2rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.fiscal-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.fiscal-detail-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.fiscal-detail-note {
+    margin: 0.3rem 0 0;
+    max-width: 640px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.fiscal-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fiscal-chart {
+    height: 280px;
+    margin-top: 0.9rem;
+}
+
+.fiscal-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.1rem;
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.fiscal-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.fiscal-legend i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.fiscal-legend i.is-line {
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.fiscal-tooltip {
+    min-width: 170px;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    font-size: 0.78rem;
+}
+
+.fiscal-tooltip-title {
+    margin: 0 0 0.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.fiscal-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.fiscal-tooltip-row strong {
+    color: var(--text-primary);
+}
+
+.fiscal-footnote {
+    margin: 1rem 0 0;
+    font-size: 0.74rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.fiscal-footnote a {
+    color: var(--accent);
+}
+
+.fiscal-empty {
+    padding: 2rem 0;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 960px) {
+    .fiscal-trees {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .fiscal-section {
+        padding: 2.5rem 0;
+    }
+
+    .fiscal-kpis {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    .fiscal-kpi {
+        padding: 0.8rem 0.95rem;
+    }
+
+    .fiscal-kpi-value {
+        font-size: 1.3rem;
+    }
+
+    .fiscal-row {
+        grid-template-columns: minmax(0, 1fr) 64px 58px;
+        padding-right: 0.6rem;
+    }
+
+    .fiscal-col-pib {
+        display: none;
+    }
+
+    .fiscal-row-name {
+        --indent: 0.55rem;
+    }
+
+    .fiscal-chart {
+        height: 230px;
+    }
+
+    .fiscal-detail {
+        padding: 0.9rem 0.85rem 0.75rem;
+    }
+}

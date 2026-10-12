@@ -19,6 +19,10 @@ API Banco Central ──(python/sync_bcch_data.py, diario)──> public/data/bc
   publica datos incompletos).
 - **`src/data/bcch/seriesKeys.js`** lista las mismas claves del lado del frontend. Una prueba
   (`dataContract.test.js`) verifica que todas existan en el JSON.
+- **`python/import_dipres.py`** lee el Excel trimestral de la DIPRES (hojas `Total` e `IngTrib`) y
+  escribe `public/data/finanzas_publicas.json`: el árbol de partidas (`tree`) y una serie mensual
+  por partida, en millones de pesos, desde `start` hasta `last_period`. Se corre a mano cada
+  trimestre (ver `docs/flujo-de-trabajo.md`).
 
 Formato del JSON:
 
@@ -42,6 +46,7 @@ Las fechas son texto `YYYY-MM-DD`. Las series mensuales y trimestrales vienen co
 | `features/overview/` | Tarjetas de indicadores (`IndicatorCard`) y vista de detalle (`detail/`): gráfico principal, selector de fechas y un desglose por indicador (`detail/breakdowns/`) |
 | `features/regional/` | Mapa y fichas regionales. `useRegionalView` concentra los cálculos; los componentes solo dibujan |
 | `features/pib/` | Composición del PIB por el lado del gasto (`usePibComposition`) |
+| `features/fiscal/` | Finanzas públicas: `useFiscalView` carga los datos de la DIPRES; `fiscalView.js` suma por período, calcula % del PIB y variación real; `FiscalTree` es la tabla desplegable |
 | `features/blog*`, `contact/`, `development/` | Secciones de contenido |
 | `shared/components/` | `TrendChart` (todos los gráficos de línea), `SeriesTable` (tablas de series de tiempo: agrupar por período, variaciones, ordenar, copiar), `DataTable` (tablas simples), `DataTableModal`, `controls` |
 | `shared/utils/` | Funciones puras con pruebas: fechas, formato, estadísticas, per cápita, correlación, reducción de puntos |
@@ -68,6 +73,10 @@ Datos y gráficos se cargan solo al entrar a /datos (`React.lazy`), y las librer
   se muestran solo las filas del rango elegido (así la primera fila también tiene su variación anual).
   Al agrupar se usa el promedio del período, salvo flujos como el PIB, que se suman. En tasas (IPC,
   desempleo) las variaciones van en puntos porcentuales. Solo se dibujan las filas visibles.
+- **Finanzas públicas** (`features/fiscal/fiscalView.js`): los períodos son el año en curso acumulado
+  y los años cerrados. El % del PIB usa el PIB nominal de los mismos trimestres. La variación real
+  divide cada mes por su IPC y compara con los mismos meses del año anterior; no se informa cuando
+  el monto cambia de signo (por ejemplo, un balance que pasa de déficit a superávit).
 - **Gráficos largos** (`shared/utils/downsample.js`): con más de 600 puntos se dibujan con LTTB, que
   conserva peaks y caídas. Tablas, CSV y estadísticas usan siempre la serie completa.
 

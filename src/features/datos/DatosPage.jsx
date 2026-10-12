@@ -4,6 +4,7 @@ import useRevealOnScroll from '../../app/hooks/useRevealOnScroll';
 import OverviewSection from '../overview/OverviewSection';
 import RegionalSection from '../regional/RegionalSection';
 import PibCompositionSection from '../pib/PibCompositionSection';
+import FiscalSection from '../fiscal/FiscalSection';
 
 const CHART_ORDER = ['ipc', 'dolar', 'desempleo', 'cobre'];
 
@@ -18,7 +19,7 @@ const IMACEC_PLACEHOLDER = {
     description: 'Indicador Mensual de Actividad Economica'
 };
 
-// Página /datos: indicadores principales, análisis regional y composición del PIB.
+// Página /datos: indicadores principales, análisis regional, composición del PIB y finanzas públicas.
 const DatosPage = ({ theme }) => {
     const { indicators, regionalData, realPibData, populationData, nominalSeries, availablePeriods } = useBcchData();
     const registerReveal = useRevealOnScroll(0.25);
@@ -57,6 +58,7 @@ const DatosPage = ({ theme }) => {
                 nominalSeries={nominalSeries}
                 availablePeriods={availablePeriods}
             />
+            <FiscalSection sectionRef={registerReveal(3)} />
         </>
     );
 };

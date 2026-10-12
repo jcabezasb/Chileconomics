@@ -13,7 +13,8 @@ español, y preferir soluciones simples y legibles.
 
 - `main` es producción (Vercel publica cada push). Trabajar en ramas; la vista previa de Vercel y el
   CI (`.github/workflows/ci.yml`) validan antes del merge.
-- `public/data/bcch_series.json` lo genera `python/sync_bcch_data.py`: no editarlo a mano.
+- `public/data/bcch_series.json` lo genera `python/sync_bcch_data.py` y
+  `public/data/finanzas_publicas.json` lo genera `python/import_dipres.py`: no editarlos a mano.
 - Las series se referencian por **clave** (`dolar`, `pib_reg_RM`), definidas en
   `python/bcch_shared.py` y `src/data/bcch/seriesKeys.js`. Nunca por el código del Banco Central
   dentro del frontend.
@@ -29,6 +30,7 @@ npm run lint         # ESLint (.js y .jsx, sin avisos permitidos)
 npm test             # Vitest
 npm run build
 npm run sync-data    # requiere .env con BCCH_USER/BCCH_PASSWORD y el venv de Python activo
+npm run import-dipres -- informe.xlsx   # finanzas públicas, cada trimestre
 python -m pytest python/tests
 ```
 
@@ -41,10 +43,12 @@ python -m pytest python/tests
   indicador en `detail/breakdowns/`). Rango de fechas y variación en 12 meses en `useIndicatorSeries`.
 - `src/features/regional/`: `useRegionalView` (cálculos) + componentes de cada ficha.
 - `src/features/pib/`: composición del PIB (`usePibComposition`).
+- `src/features/fiscal/`: finanzas públicas (DIPRES). Cálculos en `fiscalView.js`, textos de cada
+  partida en `fiscalNotes.js`.
 - `src/shared/components/TrendChart.jsx`: todos los gráficos de línea (`detailed` agrega ejes).
 - `src/shared/utils/`: funciones puras con pruebas (`*.test.js`).
 - `src/styles/`: `global.css` importa las partes en orden; variables de tema en `variables.css`.
-- `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, pruebas en `python/tests/`.
+- `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, `import_dipres.py`, pruebas en `python/tests/`.
 
 ## Convenciones
 

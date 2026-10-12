@@ -64,6 +64,22 @@ la publicación. Las credenciales del Banco Central están como *secrets* del re
    esperar la sincronización automática.
 4. `npm test` confirma que la clave existe en el JSON.
 
+## Actualizar finanzas públicas (cada trimestre)
+
+La DIPRES publica el informe de ejecución del Gobierno Central unas tres o cuatro semanas después
+de cada trimestre. No hay sincronización automática: se importa a mano.
+
+1. Bajar el Excel "Informes de Ejecución Presupuestaria" del trimestre desde
+   https://www.dipres.gob.cl/598/w3-propertyvalue-15492.html (año → último informe).
+2. En una rama nueva: `npm run import-dipres -- ~/Descargas/archivo.xlsx`
+   (con el entorno de Python activo). El script reemplaza los meses de ese año y deja los demás.
+3. Revisar en `npm run dev` y seguir el ciclo normal (subir la rama, vista previa, merge).
+
+El importador revisa que cada partida sea igual a la suma de sus componentes. Si la DIPRES cambia
+el formato del Excel, termina con un error que dice qué fila no encontró o qué suma no cuadra, y no
+toca el archivo de datos. Al cerrar un año conviene importar el informe del cuarto trimestre, que
+trae las cifras revisadas de los doce meses.
+
 ## Si algo sale mal
 
 - **CI en rojo**: abrir el run en *Actions* y ver qué paso falló; correr el mismo comando en local
