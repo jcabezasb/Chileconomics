@@ -1,4 +1,4 @@
-/* Inversión extranjera directa por región: barra del total, cintas y mapa (IedSection). */
+/* Inversión extranjera directa: globo, barra del total, cintas y mapa de Chile (IedSection). */
 
 .ied-section {
     padding: 4rem 0;
@@ -13,11 +13,17 @@
     color: var(--text-secondary);
 }
 
-.ied-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
-    gap: 1.5rem;
-    align-items: start;
+.ied-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.ied-toolbar .ied-years {
+    min-width: min(100%, 320px);
 }
 
 /* Gráfico */
@@ -25,6 +31,96 @@
     display: block;
     width: 100%;
     height: auto;
+}
+
+.ied-layers {
+    animation: ied-fade-in 0.5s ease;
+}
+
+@keyframes ied-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Globo */
+.ied-globe {
+    cursor: grab;
+    touch-action: none;
+}
+
+.ied-globe:active {
+    cursor: grabbing;
+}
+
+.ied-globe-sphere {
+    fill: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+.ied-globe-graticule {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 0.5;
+}
+
+.ied-globe-country {
+    fill: var(--map-fill);
+    stroke: var(--bg-card);
+    stroke-width: 0.4;
+}
+
+.ied-globe-country.has-data {
+    fill: color-mix(in srgb, var(--map-fill-selected) 55%, var(--map-fill));
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.ied-globe-country.has-data.is-active {
+    fill: var(--map-fill-selected);
+    stroke: var(--text-primary);
+    stroke-width: 0.8;
+}
+
+.ied-globe-dot {
+    fill: var(--accent);
+    stroke: var(--bg-card);
+    stroke-width: 1;
+    cursor: pointer;
+}
+
+.ied-ribbon.is-country {
+    fill-opacity: 0.32;
+}
+
+.ied-ribbon.is-back {
+    fill-opacity: 0.12;
+}
+
+.ied-ribbon.is-chile,
+.ied-segment.is-chile {
+    cursor: pointer;
+}
+
+.ied-ribbon.is-chile {
+    fill-opacity: 0.18;
+}
+
+.ied-region.is-source {
+    fill: color-mix(in srgb, var(--map-fill-selected) 70%, var(--map-fill));
+}
+
+.ied-chile-note {
+    fill: var(--text-secondary);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.ied-label.is-halo text {
+    paint-order: stroke;
+    stroke: var(--bg-card);
+    stroke-width: 4px;
+    stroke-linejoin: round;
 }
 
 .ied-ribbon {
@@ -99,7 +195,6 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    text-anchor: middle;
 }
 
 /* Destacado: lo activo se enciende y el resto se apaga. */
@@ -119,7 +214,12 @@
     fill-opacity: 0.4;
 }
 
-.ied-layers.has-active .ied-region:not(.is-active),
+.ied-layers.has-active .ied-ribbon.is-country:not(.is-active) {
+    fill-opacity: 0.06;
+}
+
+.ied-layers.has-active .ied-region:not(.is-active):not(.is-source),
+.ied-layers.has-active .ied-globe-country.has-data:not(.is-active),
 .ied-layers.has-active .ied-label:not(.is-active) {
     opacity: 0.35;
 }
@@ -136,11 +236,32 @@
     stroke-width: 1.5;
 }
 
-/* Panel */
+/* Panel (debajo del gráfico) */
 .ied-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.9fr);
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: 1rem;
+}
+
+.ied-notes {
     display: flex;
     flex-direction: column;
-    gap: 1.1rem;
+    align-items: flex-start;
+    gap: 0.9rem;
+}
+
+.ied-table-block + .ied-table-block {
+    margin-top: 1.25rem;
+}
+
+.ied-table-heading {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .ied-years {
@@ -272,9 +393,10 @@
     cursor: pointer;
 }
 
-/* La lista reemplaza a las etiquetas del mapa en pantallas angostas. */
+/* Principales países (y regiones hacia Chile); en celular reemplaza a las etiquetas del gráfico. */
 .ied-list {
-    display: none;
+    max-height: 22rem;
+    overflow-y: auto;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -302,6 +424,11 @@
     color: var(--text-secondary);
 }
 
+.ied-list li.is-first-region {
+    margin-top: 0.6rem;
+    border-top: 2px solid var(--border);
+}
+
 .ied-list-row.is-active {
     background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
@@ -313,13 +440,8 @@
     color: var(--text-secondary);
 }
 
-.ied-actions {
-    display: flex;
-    justify-content: flex-start;
-}
-
 @media (max-width: 960px) {
-    .ied-layout {
+    .ied-panel {
         grid-template-columns: minmax(0, 1fr);
     }
 }
@@ -327,9 +449,5 @@
 @media (max-width: 640px) {
     .ied-labels {
         display: none;
-    }
-
-    .ied-list {
-        display: block;
     }
 }
