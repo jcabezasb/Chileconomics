@@ -45,7 +45,7 @@ Las fechas son texto `YYYY-MM-DD`. Las series mensuales y trimestrales vienen co
 | `features/datos/` | `DatosPage`: arma la página /datos con sus secciones |
 | `features/overview/` | Tarjetas de indicadores (`IndicatorCard`) y vista de detalle (`detail/`): gráfico principal, selector de fechas y un desglose por indicador (`detail/breakdowns/`) |
 | `features/regional/` | Mapa y fichas regionales. `useRegionalView` concentra los cálculos; los componentes solo dibujan |
-| `features/ied/` | Inversión extranjera directa por región: barra del total, cintas y mapa (`IedRibbonMap`). `useIedView` carga los datos y maneja el año y la reproducción; la geometría está en `iedLayout.js` (funciones puras) |
+| `features/ied/` | Inversión extranjera directa. `IedFlowChart` dibuja globo, barra y mapa de Chile (hacia Chile) o mapa, barra y globo (desde Chile); el globo se gira con `useGlobeRotation`. `useIedView` carga las series por región y `ied_paises.json`, y maneja sentido, año y destacado. Geometría pura en `iedLayout.js`; países y su ubicación en `iedCountries.js` |
 | `features/pib/` | Composición del PIB por el lado del gasto (`usePibComposition`) |
 | `features/fiscal/` | Finanzas públicas: `useFiscalView` carga los datos de la DIPRES; `fiscalView.js` suma por período, calcula % del PIB y variación real; `FiscalTree` es la tabla desplegable |
 | `features/blog*`, `contact/`, `development/` | Secciones de contenido |
@@ -67,6 +67,11 @@ Datos y gráficos se cargan solo al entrar a /datos (`React.lazy`), y las librer
   regional (miles de millones, encadenado 2018) dividida por la población proyectada del INE para
   ese año. El promedio regional es la suma de las regiones (no el PIB nacional, porque parte del
   PIB no se asigna a ninguna región).
+- **IED por país** (`python/import_ied_paises.py`): sale del Excel público "IED por país, sector y
+  región" del Banco Central, hoja *País (Activo y Pasivo)*. Se usa el principio activo/pasivo porque
+  su total coincide exacto con el de la serie por región (el direccional da otro total). El país es
+  el del inversionista inmediato. Desde Chile no hay desglose por región, así que en ese sentido el
+  mapa es un solo bloque.
 - **IED por región** (`features/ied/`): stock a fin de año en millones de US$, desde 2012. El Banco
   Central agrupa algunas regiones (por ejemplo, Ñuble, Biobío y La Araucanía) y publica una parte
   "no asignada" a ninguna región, que va en la barra pero sin cinta hacia el mapa. Las partes suman

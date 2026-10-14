@@ -1,15 +1,71 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadBcchData } from '../../data/bcch/client';
 import { iedKey } from '../../data/bcch/seriesKeys';
-import { IED_ITEMS } from './iedGroups';
-import { buildIedData, iedSnapshot } from './iedView';
+import { IED_GROUPS, IED_ITEMS, IED_UNASSIGNED } from './iedGroups';
+import { buildCountryData, countrySnapshot } from './iedCountryView';
+import { buildIedData, iedHistory, iedSnapshot } from './iedView';
 import useTweenedValues from './useTweenedValues';
 
 const PLAY_STEP_MS = 1400;
+const COUNTRIES_URL = '/data/ied_paises.json';
 
-// Datos y estado de la sección de IED: año elegido, reproducción año a año y grupo destacado.
+const NOTES = {
+    groupedRegion: 'El Banco Central publica estas regiones juntas.',
+    unassignedRegion: 'Parte del stock que el Banco Central no asigna a ninguna región.',
+    rest: 'Países que el Banco Central publica agrupados.',
+    continent: 'El Banco Central no desglosa este continente por país.',
+    unassignedCountry: 'Parte del stock que el Banco Central no asigna a ningún país.',
+    outwardRegions: 'El Banco Central no publica por región la inversión de Chile en el exterior.'
+};
+
+const loadCountries = () => fetch(COUNTRIES_URL)
+    .then((response) => (response.ok ? response.json() : null))
+    .catch(() => null);
+
+// Ficha de lo destacado: todo Chile si no hay nada, una región o un país.
+const buildFocus = ({ direction, year, regional, countries, activeId }) => {
+    const inward = direction === 'inward';
+    const region = inward ? regional?.items.find((item) => item.id === activeId) : null;
+    const country = countries?.items.find((item) => item.id === activeId);
+    if (region) {
+        const group = IED_GROUPS.find((entry) => entry.id === region.id);
+        return {
+            label: region.label,
+            value: region.value,
+            share: region.share,
+            change: region.change,
+            history: regional.history(region.id),
+            note: region.id === IED_UNASSIGNED.id ? NOTES.unassignedRegion : group?.regions.length > 1 ? NOTES.groupedRegion : null
+        };
+    }
+    if (country) {
+        const notes = { rest: NOTES.rest, continent: NOTES.continent, unassigned: NOTES.unassignedCountry };
+        return {
+            label: country.label,
+            value: country.value,
+            share: country.share,
+            change: country.change,
+            history: country.history,
+            note: notes[country.kind] || null
+        };
+    }
+    const source = countries || regional;
+    if (!source) return null;
+    return {
+        label: inward ? `Chile · IED recibida · ${year}` : `Chile · inversión en el exterior · ${year}`,
+        isTotal: true,
+        value: source.total,
+        change: source.totalChange,
+        history: source.totalHistory,
+        note: inward ? null : NOTES.outwardRegions
+    };
+};
+
+// Datos y estado de la sección de IED: sentido (hacia o desde Chile), año, reproducción y destacado.
 const useIedView = () => {
-    const [data, setData] = useState(null);
+    const [regionalData, setRegionalData] = useState(null);
+    const [countryData, setCountryData] = useState(undefined);
+    const [direction, setDirection] = useState('inward');
     const [year, setYear] = useState(null);
     const [playing, setPlaying] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
@@ -17,19 +73,24 @@ const useIedView = () => {
 
     useEffect(() => {
         let isActive = true;
-        loadBcchData().then(({ series }) => {
+        Promise.all([loadBcchData(), loadCountries()]).then(([{ series }, payload]) => {
             if (!isActive) return;
             const byItem = Object.fromEntries(IED_ITEMS.map((item) => [item.id, series[iedKey.group(item.id)] || []]));
-            setData(buildIedData({ total: series[iedKey.total] || [], ...byItem }));
+            setRegionalData(buildIedData({ total: series[iedKey.total] || [], ...byItem }));
+            setCountryData(buildCountryData(payload));
         });
         return () => {
             isActive = false;
         };
     }, []);
 
-    const years = useMemo(() => data?.years || [], [data]);
+    // Años con datos por región y por país (si el archivo de países no está, solo por región).
+    const years = useMemo(() => {
+        const regional = regionalData?.years || [];
+        return countryData ? regional.filter((entry) => countryData.years.includes(entry)) : regional;
+    }, [regionalData, countryData]);
     const lastYear = years[years.length - 1] ?? null;
-    const currentYear = year ?? lastYear;
+    const currentYear = years.includes(year) ? year : lastYear;
 
     // Reproducción: avanza un año cada PLAY_STEP_MS y se detiene en el último.
     useEffect(() => {
@@ -53,31 +114,64 @@ const useIedView = () => {
         setYear(value);
     }, []);
 
+    const chooseDirection = useCallback((value) => {
+        setDirection(value);
+        setHoveredId(null);
+        setSelectedId(null);
+    }, []);
+
     const toggleSelected = useCallback((id) => setSelectedId((current) => (current === id ? null : id)), []);
     const clearSelected = useCallback(() => setSelectedId(null), []);
 
-    const snapshot = useMemo(() => (data && currentYear ? iedSnapshot(data, currentYear) : null), [data, currentYear]);
-    const targetValues = useMemo(
-        () => (snapshot ? Object.fromEntries(snapshot.items.map((item) => [item.id, item.value])) : null),
-        [snapshot]
+    const regional = useMemo(() => {
+        if (!regionalData || !currentYear) return null;
+        const snapshot = iedSnapshot(regionalData, currentYear);
+        return {
+            ...snapshot,
+            totalHistory: iedHistory(regionalData, null),
+            history: (id) => iedHistory(regionalData, id)
+        };
+    }, [regionalData, currentYear]);
+    const countries = useMemo(
+        () => (countryData && currentYear ? countrySnapshot(countryData, direction, currentYear) : null),
+        [countryData, direction, currentYear]
     );
+
+    // Montos que se animan al cambiar de año o de sentido: regiones y países juntos.
+    const targetValues = useMemo(() => {
+        if (!regional) return null;
+        const values = Object.fromEntries(regional.items.map((item) => [item.id, item.value]));
+        (countries?.items || []).forEach((item) => {
+            values[item.id] = item.value;
+        });
+        return values;
+    }, [regional, countries]);
     const animatedValues = useTweenedValues(targetValues);
 
     const activeId = hoveredId || selectedId;
+    const focus = useMemo(
+        () => buildFocus({ direction, year: currentYear, regional, countries, activeId }),
+        [direction, currentYear, regional, countries, activeId]
+    );
 
     return {
-        loading: data === null,
-        data,
+        loading: regionalData === null || countryData === undefined,
+        hasCountries: Boolean(countryData),
+        regionalData,
+        countryData,
+        direction,
+        chooseDirection,
         years,
         year: currentYear,
         chooseYear,
         playing,
         togglePlay,
-        snapshot,
+        regional,
+        countries,
         animatedValues,
         activeId,
         selectedId,
-        activeItem: snapshot?.items.find((item) => item.id === activeId) || null,
+        focus,
         setHoveredId,
         toggleSelected,
         clearSelected
