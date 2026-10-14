@@ -11,6 +11,7 @@
     "dev": "vite",
     "sync-data": "python python/sync_bcch_data.py",
     "import-dipres": "python python/import_dipres.py",
+    "import-ied-paises": "python python/import_ied_paises.py",
     "build": "vite build",
     "lint": "eslint . --ext .js,.jsx --max-warnings 0",
     "test": "vitest run",

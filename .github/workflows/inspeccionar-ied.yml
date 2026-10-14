@@ -1,5 +1,5 @@
-# Temporal: corre el importador de IED por país con el Excel real (público, sin credenciales)
-# y muestra el JSON generado. Se borra antes del merge.
+# Temporal: genera public/data/ied_paises.json con el importador (Excel público, sin credenciales)
+# y lo guarda en esta rama para poder revisar la vista previa. Se borra antes del merge.
 name: Inspeccionar Excel IED
 
 on:
@@ -11,10 +11,10 @@ on:
       - .github/workflows/inspeccionar-ied.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  inspeccionar:
+  generar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,4 +23,10 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: python python/import_ied_paises.py
-      - run: echo "JSON_INICIO" && cat public/data/ied_paises.json && echo && echo "JSON_FIN"
+      - name: Guardar el JSON en la rama
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add public/data/ied_paises.json
+          git diff --staged --quiet || git commit -m "data: IED por país (generado por import_ied_paises.py)"
+          git push

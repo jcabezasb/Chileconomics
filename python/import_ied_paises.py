@@ -20,7 +20,6 @@ import os
 import re
 import sys
 import unicodedata
-from datetime import date
 
 import requests
 from openpyxl import load_workbook
@@ -156,7 +155,6 @@ def main(args):
     years, data = parse_workbook(source)
     payload = {
         "source": SOURCE_URL,
-        "updated": date.today().isoformat(),
         "unit": "Millones de dólares",
         "note": "País del inversionista inmediato (puede diferir del país del controlador final).",
         "years": years,

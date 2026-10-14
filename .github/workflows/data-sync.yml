@@ -1,6 +1,6 @@
-# Sincronización de datos: descarga las series del Banco Central y, si cambiaron,
-# hace commit de public/data/bcch_series.json en main. Ese commit dispara la publicación
-# en Vercel (producción). Corre todos los días, al hacer merge a main y a mano desde
+# Sincronización de datos: descarga las series del Banco Central (y el Excel de IED por país) y,
+# si cambiaron, hace commit de public/data/bcch_series.json e ied_paises.json en main. Ese commit
+# dispara la publicación en Vercel (producción). Corre todos los días, al hacer merge a main y a mano desde
 # la pestaña Actions ("Run workflow").
 name: Data Sync
 
@@ -42,11 +42,17 @@ jobs:
           BCCH_PASSWORD: ${{ secrets.BCCH_PASSWORD }}
         run: python python/sync_bcch_data.py
 
+      # Excel público del Banco Central (sin credenciales). Si falla, se conserva el JSON anterior
+      # y la sincronización del resto de las series sigue igual.
+      - name: Descargar IED por país (Excel del Banco Central)
+        continue-on-error: true
+        run: python python/import_ied_paises.py
+
       - name: Commit de los datos (si cambiaron)
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add public/data/bcch_series.json
+          git add public/data/bcch_series.json public/data/ied_paises.json
           if git diff --staged --quiet; then
             echo "Sin cambios en los datos."
           else
