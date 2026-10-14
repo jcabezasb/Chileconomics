@@ -1,5 +1,5 @@
-# Temporal: muestra la estructura de los Excel de IED por país del Banco Central (datos públicos,
-# sin credenciales). Se borra cuando se arme el importador.
+# Temporal: corre el importador de IED por país con el Excel real (público, sin credenciales)
+# y muestra el JSON generado. Se borra antes del merge.
 name: Inspeccionar Excel IED
 
 on:
@@ -7,7 +7,7 @@ on:
   push:
     branches: [claude/epic-fermi-sipcg0]
     paths:
-      - tools/inspeccionar_excel_ied.py
+      - python/import_ied_paises.py
       - .github/workflows/inspeccionar-ied.yml
 
 permissions:
@@ -21,5 +21,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install requests openpyxl xlrd
-      - run: python tools/inspeccionar_excel_ied.py
+      - run: pip install -r requirements.txt
+      - run: python python/import_ied_paises.py
+      - run: echo "JSON_INICIO" && cat public/data/ied_paises.json && echo && echo "JSON_FIN"
