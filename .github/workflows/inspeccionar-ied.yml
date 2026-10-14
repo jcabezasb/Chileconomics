@@ -1,0 +1,25 @@
+# Temporal: muestra la estructura de los Excel de IED por país del Banco Central (datos públicos,
+# sin credenciales). Se borra cuando se arme el importador.
+name: Inspeccionar Excel IED
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/epic-fermi-sipcg0]
+    paths:
+      - tools/inspeccionar_excel_ied.py
+      - .github/workflows/inspeccionar-ied.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspeccionar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests openpyxl xlrd
+      - run: python tools/inspeccionar_excel_ied.py
