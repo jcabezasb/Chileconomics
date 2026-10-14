@@ -2,11 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadBcchData } from '../../data/bcch/client';
 import { iedKey } from '../../data/bcch/seriesKeys';
 import { IED_GROUPS, IED_ITEMS, IED_UNASSIGNED } from './iedGroups';
-import { buildCountryData, countrySnapshot } from './iedCountryView';
+import { buildCountryData, countrySnapshot, lineSeries } from './iedCountryView';
 import { buildIedData, iedHistory, iedSnapshot } from './iedView';
 import useTweenedValues from './useTweenedValues';
 
 const PLAY_STEP_MS = 1400;
+// En pantallas angostas el globo y el mapa quedan muy chicos: se parte por el gráfico de líneas.
+const NARROW = '(max-width: 640px)';
+const initialView = () => (typeof window !== 'undefined' && window.matchMedia?.(NARROW).matches ? 'lineas' : 'mapa');
 const COUNTRIES_URL = '/data/ied_paises.json';
 
 const NOTES = {
@@ -66,6 +69,8 @@ const useIedView = () => {
     const [regionalData, setRegionalData] = useState(null);
     const [countryData, setCountryData] = useState(undefined);
     const [direction, setDirection] = useState('inward');
+    const [chartView, setChartView] = useState(initialView);
+    const [lineBreakdown, setLineBreakdown] = useState('paises');
     const [year, setYear] = useState(null);
     const [playing, setPlaying] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
@@ -148,6 +153,22 @@ const useIedView = () => {
     }, [regional, countries]);
     const animatedValues = useTweenedValues(targetValues);
 
+    // Gráfico de líneas: principales países del sentido elegido, o regiones (solo hacia Chile).
+    const lines = useMemo(() => {
+        if (!regionalData) return null;
+        const breakdown = direction === 'inward' ? lineBreakdown : 'paises';
+        if (breakdown === 'regiones') {
+            const items = IED_GROUPS.map((group) => ({
+                id: group.id,
+                label: group.short,
+                values: regionalData.years.map((entry) => regionalData.values[group.id][entry])
+            }));
+            return { breakdown, ...lineSeries(items, regionalData.years) };
+        }
+        if (!countryData) return null;
+        return { breakdown, ...lineSeries(countryData[direction].items.filter((item) => item.kind === 'country'), countryData.years) };
+    }, [regionalData, countryData, direction, lineBreakdown]);
+
     const activeId = hoveredId || selectedId;
     const focus = useMemo(
         () => buildFocus({ direction, year: currentYear, regional, countries, activeId }),
@@ -161,6 +182,11 @@ const useIedView = () => {
         countryData,
         direction,
         chooseDirection,
+        chartView,
+        setChartView,
+        lineBreakdown,
+        setLineBreakdown,
+        lines,
         years,
         year: currentYear,
         chooseYear,

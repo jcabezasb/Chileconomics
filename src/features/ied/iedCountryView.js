@@ -63,3 +63,20 @@ export const countrySnapshot = (data, direction, year) => {
         }))
     };
 };
+
+// Series del gráfico de líneas: los `count` ítems con más stock en el último año (quien llama deja
+// fuera "Resto", continentes y no asignados, que no son un lugar). El orden fija el color de cada
+// serie, así que no cambia al moverse entre años. items: [{ id, label, values }] alineados con `years`.
+export const lineSeries = (items, years, count = 6) => {
+    const last = years.length - 1;
+    const series = items
+        .filter((item) => Number.isFinite(item.values[last]))
+        .sort((a, b) => b.values[last] - a.values[last])
+        .slice(0, count)
+        .map(({ id, label, values }) => ({ id, label, values }));
+    const rows = years.map((year, index) => ({
+        year,
+        ...Object.fromEntries(series.map((entry) => [entry.id, entry.values[index]]))
+    }));
+    return { series, rows };
+};
