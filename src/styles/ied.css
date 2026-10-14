@@ -60,6 +60,7 @@
 }
 
 .ied-region {
+    fill: color-mix(in srgb, var(--map-fill-selected) 55%, var(--map-fill));
     stroke: var(--map-stroke);
     stroke-width: 0.8;
     cursor: pointer;
@@ -101,15 +102,6 @@
     text-anchor: middle;
 }
 
-.ied-year {
-    fill: var(--text-primary);
-    fill-opacity: 0.07;
-    font-size: 76px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    pointer-events: none;
-}
-
 /* Destacado: lo activo se enciende y el resto se apaga. */
 .ied-layers.has-active .ied-ribbon {
     fill-opacity: 0.08;
@@ -133,6 +125,7 @@
 }
 
 .ied-region.is-active {
+    fill: var(--map-fill-selected);
     stroke: var(--text-primary);
     stroke-width: 1.2;
     filter: var(--map-hover-filter);
@@ -148,36 +141,6 @@
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
-}
-
-.ied-kpi {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 1rem 1.15rem;
-    background: color-mix(in srgb, var(--bg-primary) 45%, var(--bg-card));
-    border: 1px solid var(--border);
-    border-radius: 12px;
-}
-
-.ied-kpi-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-}
-
-.ied-kpi-value {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-}
-
-.ied-kpi-meta {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
 }
 
 .ied-years {
@@ -198,52 +161,115 @@
     color: var(--text-primary);
 }
 
-.ied-detail,
-.ied-detail-hint {
-    min-height: 6.2rem;
-    margin: 0;
-    padding: 0.9rem 1rem;
-    border-left: 3px solid var(--accent);
-    background: color-mix(in srgb, var(--accent) 7%, transparent);
-    border-radius: 0 10px 10px 0;
-}
-
-.ied-detail {
+.ied-focus {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    padding: 1rem 1.15rem;
+    background: color-mix(in srgb, var(--bg-primary) 45%, var(--bg-card));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
 }
 
-.ied-detail-hint {
-    display: flex;
-    align-items: center;
-    font-size: 0.9rem;
+.ied-focus-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--text-secondary);
 }
 
-.ied-detail-name {
+.ied-focus-value {
+    font-size: 1.6rem;
     font-weight: 700;
-    color: var(--text-primary);
-}
-
-.ied-detail-value {
-    font-size: 1.15rem;
-    font-weight: 600;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
 }
 
-.ied-detail-meta {
+.ied-focus-meta {
     display: flex;
-    gap: 0.9rem;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.8rem;
     font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
-.ied-detail-note {
+.ied-focus-note,
+.ied-focus-hint {
     font-size: 0.8rem;
     color: var(--text-secondary);
+}
+
+.ied-focus-note {
     font-style: italic;
+}
+
+.ied-focus-reset {
+    align-self: flex-start;
+    margin-top: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: none;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+/* Minigráfico de la evolución del stock */
+.ied-history {
+    margin: 0.6rem 0 0.2rem;
+}
+
+.ied-history svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.ied-history-area {
+    fill: var(--accent);
+    fill-opacity: 0.14;
+}
+
+.ied-history-line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+}
+
+.ied-history-point {
+    cursor: pointer;
+}
+
+.ied-history-hit {
+    fill: transparent;
+}
+
+.ied-history-dot {
+    fill: var(--bg-card);
+    stroke: var(--accent);
+    stroke-width: 1.4;
+}
+
+.ied-history-dot.is-current {
+    fill: var(--accent);
+}
+
+.ied-history-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.ied-bar-title {
+    cursor: pointer;
 }
 
 /* La lista reemplaza a las etiquetas del mapa en pantallas angostas. */
@@ -299,8 +325,7 @@
 }
 
 @media (max-width: 640px) {
-    .ied-labels,
-    .ied-year {
+    .ied-labels {
         display: none;
     }
 

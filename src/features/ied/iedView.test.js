@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { IED_GROUPS, IED_ITEMS, iedGroupOfRegion } from './iedGroups';
-import { buildIedData, iedSnapshot } from './iedView';
-import { barSegments, contiguousSpans, logIntensity, ribbonPath, ribbonTarget, spreadLabels } from './iedLayout';
+import { buildIedData, iedHistory, iedSnapshot } from './iedView';
+import { barSegments, contiguousSpans, ribbonPath, ribbonTarget, sparkline, spreadLabels } from './iedLayout';
 
 // Dos años: cada ítem vale 10 en 2024 y 20 en 2025; el total es la suma.
 const point = (year, value) => ({ date: `${year}-01-01`, value });
@@ -35,6 +35,12 @@ describe('buildIedData e iedSnapshot', () => {
     it('sin año anterior la variación queda vacía', () => {
         const snapshot = iedSnapshot(buildIedData(series), 2024);
         expect(snapshot.items[0].change).toBeNull();
+    });
+
+    it('entrega la evolución del total o de un grupo', () => {
+        const data = buildIedData(series);
+        expect(iedHistory(data, null)).toEqual([{ year: 2024, value: 10 * IED_ITEMS.length }, { year: 2025, value: 20 * IED_ITEMS.length }]);
+        expect(iedHistory(data, 'RM')).toEqual([{ year: 2024, value: 10 }, { year: 2025, value: 20 }]);
     });
 
     it('sin datos no hay años', () => {
@@ -71,11 +77,10 @@ describe('geometría', () => {
         expect(spreadLabels([99, 100], 5, 0, 100)).toEqual([95, 100]);
     });
 
-    it('la intensidad va de 0 a 1 en escala logarítmica', () => {
-        const intensity = logIntensity([1, 10, 100]);
-        expect(intensity(1)).toBe(0);
-        expect(intensity(10)).toBeCloseTo(0.5);
-        expect(intensity(100)).toBe(1);
-        expect(intensity(0)).toBeNull();
+    it('el minigráfico parte de cero y llega al máximo arriba', () => {
+        const { points, line, area } = sparkline([0, 5, 10], 100, 50);
+        expect(points).toEqual([{ x: 0, y: 50 }, { x: 50, y: 25 }, { x: 100, y: 0 }]);
+        expect(line).toBe('M0,50 L50,25 L100,0');
+        expect(area).toBe('M0,50 L50,25 L100,0 L100,50 L0,50 Z');
     });
 });

@@ -4,7 +4,7 @@ import chileTopo from '../../assets/chile.json';
 import { REGION_ID_BY_NAME } from '../../shared/constants/regions';
 import { formatNumber } from '../../shared/utils/format';
 import { IED_GROUPS, IED_ITEMS, IED_UNASSIGNED, iedGroupOfRegion } from './iedGroups';
-import { barSegments, contiguousSpans, logIntensity, ribbonPath, ribbonTarget, spreadLabels } from './iedLayout';
+import { barSegments, contiguousSpans, ribbonPath, ribbonTarget, spreadLabels } from './iedLayout';
 
 // Medidas del SVG (en sus propias unidades; se escala al ancho disponible).
 const WIDTH = 880;
@@ -17,12 +17,6 @@ const BAR_GAP = 2;
 const LABEL_GAP = 16;
 // Mercator centrado bien al oeste para que Chile quede a la derecha y la barra a la izquierda.
 const PROJECTION = { center: [-89.8, -39.3], scale: 660 };
-
-const regionFill = (intensity) => (
-    intensity === null
-        ? 'var(--map-fill)'
-        : `color-mix(in srgb, var(--map-fill-selected) ${Math.round(18 + intensity * 82)}%, var(--map-fill))`
-);
 
 // Borde (en píxeles) de las regiones de cada grupo: de ahí salen el tramo vertical y la etiqueta.
 const groupBounds = (geographies, path) => {
@@ -39,7 +33,7 @@ const groupBounds = (geographies, path) => {
     return bounds;
 };
 
-const IedLayers = ({ geographies, values, year, activeId, onHover, onSelect }) => {
+const IedLayers = ({ geographies, values, activeId, onHover, onSelect, onReset }) => {
     const { path } = useMapContext();
 
     // La geometría del mapa no cambia con el año: se calcula una vez.
@@ -65,7 +59,6 @@ const IedLayers = ({ geographies, values, year, activeId, onHover, onSelect }) =
         { top: TOP, height: BOTTOM - TOP, gap: BAR_GAP }
     );
     const segmentOf = Object.fromEntries(segments.map((segment) => [segment.id, segment]));
-    const intensity = logIntensity(IED_GROUPS.map((group) => values[group.id]));
     const mapped = IED_GROUPS.filter((group) => geometry.spans[group.id]);
     const labelYs = spreadLabels(
         mapped.map((group) => (geometry.spans[group.id].y0 + geometry.spans[group.id].y1) / 2),
@@ -91,8 +84,6 @@ const IedLayers = ({ geographies, values, year, activeId, onHover, onSelect }) =
                 </pattern>
             </defs>
 
-            <text className="ied-year" x={BAR_X + BAR_WIDTH + 14} y={BOTTOM}>{year}</text>
-
             {mapped.map((group) => {
                 const segment = segmentOf[group.id];
                 const span = geometry.spans[group.id];
@@ -106,7 +97,7 @@ const IedLayers = ({ geographies, values, year, activeId, onHover, onSelect }) =
                 );
             })}
 
-            <text className="ied-bar-title" x={BAR_X + BAR_WIDTH / 2} y={TOP - 12}>Total</text>
+            <text className="ied-bar-title" x={BAR_X + BAR_WIDTH / 2} y={TOP - 12} onClick={onReset}>Total</text>
             {segments.map((segment) => {
                 const item = IED_ITEMS.find((entry) => entry.id === segment.id);
                 const isUnassigned = segment.id === IED_UNASSIGNED.id;
@@ -134,7 +125,6 @@ const IedLayers = ({ geographies, values, year, activeId, onHover, onSelect }) =
                     key={region.key}
                     className={`ied-region${state(region.groupId)}`}
                     d={region.d}
-                    style={{ fill: regionFill(intensity(values[region.groupId])) }}
                     {...(region.groupId ? handlers(region.groupId) : {})}
                 />
             ))}
@@ -173,7 +163,8 @@ const IedLayers = ({ geographies, values, year, activeId, onHover, onSelect }) =
 
 // Barra con el stock total a la izquierda, cintas hacia cada grupo de regiones y el mapa de Chile.
 // values: { [id]: millones de US$ } (ya animados); activeId: grupo destacado o null.
-const IedRibbonMap = ({ values, year, activeId, onHover, onSelect }) => (
+// Tocar "Total" vuelve a la vista de todo Chile (onReset).
+const IedRibbonMap = ({ values, year, activeId, onHover, onSelect, onReset }) => (
     <div className="ied-chart" onMouseLeave={() => onHover(null)}>
         <ComposableMap
             projection="geoMercator"
@@ -188,10 +179,10 @@ const IedRibbonMap = ({ values, year, activeId, onHover, onSelect }) => (
                     <IedLayers
                         geographies={geographies}
                         values={values}
-                        year={year}
                         activeId={activeId}
                         onHover={onHover}
                         onSelect={onSelect}
+                        onReset={onReset}
                     />
                 )}
             </Geographies>

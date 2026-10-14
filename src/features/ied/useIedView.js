@@ -54,6 +54,7 @@ const useIedView = () => {
     }, []);
 
     const toggleSelected = useCallback((id) => setSelectedId((current) => (current === id ? null : id)), []);
+    const clearSelected = useCallback(() => setSelectedId(null), []);
 
     const snapshot = useMemo(() => (data && currentYear ? iedSnapshot(data, currentYear) : null), [data, currentYear]);
     const targetValues = useMemo(
@@ -75,9 +76,11 @@ const useIedView = () => {
         snapshot,
         animatedValues,
         activeId,
+        selectedId,
         activeItem: snapshot?.items.find((item) => item.id === activeId) || null,
         setHoveredId,
-        toggleSelected
+        toggleSelected,
+        clearSelected
     };
 };
 

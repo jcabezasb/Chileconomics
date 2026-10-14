@@ -4,7 +4,8 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { REGION_IDS } from '../../shared/constants/regions';
-import { SERIES, regionalKey } from './seriesKeys';
+import { IED_ITEMS } from '../../features/ied/iedGroups';
+import { SERIES, iedKey, regionalKey } from './seriesKeys';
 
 const payload = JSON.parse(fs.readFileSync(new URL('../../../public/data/bcch_series.json', import.meta.url), 'utf8'));
 const available = new Set(Object.keys(payload.series));
@@ -25,6 +26,11 @@ describe('bcch_series.json', () => {
             regionalKey.employed(regionId),
             regionalKey.unemploymentRate(regionId)
         ]);
+        expect(keys.filter((key) => !available.has(key))).toEqual([]);
+    });
+
+    it('tiene el stock de IED total y de cada grupo de regiones', () => {
+        const keys = [iedKey.total, ...IED_ITEMS.map((item) => iedKey.group(item.id))];
         expect(keys.filter((key) => !available.has(key))).toEqual([]);
     });
 
