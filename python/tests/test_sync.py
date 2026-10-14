@@ -17,7 +17,9 @@ def test_config_keys_and_ids_are_unique():
     config = bcch_shared.SERIES_CONFIG
     ids = [entry["id"] for entry in config.values()]
     assert len(ids) == len(set(ids))
-    assert len(config) == len(bcch_shared.NATIONAL_SERIES) + len(bcch_shared.REGIONS) * (7 + len(bcch_shared.PIB_ACTIVITIES))
+    regional = len(bcch_shared.REGIONS) * (7 + len(bcch_shared.PIB_ACTIVITIES))
+    ied = 1 + len(bcch_shared.IED_REGION_GROUPS)
+    assert len(config) == len(bcch_shared.NATIONAL_SERIES) + regional + ied
 
 
 def test_regional_codes_follow_bde_patterns():
@@ -26,6 +28,14 @@ def test_regional_codes_follow_bde_patterns():
     assert config["pob_reg_RM_m"]["id"] == "F049.POBRM.STO.INE.MT.A"
     assert config["labor_ocu_reg_VIII"]["id"] == "F049.OCU.PMT.INE9.18N.M"
     assert config["pib_reg_I_mineria"]["id"] == "F035.PIB.FLU.R.CLP.2018.03.21.Z.01.0.T"
+
+
+def test_ied_codes_follow_bde_patterns():
+    config = bcch_shared.SERIES_CONFIG
+    assert config["ied_total"]["id"] == "F068.G1.STO.Z.IED.Z.Z.Z.Z.CL.IED.6.TPA.A"
+    assert config["ied_reg_RM"]["id"] == "F068.G1.STO.Z.IED.Z.Z.Z.Z.CL.IED.6.RM.A"
+    assert config["ied_reg_XVI_VIII_IX"]["id"] == "F068.G1.STO.Z.IED.Z.Z.Z.Z.CL.IED.6.RVIIIRXVIRIX.A"
+    assert config["ied_reg_no_asignado"]["frequency"] == "A"
 
 
 def test_frontend_keys_exist_in_config():

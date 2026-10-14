@@ -42,13 +42,15 @@ python -m pytest python/tests
 - `src/features/overview/`: `IndicatorCard` y la vista de detalle en `detail/` (desgloses por
   indicador en `detail/breakdowns/`). Rango de fechas y variación en 12 meses en `useIndicatorSeries`.
 - `src/features/regional/`: `useRegionalView` (cálculos) + componentes de cada ficha.
+- `src/features/ied/`: inversión extranjera directa por región (barra, cintas y mapa; `useIedView`).
 - `src/features/pib/`: composición del PIB (`usePibComposition`).
 - `src/features/fiscal/`: finanzas públicas (DIPRES). Cálculos en `fiscalView.js`, textos de cada
   partida en `fiscalNotes.js`.
 - `src/shared/components/TrendChart.jsx`: todos los gráficos de línea (`detailed` agrega ejes).
 - `src/shared/utils/`: funciones puras con pruebas (`*.test.js`).
 - `src/styles/`: `global.css` importa las partes en orden; variables de tema en `variables.css`.
-- `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, `import_dipres.py`, pruebas en `python/tests/`.
+- `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, `import_dipres.py`,
+  `buscar_series.py` (busca códigos en el catálogo de la API), pruebas en `python/tests/`.
 
 ## Convenciones
 

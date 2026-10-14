@@ -70,6 +70,24 @@ REGIONS = [
     ("XII", "Magallanes", "12", "MA", "RMA", "22", "Z"),
 ]
 
+# Stock de inversión extranjera directa por región (anual, millones de US$). El BCCh agrupa
+# algunas regiones, así que estas claves no calzan una a una con REGIONS:
+# id del grupo -> segmento del código BDE. 'no_asignado' es lo que no se asigna a ninguna región.
+IED_REGION_GROUPS = {
+    "XV_I": "RXVRI",
+    "II": "RII",
+    "III": "RIII",
+    "IV": "RIV",
+    "V": "RV",
+    "RM": "RM",
+    "VI": "RVI",
+    "VII": "RVII",
+    "XVI_VIII_IX": "RVIIIRXVIRIX",
+    "X_XIV_XI_XII": "RXRXIVRXIRXII",
+    "no_asignado": "NA",
+}
+IED_SERIES_PREFIX = "F068.G1.STO.Z.IED.Z.Z.Z.Z.CL.IED.6"
+
 # Actividades del PIB regional: clave -> código BDE.
 PIB_ACTIVITIES = {
     "bienes": "PB",
@@ -106,6 +124,9 @@ def build_series_config():
     entries = dict(NATIONAL_SERIES)
     for region in REGIONS:
         entries.update(_regional_series(region))
+    entries["ied_total"] = (f"{IED_SERIES_PREFIX}.TPA.A", "IED stock total nacional", "A")
+    for group_id, code in IED_REGION_GROUPS.items():
+        entries[f"ied_reg_{group_id}"] = (f"{IED_SERIES_PREFIX}.{code}.A", f"IED stock {group_id}", "A")
     return {
         key: {"id": series_id, "name": name, "frequency": frequency}
         for key, (series_id, name, frequency) in entries.items()
