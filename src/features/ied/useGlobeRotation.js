@@ -14,6 +14,8 @@ const useGlobeRotation = (initial) => {
     const drag = useRef(null);
     const moved = useRef(false);
     const frame = useRef(null);
+    const pending = useRef(null);
+    const dragFrame = useRef(null);
 
     const apply = useCallback((next) => {
         rotationRef.current = next;
@@ -25,7 +27,10 @@ const useGlobeRotation = (initial) => {
         frame.current = null;
     };
 
-    useEffect(() => stopAnimation, []);
+    useEffect(() => () => {
+        stopAnimation();
+        if (dragFrame.current) cancelAnimationFrame(dragFrame.current);
+    }, []);
 
     const rotateTo = useCallback((lon, lat, duration = 700) => {
         stopAnimation();
@@ -60,7 +65,14 @@ const useGlobeRotation = (initial) => {
         const dy = event.clientY - drag.current.y;
         if (Math.abs(dx) + Math.abs(dy) > 3) moved.current = true;
         const [lambda, phi] = drag.current.rotation;
-        apply([lambda + dx * DRAG_SPEED, clampTilt(phi - dy * DRAG_SPEED)]);
+        // El mouse puede mandar más eventos que cuadros por segundo: se dibuja una vez por cuadro.
+        pending.current = [lambda + dx * DRAG_SPEED, clampTilt(phi - dy * DRAG_SPEED)];
+        if (!dragFrame.current) {
+            dragFrame.current = requestAnimationFrame(() => {
+                dragFrame.current = null;
+                if (pending.current) apply(pending.current);
+            });
+        }
     }, [apply]);
 
     const onPointerUp = useCallback((event) => {

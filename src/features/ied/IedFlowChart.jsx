@@ -1,17 +1,16 @@
-import { memo, useEffect, useMemo } from 'react';
-import { geoDistance, geoGraticule10, geoMercator, geoOrthographic, geoPath } from 'd3-geo';
+import { memo, useEffect, useMemo, useRef } from 'react';
+import { geoContains, geoDistance, geoMercator, geoOrthographic, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
-import worldTopo from 'world-atlas/countries-110m.json';
 import chileTopo from '../../assets/chile.json';
 import { REGION_ID_BY_NAME } from '../../shared/constants/regions';
 import { formatNumber } from '../../shared/utils/format';
 import { IED_GROUPS, IED_ITEMS, IED_UNASSIGNED, iedGroupOfRegion } from './iedGroups';
 import { barSegments, contiguousSpans, ribbonPath, ribbonTarget, spreadLabels } from './iedLayout';
+import GlobeCanvas from './GlobeCanvas';
+import { WORLD } from './globeData';
 import useGlobeRotation from './useGlobeRotation';
 
-const WORLD = feature(worldTopo, worldTopo.objects.countries).features;
 const CHILE = feature(chileTopo, Object.values(chileTopo.objects)[0]).features;
-const GRATICULE = geoGraticule10();
 
 // Medidas del SVG (en sus propias unidades; se escala al ancho disponible).
 const WIDTH = 1180;
@@ -68,40 +67,44 @@ const buildChile = (chileX) => {
     };
 };
 
-// Punto del globo donde llega la cinta de un país. Si está en la cara de atrás, la cinta llega al
-// borde del globo en esa dirección (y se dibuja más tenue).
-const globePoint = (projection, center, at, cx) => {
-    const [x, y] = projection(at);
-    if (geoDistance(at, center) < Math.PI / 2 - 0.05) return { x, y, back: false };
-    const dx = x - cx;
-    const dy = y - MIDDLE;
-    const length = Math.hypot(dx, dy) || 1;
-    return { x: cx + (dx / length) * GLOBE_RADIUS, y: MIDDLE + (dy / length) * GLOBE_RADIUS, back: true };
+// Punto del borde del globo donde nace la cinta de un país: a la altura del país, del lado de la
+// barra (side = 1 si la barra está a la derecha, -1 si a la izquierda). Así la cinta "sale" del globo
+// sin taparlo. Los países de la cara de atrás se marcan para dibujar su cinta más tenue.
+const globeEdgePoint = (projection, center, at, cx, side) => {
+    const [, y] = projection(at);
+    const back = geoDistance(at, center) >= Math.PI / 2 - 0.05;
+    const dy = Math.max(-GLOBE_RADIUS + 1, Math.min(GLOBE_RADIUS - 1, y - MIDDLE));
+    return { x: cx + side * Math.sqrt(GLOBE_RADIUS ** 2 - dy ** 2), y: MIDDLE + dy, back };
 };
+
+// Punto del país sobre el globo (para el marcador), o null si está en la cara de atrás.
+const globeDot = (projection, center, at) => (
+    geoDistance(at, center) < Math.PI / 2 - 0.05 ? projection(at) : null
+);
 
 const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, year, activeId, onHover, onSelect, onReset }) => {
     const layout = LAYOUT[direction];
     const inward = direction === 'inward';
     const { rotation, rotateTo, wasDrag, dragHandlers } = useGlobeRotation(layout.initialRotation);
 
-    // Al cambiar de sentido, el globo vuelve a su vista inicial (Atlántico norte o Sudamérica).
+    const svgRef = useRef(null);
+    const lastPick = useRef(null);
+
+    // País que más invierte (o mayor destino) en el año: el globo gira hasta él en cada año.
+    const leader = useMemo(() => countryItems
+        .filter((item) => item.place && Number.isFinite(item.value))
+        .reduce((best, item) => (!best || item.value > best.value ? item : best), null), [countryItems]);
     useEffect(() => {
-        const [lambda, phi] = LAYOUT[direction].initialRotation;
-        rotateTo(-lambda, -phi / 0.7, 600);
-    }, [direction, rotateTo]);
+        if (leader) rotateTo(...leader.place.at, 900);
+    }, [leader, year, direction, rotateTo]);
 
     const chile = useMemo(() => buildChile(layout.chileX), [layout.chileX]);
 
-    const globe = useMemo(() => {
-        const projection = geoOrthographic().scale(GLOBE_RADIUS).translate([layout.globeX, MIDDLE]).rotate(rotation).clipAngle(90);
-        const path = geoPath(projection);
-        return {
-            projection,
-            center: [-rotation[0], -rotation[1]],
-            countries: WORLD.map((geo) => ({ id: geo.id, d: path(geo) })).filter((geo) => geo.d),
-            graticule: path(GRATICULE)
-        };
-    }, [layout.globeX, rotation]);
+    // Proyección del globo para ubicar los países (el dibujo lo hace GlobeCanvas).
+    const globe = useMemo(() => ({
+        projection: geoOrthographic().scale(GLOBE_RADIUS).translate([layout.globeX, MIDDLE]).rotate(rotation),
+        center: [-rotation[0], -rotation[1]]
+    }), [layout.globeX, rotation]);
 
     // Si se destaca un país que está atrás, el globo gira hasta mostrarlo.
     const activeCountry = countryItems.find((item) => item.id === activeId && item.place);
@@ -121,7 +124,49 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
         : [];
     const regionSegment = Object.fromEntries(regionSegments.map((segment) => [segment.id, segment]));
     const itemById = Object.fromEntries(countryItems.map((item) => [item.id, item]));
-    const isoToItem = Object.fromEntries(countryItems.filter((item) => item.place?.iso).map((item) => [item.place.iso, item.id]));
+    const { isoToItem, dataIsos, dataCountries } = useMemo(() => {
+        const byIso = Object.fromEntries(countryItems.filter((item) => item.place?.iso).map((item) => [item.place.iso, item.id]));
+        return {
+            isoToItem: byIso,
+            dataIsos: new Set(Object.keys(byIso)),
+            dataCountries: WORLD.filter((country) => byIso[country.id])
+        };
+    }, [countryItems]);
+    const activeIso = countryItems.find((item) => item.id === activeId)?.place?.iso || null;
+
+    // País bajo el puntero en el globo: se pasa el punto de pantalla a longitud/latitud.
+    const pickCountry = (event) => {
+        const svg = svgRef.current;
+        if (!svg) return null;
+        const point = svg.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        const local = point.matrixTransform(svg.getScreenCTM().inverse());
+        const lonLat = globe.projection.invert([local.x, local.y]);
+        if (!lonLat || geoDistance(lonLat, globe.center) > Math.PI / 2) return null;
+        const hit = dataCountries.find((country) => geoContains(country.geo, lonLat));
+        return hit ? isoToItem[hit.id] : null;
+    };
+    const globeEvents = {
+        ...dragHandlers,
+        onPointerMove: (event) => {
+            dragHandlers.onPointerMove(event);
+            if (event.buttons) return;
+            const id = pickCountry(event);
+            if (id !== lastPick.current) {
+                lastPick.current = id;
+                onHover(id);
+            }
+        },
+        onPointerLeave: () => {
+            lastPick.current = null;
+            onHover(null);
+        },
+        onClick: (event) => {
+            const id = pickCountry(event);
+            if (id && !wasDrag()) onSelect(id);
+        }
+    };
 
     // Columna de países: izquierda si la inversión llega a Chile, derecha si sale.
     const countryColumnX = inward ? BAR_X : BAR_X + COLUMN + COLUMN_GAP;
@@ -149,7 +194,17 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
 
     return (
         <div className="ied-chart" onMouseLeave={() => onHover(null)}>
-            <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={inward
+            <GlobeCanvas
+                cx={layout.globeX}
+                cy={MIDDLE}
+                radius={GLOBE_RADIUS}
+                width={WIDTH}
+                height={HEIGHT}
+                rotation={rotation}
+                dataIsos={dataIsos}
+                activeIso={activeIso}
+            />
+            <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={inward
                 ? `Inversión extranjera directa en Chile por país de origen y por región, ${year}`
                 : `Inversión directa de Chile en el exterior por país de destino, ${year}`}
             >
@@ -161,11 +216,11 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                 </defs>
 
                 <g key={direction} className={`ied-layers${activeId ? ' has-active' : ''}`}>
-                    {/* Cintas de los países: van detrás del globo, así salen de su borde */}
+                    {/* Cintas de los países: salen del borde del globo */}
                     {countrySegments.map((segment) => {
                         const item = itemById[segment.id];
                         if (!item.place || segmentHeight(segment) <= 0) return null;
-                        const point = globePoint(globe.projection, globe.center, item.place.at, layout.globeX);
+                        const point = globeEdgePoint(globe.projection, globe.center, item.place.at, layout.globeX, inward ? 1 : -1);
                         const half = Math.min(4, Math.max(0.8, segmentHeight(segment) * 0.15));
                         const target = [point.y - half, point.y + half];
                         const d = inward
@@ -175,29 +230,28 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                             <path key={segment.id} className={`ied-ribbon is-country${point.back ? ' is-back' : ''}${state(segment.id)}`} d={d} {...handlers(segment.id)} />
                         );
                     })}
-                    {/* Globo (se arrastra para girarlo) */}
-                    <g className="ied-globe" {...dragHandlers}>
-                        <circle className="ied-globe-sphere" cx={layout.globeX} cy={MIDDLE} r={GLOBE_RADIUS} />
-                        <path className="ied-globe-graticule" d={globe.graticule} />
-                        {globe.countries.map((country) => {
-                            const itemId = isoToItem[country.id];
-                            return (
-                                <path
-                                    key={country.id || country.d.slice(0, 12)}
-                                    className={`ied-globe-country${itemId ? ` has-data${state(itemId)}` : ''}`}
-                                    d={country.d}
-                                    {...(itemId ? globeHandlers(itemId) : {})}
-                                />
-                            );
-                        })}
-                    </g>
+
+                    {/* Capa del globo para arrastrar y para detectar el país bajo el puntero */}
+                    <circle className="ied-globe-hit" cx={layout.globeX} cy={MIDDLE} r={GLOBE_RADIUS} {...globeEvents} />
+                    {leader ? (
+                        <text className="ied-leader-caption" x={layout.globeX} y={TOP - 12} textAnchor="middle">
+                            {inward ? 'Mayor inversionista' : 'Mayor destino'} en {year}: <tspan className="ied-leader-name">{leader.label}</tspan>
+                        </text>
+                    ) : null}
 
                     {countrySegments.map((segment) => {
                         const item = itemById[segment.id];
                         if (!item.place) return null;
-                        const point = globePoint(globe.projection, globe.center, item.place.at, layout.globeX);
-                        return point.back ? null : (
-                            <circle key={segment.id} className={`ied-globe-dot${state(segment.id)}`} cx={point.x} cy={point.y} r={activeId === segment.id ? 4 : 2.4} {...globeHandlers(segment.id)} />
+                        const dot = globeDot(globe.projection, globe.center, item.place.at);
+                        return !dot ? null : (
+                            <circle
+                                key={segment.id}
+                                className={`ied-globe-dot${state(segment.id)}${leader?.id === segment.id ? ' is-leader' : ''}`}
+                                cx={dot[0]}
+                                cy={dot[1]}
+                                r={activeId === segment.id || leader?.id === segment.id ? 4 : 2.4}
+                                {...globeHandlers(segment.id)}
+                            />
                         );
                     })}
 

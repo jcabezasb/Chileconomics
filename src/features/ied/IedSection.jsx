@@ -7,6 +7,7 @@ import { downloadCsv } from '../../shared/utils/download';
 import { IED_GROUPS, IED_UNASSIGNED } from './iedGroups';
 import IedFlowChart from './IedFlowChart';
 import IedHistory from './IedHistory';
+import IedLinesChart from './IedLinesChart';
 import { formatChange, formatMillions, formatShare, iedTable } from './iedTable';
 import useIedView from './useIedView';
 import '../../styles/ied.css';
@@ -15,11 +16,19 @@ const DIRECTIONS = [
     { id: 'inward', label: 'Hacia Chile' },
     { id: 'outward', label: 'Desde Chile' }
 ];
+const VIEWS = [
+    { id: 'mapa', label: 'Mapa' },
+    { id: 'lineas', label: 'Líneas' }
+];
+const BREAKDOWNS = [
+    { id: 'paises', label: 'Países' },
+    { id: 'regiones', label: 'Regiones' }
+];
 const LIST_SIZE = 10;
 
 // Ficha de lo destacado (todo Chile si no hay nada), con la evolución del stock.
 const FocusCard = ({ view }) => {
-    const { focus, year, selectedId, clearSelected, chooseYear } = view;
+    const { focus, year, selectedId, clearSelected, chooseYear, chartView } = view;
     if (!focus) return null;
     return (
         <div className={`ied-focus${focus.isTotal ? ' is-chile' : ''}`}>
@@ -33,7 +42,11 @@ const FocusCard = ({ view }) => {
             <IedHistory history={focus.history} year={year} onChooseYear={chooseYear} />
             {focus.note ? <span className="ied-focus-note">{focus.note}</span> : null}
             {focus.isTotal ? (
-                <span className="ied-focus-hint">Pasa el mouse (o toca) un país, la barra o una región. Arrastra el globo para girarlo.</span>
+                <span className="ied-focus-hint">
+                    {chartView === 'mapa'
+                        ? 'Pasa el mouse (o toca) un país, la barra o una región. Arrastra el globo para girarlo.'
+                        : 'Pasa el mouse (o toca) una línea o la leyenda. Toca el gráfico para elegir un año.'}
+                </span>
             ) : null}
             {selectedId ? (
                 <button type="button" className="ied-focus-reset" onClick={clearSelected}>Volver a todo Chile</button>
@@ -75,20 +88,25 @@ const FocusList = ({ view }) => {
 };
 
 // Inversión extranjera directa: el globo con los países, la barra del stock total y el mapa de Chile
-// por región. El botón "Desde Chile" invierte el sentido: dónde invierte Chile en el exterior.
+// por región (o, con el botón "Líneas", la evolución de los principales). "Desde Chile" invierte el
+// sentido: dónde invierte Chile en el exterior. Toda la sección cabe en una pantalla.
 const IedSection = ({ sectionRef }) => {
     const view = useIedView();
-    const { loading, hasCountries, direction, chooseDirection, years, year, chooseYear, playing, togglePlay, regional, countries, animatedValues, activeId } = view;
+    const {
+        loading, hasCountries, direction, chooseDirection, chartView, setChartView, lineBreakdown, setLineBreakdown, lines,
+        years, year, chooseYear, playing, togglePlay, regional, countries, animatedValues, activeId
+    } = view;
     const [table, setTable] = useState(null);
     const closeTable = useCallback(() => setTable(null), []);
+    const inward = direction === 'inward';
 
     return (
         <section className="ied-section reveal reveal-delay-2" ref={sectionRef}>
             <div className="regional-card ied-card">
-                <div className="regional-header ied-header">
+                <div className="ied-header">
                     <h2 className="regional-title">Inversión Extranjera Directa</h2>
                     <p className="regional-subtitle">
-                        {direction === 'inward'
+                        {inward
                             ? 'De qué países viene la inversión extranjera en Chile y en qué regiones está.'
                             : 'En qué países invierten las empresas chilenas.'}
                     </p>
@@ -102,9 +120,15 @@ const IedSection = ({ sectionRef }) => {
                 {regional && animatedValues ? (
                     <>
                         <div className="ied-toolbar">
-                            {hasCountries ? (
-                                <Segmented ariaLabel="Sentido de la inversión" options={DIRECTIONS} value={direction} onChange={chooseDirection} />
-                            ) : <span />}
+                            <div className="ied-toolbar-group">
+                                {hasCountries ? (
+                                    <Segmented ariaLabel="Sentido de la inversión" options={DIRECTIONS} value={direction} onChange={chooseDirection} />
+                                ) : null}
+                                <Segmented ariaLabel="Tipo de gráfico" options={VIEWS} value={chartView} onChange={setChartView} />
+                                {chartView === 'lineas' && inward ? (
+                                    <Segmented ariaLabel="Líneas por" options={BREAKDOWNS} value={lineBreakdown} onChange={setLineBreakdown} />
+                                ) : null}
+                            </div>
                             <div className="ied-years">
                                 <IconButton
                                     icon={playing ? Pause : Play}
@@ -126,35 +150,49 @@ const IedSection = ({ sectionRef }) => {
                             </div>
                         </div>
 
-                        <IedFlowChart
-                            direction={direction}
-                            regionValues={animatedValues}
-                            countryItems={countries?.items || []}
-                            countryValues={animatedValues}
-                            year={year}
-                            activeId={activeId}
-                            onHover={view.setHoveredId}
-                            onSelect={view.toggleSelected}
-                            onReset={view.clearSelected}
-                        />
-
-                        <div className="ied-panel">
-                            <FocusCard view={view} />
-                            <FocusList view={view} />
-                            <div className="ied-notes">
-                                <p className="ied-footnote">
-                                    Stock (monto acumulado) a fin de cada año, en millones de dólares. El país es el del
-                                    inversionista inmediato, que puede diferir del dueño final (por eso aparecen países
-                                    como Países Bajos o Bermudas). Algunas regiones y países se publican agrupados.
-                                    Fuente: Banco Central de Chile.
-                                </p>
-                                <IconButton
-                                    icon={Table2}
-                                    label="Ver tabla"
-                                    showLabel
-                                    onClick={() => setTable(iedTable({ ...view, year }))}
-                                />
+                        <div className="ied-body">
+                            <div className={`ied-stage is-${chartView}`}>
+                                {chartView === 'mapa' ? (
+                                    <IedFlowChart
+                                        direction={direction}
+                                        regionValues={animatedValues}
+                                        countryItems={countries?.items || []}
+                                        countryValues={animatedValues}
+                                        year={year}
+                                        activeId={activeId}
+                                        onHover={view.setHoveredId}
+                                        onSelect={view.toggleSelected}
+                                        onReset={view.clearSelected}
+                                    />
+                                ) : lines ? (
+                                    <IedLinesChart
+                                        series={lines.series}
+                                        rows={lines.rows}
+                                        year={year}
+                                        activeId={activeId}
+                                        onHover={view.setHoveredId}
+                                        onSelect={view.toggleSelected}
+                                        onChooseYear={chooseYear}
+                                    />
+                                ) : null}
                             </div>
+
+                            <aside className="ied-side">
+                                <FocusCard view={view} />
+                                <FocusList view={view} />
+                                <div className="ied-notes">
+                                    <p className="ied-footnote">
+                                        Stock a fin de año, millones de US$. País del inversionista inmediato (puede
+                                        diferir del dueño final). Fuente: Banco Central de Chile.
+                                    </p>
+                                    <IconButton
+                                        icon={Table2}
+                                        label="Ver tabla"
+                                        showLabel
+                                        onClick={() => setTable(iedTable({ ...view, year }))}
+                                    />
+                                </div>
+                            </aside>
                         </div>
                     </>
                 ) : null}
