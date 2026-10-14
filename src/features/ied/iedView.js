@@ -32,3 +32,9 @@ export const iedSnapshot = (data, year) => {
     });
     return { year, total, totalChange: percentChange(total, data.total[year - 1]), items };
 };
+
+// Evolución del stock de un grupo (o del total nacional si id es null): [{ year, value }].
+export const iedHistory = (data, id) => data.years.map((year) => ({
+    year,
+    value: id ? data.values[id][year] : data.total[year]
+}));

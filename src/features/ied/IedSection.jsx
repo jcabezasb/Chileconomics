@@ -5,34 +5,41 @@ import DataTableModal from '../../shared/components/DataTableModal';
 import { IconButton } from '../../shared/components/controls';
 import { downloadCsv } from '../../shared/utils/download';
 import { IED_GROUPS, IED_UNASSIGNED } from './iedGroups';
+import IedHistory from './IedHistory';
 import IedRibbonMap from './IedRibbonMap';
 import { formatChange, formatMillions, formatShare, iedTable } from './iedTable';
+import { iedHistory } from './iedView';
 import useIedView from './useIedView';
 import '../../styles/ied.css';
 
 const GROUPED_NOTE = 'El Banco Central publica estas regiones juntas.';
 const UNASSIGNED_NOTE = 'Parte del stock que el Banco Central no asigna a ninguna región.';
 
-// Ficha del grupo destacado (o una invitación a explorar si no hay ninguno).
-const ActiveDetail = ({ item, year }) => {
-    if (!item) {
-        return (
-            <p className="ied-detail-hint">
-                Pasa el mouse (o toca) una región, la barra o una cinta para ver cuánto recibe.
-            </p>
-        );
-    }
-    const group = IED_GROUPS.find((entry) => entry.id === item.id);
-    const note = item.id === IED_UNASSIGNED.id ? UNASSIGNED_NOTE : group?.regions.length > 1 ? GROUPED_NOTE : null;
+// Ficha principal: Chile (total nacional) si no hay nada destacado; si no, la región destacada.
+// Incluye la evolución del stock 2012 en adelante.
+const FocusCard = ({ view }) => {
+    const { snapshot, activeItem: item, data, year, selectedId, clearSelected, chooseYear } = view;
+    const isChile = !item;
+    const group = item ? IED_GROUPS.find((entry) => entry.id === item.id) : null;
+    const note = item?.id === IED_UNASSIGNED.id ? UNASSIGNED_NOTE : group?.regions.length > 1 ? GROUPED_NOTE : null;
+
     return (
-        <div className="ied-detail">
-            <span className="ied-detail-name">{item.label}</span>
-            <span className="ied-detail-value">US$ {formatMillions(item.value)} millones</span>
-            <span className="ied-detail-meta">
-                <span>{formatShare(item.share)} del total</span>
-                <span>{formatChange(item.change)} vs {year - 1}</span>
+        <div className={`ied-focus${isChile ? ' is-chile' : ''}`}>
+            <span className="ied-focus-label">{isChile ? 'Chile · stock total' : item.label} · {year}</span>
+            <span className="ied-focus-value">US$ {formatMillions(isChile ? snapshot.total : item.value)}</span>
+            <span className="ied-focus-meta">
+                <span>millones</span>
+                <span>{formatChange(isChile ? snapshot.totalChange : item.change)} vs {year - 1}</span>
+                {isChile ? null : <span>{formatShare(item.share)} del total</span>}
             </span>
-            {note ? <span className="ied-detail-note">{note}</span> : null}
+            <IedHistory history={iedHistory(data, item?.id || null)} year={year} onChooseYear={chooseYear} />
+            {note ? <span className="ied-focus-note">{note}</span> : null}
+            {isChile ? (
+                <span className="ied-focus-hint">Pasa el mouse (o toca) una región, la barra o una cinta para ver su detalle.</span>
+            ) : null}
+            {selectedId ? (
+                <button type="button" className="ied-focus-reset" onClick={clearSelected}>Volver a todo Chile</button>
+            ) : null}
         </div>
     );
 };
@@ -41,7 +48,7 @@ const ActiveDetail = ({ item, year }) => {
 // regiones y el mapa de Chile. Se puede recorrer año a año (2012 en adelante).
 const IedSection = ({ sectionRef }) => {
     const view = useIedView();
-    const { loading, years, year, chooseYear, playing, togglePlay, snapshot, animatedValues, activeId, activeItem } = view;
+    const { loading, years, year, chooseYear, playing, togglePlay, snapshot, animatedValues, activeId } = view;
     const [table, setTable] = useState(null);
     const closeTable = useCallback(() => setTable(null), []);
 
@@ -68,16 +75,11 @@ const IedSection = ({ sectionRef }) => {
                             activeId={activeId}
                             onHover={view.setHoveredId}
                             onSelect={view.toggleSelected}
+                            onReset={view.clearSelected}
                         />
 
                         <aside className="ied-panel">
-                            <div className="ied-kpi">
-                                <span className="ied-kpi-label">Stock total {year}</span>
-                                <span className="ied-kpi-value">US$ {formatMillions(snapshot.total)}</span>
-                                <span className="ied-kpi-meta">
-                                    millones · {formatChange(snapshot.totalChange)} vs {year - 1}
-                                </span>
-                            </div>
+                            <FocusCard view={view} />
 
                             <div className="ied-years">
                                 <IconButton
@@ -98,8 +100,6 @@ const IedSection = ({ sectionRef }) => {
                                 />
                                 <span className="ied-year-value">{year}</span>
                             </div>
-
-                            <ActiveDetail item={activeItem} year={year} />
 
                             <ul className="ied-list" aria-label="Stock por región">
                                 {[...IED_GROUPS, IED_UNASSIGNED].map((group) => {

@@ -53,14 +53,15 @@ export const spreadLabels = (ys, minGap, top, bottom) => {
     return out;
 };
 
-// Intensidad 0-1 en escala logarítmica (como el mapa regional): la RM no aplasta al resto.
-export const logIntensity = (values) => {
-    const logs = values.filter((value) => Number.isFinite(value) && value > 0).map(Math.log);
-    if (!logs.length) return () => null;
-    const min = Math.min(...logs);
-    const max = Math.max(...logs);
-    return (value) => {
-        if (!Number.isFinite(value) || value <= 0) return null;
-        return max === min ? 1 : (Math.log(value) - min) / (max - min);
-    };
+// Minigráfico de la evolución del stock: línea y área desde cero dentro de width × height.
+export const sparkline = (values, width, height) => {
+    const max = Math.max(0, ...values.filter(Number.isFinite));
+    const step = values.length > 1 ? width / (values.length - 1) : 0;
+    const points = values.map((value, index) => ({
+        x: round(index * step),
+        y: round(max ? height - (value / max) * height : height)
+    }));
+    const line = points.map((point, index) => `${index ? 'L' : 'M'}${point.x},${point.y}`).join(' ');
+    const area = points.length ? `${line} L${points[points.length - 1].x},${height} L${points[0].x},${height} Z` : '';
+    return { points, line, area };
 };
