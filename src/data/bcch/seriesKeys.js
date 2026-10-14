@@ -58,3 +58,10 @@ export const regionalKey = {
     employed: (regionId) => `labor_ocu_reg_${regionId}`,
     unemploymentRate: (regionId) => `labor_des_reg_${regionId}`
 };
+
+// Inversión extranjera directa: stock anual en millones de US$, total y por grupo de regiones
+// (ver features/ied/iedGroups.js).
+export const iedKey = {
+    total: 'ied_total',
+    group: (groupId) => `ied_reg_${groupId}`
+};
