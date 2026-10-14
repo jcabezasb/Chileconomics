@@ -1,0 +1,49 @@
+# Busca series en el catálogo de la API del Banco Central usando las credenciales guardadas
+# en GitHub. Se corre a mano desde la pestaña Actions ("Run workflow") escribiendo las
+# palabras a buscar; el resultado aparece en el registro del paso "Buscar".
+name: Buscar series BCCh
+
+on:
+  workflow_dispatch:
+    inputs:
+      palabras:
+        description: 'Palabras del título (ej.: inversion directa)'
+        required: true
+  # Temporal: corre las búsquedas de IED por país al subir esta rama.
+  push:
+    branches: [claude/epic-fermi-sipcg0]
+    paths:
+      - .github/workflows/buscar-series.yml
+      - python/buscar_series.py
+
+permissions:
+  contents: read
+
+jobs:
+  buscar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Buscar
+        env:
+          BCCH_USER: ${{ secrets.BCCH_USER }}
+          BCCH_PASSWORD: ${{ secrets.BCCH_PASSWORD }}
+          PALABRAS: ${{ github.event.inputs.palabras }}
+        run: |
+          if [ -n "$PALABRAS" ]; then
+            python python/buscar_series.py $PALABRAS
+          else
+            python python/buscar_series.py inversion directa
+            python python/buscar_series.py inversion extranjera
+            python python/buscar_series.py direct investment
+            python python/buscar_series.py canada
+          fi
