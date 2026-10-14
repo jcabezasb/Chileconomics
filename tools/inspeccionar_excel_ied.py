@@ -35,15 +35,27 @@ def links(page):
 
 
 def show_sheet(name, rows):
+    """Cada fila: etiquetas completas, cuántos números tiene, el primero y el último."""
     rows = [[("" if c is None else str(c)).strip() for c in row] for row in rows]
-    rows = [row for row in rows if any(row)]
-    print(f"\n--- hoja {name!r}: {len(rows)} filas con datos")
-    for i, row in enumerate(rows[:45]):
-        print(f"  {i:3d} | " + " | ".join(c[:28] for c in row[:16]))
-    if len(rows) > 45:
-        print("  ...")
-        for row in rows[-8:]:
-            print("      | " + " | ".join(c[:28] for c in row[:16]))
+    print(f"\n--- hoja {name!r}: {len(rows)} filas")
+    for i, row in enumerate(rows):
+        if not any(row):
+            continue
+        labels = [c for c in row if c and not _is_number(c)]
+        numbers = [c for c in row if _is_number(c)]
+        if len(numbers) > 3 and all(float(n).is_integer() and 1990 < float(n) < 2100 for n in numbers):
+            print(f"  {i:3d} AÑOS {numbers[0]}..{numbers[-1]} ({len(numbers)} columnas)")
+            continue
+        detail = f" | {len(numbers)} valores, primero {float(numbers[0]):.1f}, último {float(numbers[-1]):.1f}" if numbers else ""
+        print(f"  {i:3d} " + " / ".join(labels) + detail)
+
+
+def _is_number(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
 
 
 def inspect(url):
@@ -75,7 +87,7 @@ def main():
                     candidates.append(url)
         except requests.RequestException as error:
             print(f"Error en {page}: {error}")
-    candidates = list(dict.fromkeys(candidates))
+    candidates = [url for url in dict.fromkeys(candidates) if "Anual/IED_pais" in url]
     print(f"\n=== {len(candidates)} planillas candidatas")
     for url in candidates[:8]:
         try:
