@@ -1,0 +1,32 @@
+# Temporal: genera public/data/proyecciones.json con el importador (fuentes públicas, sin
+# credenciales) y lo guarda en esta rama para revisar la vista previa. Se borra antes del merge.
+name: Generar proyecciones
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/epic-fermi-sipcg0]
+    paths:
+      - python/import_proyecciones.py
+      - .github/workflows/generar-proyecciones.yml
+
+permissions:
+  contents: write
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: python python/import_proyecciones.py
+      - name: Guardar el JSON en la rama
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add public/data/proyecciones.json
+          git diff --staged --quiet || git commit -m "data: proyecciones (generado por import_proyecciones.py)"
+          git push
