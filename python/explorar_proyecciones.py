@@ -2,7 +2,7 @@
 
 import io
 import re
-import sys
+from urllib.parse import quote
 
 import pandas as pd
 import requests
@@ -12,70 +12,38 @@ UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/1
 
 def get(url, **kw):
     try:
-        r = requests.get(url, headers=UA, timeout=90, **kw)
-        print(f"\n=== {url} -> {r.status_code} {r.headers.get('content-type')} {len(r.content)} bytes")
+        r = requests.get(url, headers=UA, timeout=120, **kw)
+        print(f"\n=== {url} -> {r.status_code} {r.headers.get('content-type')} {len(r.content)} bytes", flush=True)
         return r
     except Exception as exc:  # noqa: BLE001
-        print(f"\n=== {url} -> ERROR {exc}")
+        print(f"\n=== {url} -> ERROR {exc}", flush=True)
         return None
 
 
-def show_text(r, n=1500):
-    if r is not None and r.ok:
-        print(r.text[:n])
-
-
-def links(r, pattern):
-    if r is None or not r.ok:
-        return []
-    found = sorted(set(re.findall(r'href="([^"]+)"', r.text)))
-    hits = [h for h in found if re.search(pattern, h, re.I)]
-    for h in hits[:80]:
-        print("  ", h)
-    return hits
-
-
-def show_excel(r, rows=25):
-    if r is None or not r.ok:
-        return
-    try:
-        book = pd.read_excel(io.BytesIO(r.content), sheet_name=None, header=None)
-    except Exception as exc:  # noqa: BLE001
-        print("no es Excel:", exc, r.content[:200])
-        return
+# Banco Central: Excel histórico de proyecciones del IPoM
+page = get("https://www.bcentral.cl/web/banco-central/areas/politica-monetaria/informe-de-politica-monetaria")
+link = next((h for h in re.findall(r'href="([^"]+)"', page.text) if "Proyecciones IPoM" in h), None)
+print("link:", link)
+if link:
+    r = get("https://www.bcentral.cl" + quote(link, safe="/-"))
+    book = pd.read_excel(io.BytesIO(r.content), sheet_name=None, header=None)
     for name, frame in book.items():
-        print(f"--- hoja {name!r} {frame.shape}")
-        print(frame.head(rows).to_string(max_cols=14, max_colwidth=40))
+        print(f"\n--- hoja {name!r} {frame.shape}")
+        print(frame.head(60).to_string(max_cols=40, max_colwidth=22))
 
-
-# FMI
-show_text(get("https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH/CHL"))
-show_text(get("https://www.imf.org/external/datamapper/api/v1"), 800)
-show_text(get("https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH/CHL/WLD/ARG/PER/COL/MEX/BRA"), 3000)
-for url in [
-    "https://www.imf.org/-/media/Files/Publications/WEO/WEO-Database/WEOhistorical.xlsx",
-    "https://www.imf.org/-/media/Files/Research/WEO/WEOhistorical.xlsx",
-]:
-    r = get(url)
-    if r is not None and r.ok and len(r.content) > 10000:
-        book = pd.read_excel(io.BytesIO(r.content), sheet_name=None, header=None, nrows=8)
-        for name, frame in book.items():
-            print(f"--- hoja {name!r}")
-            print(frame.to_string(max_cols=12, max_colwidth=25))
-        full = pd.read_excel(io.BytesIO(r.content), sheet_name="ngdp_rpch") if "ngdp_rpch" in book else None
-        if full is not None:
-            print(full[full.iloc[:, 0].astype(str).str.contains("CHL|Chile")].iloc[:, :12].to_string())
-            print("columnas:", list(full.columns)[:5], "...", list(full.columns)[-5:])
-        break
-show_text(get("https://api.imf.org/external/sdmx/2.1/data/IMF.RES,WEO/CHL.NGDP_RPCH.A"), 1500)
-r = get("https://www.imf.org/en/Publications/WEO/weo-database/2025/october")
-links(r, r"xls|ashx|download")
-
-# Banco Central: IPoM y EEE
-r = get("https://www.bcentral.cl/web/banco-central/areas/politica-monetaria/informe-de-politica-monetaria")
-links(r, r"xls|ipom|proyecc")
-r = get("https://www.bcentral.cl/web/banco-central/areas/encuestas-economicas/encuesta-expectativas-economicas")
-hits = links(r, r"xls|eee|expectativas")
-r = get("https://www.bcentral.cl/web/banco-central/areas/politica-monetaria/informe-de-politica-monetaria/proyecciones-del-ipom")
-links(r, r"xls|proyecc")
-sys.exit(0)
+# FMI: API SDMX. Estructura de la respuesta y versiones del WEO
+r = get("https://api.imf.org/external/sdmx/2.1/data/IMF.RES,WEO/CHL.NGDP_RPCH.A")
+print(r.text[1500:7000])
+r = get("https://api.imf.org/external/sdmx/2.1/dataflow/IMF.RES/all/all")
+if r is not None and r.ok:
+    for m in re.finditer(r'<str:Dataflow[^>]*id="([^"]+)"[^>]*version="([^"]+)"', r.text):
+        print("  dataflow", m.group(1), m.group(2))
+    print(r.text[:1500])
+for version in ["1.0.0", "2.0.0", "3.0.0", "4.0.0", "5.0.0", "6.0.0", "7.0.0", "8.0.0", "9.0.0"]:
+    r = get(f"https://api.imf.org/external/sdmx/2.1/data/IMF.RES,WEO,{version}/CHL.NGDP_RPCH.A")
+    if r is not None and r.ok:
+        pub = re.search(r'PUBLICATION_DATE="([^"]+)"', r.text)
+        obs = re.findall(r'TIME_PERIOD="(\d{4})"[^>]*OBS_VALUE="([^"]+)"', r.text)
+        print("  publicado:", pub.group(1) if pub else None, "obs:", obs[-10:])
+r = get("https://api.imf.org/external/sdmx/2.1/data/IMF.RES,WEO/CHL+WLD+G001.NGDP_RPCH.A?startPeriod=2020")
+print(r.text[:300] if r is not None else "")
