@@ -28,7 +28,7 @@ const RegionalSection = ({ sectionRef, theme, regionalData, realPibData, populat
 
     return (
         <>
-            <section className="regional-section reveal reveal-delay-2" ref={sectionRef} style={{ padding: '4rem 0' }}>
+            <section className="regional-section reveal reveal-delay-2" ref={sectionRef}>
                 <div className="regional-card">
                     <div className="regional-header">
                         <h2 className="regional-title">Análisis Geográfico y Demográfico</h2>

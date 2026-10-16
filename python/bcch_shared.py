@@ -7,6 +7,8 @@ las referencia por esa clave (ver src/data/bcch/seriesKeys.js). Para agregar una
 3. Usar la clave en el frontend.
 """
 
+from datetime import date
+
 # Frecuencias: D diaria, M mensual, T trimestral, A anual.
 NATIONAL_SERIES = {
     # Cuentas nacionales (miles de millones de pesos, referencia 2018)
@@ -88,6 +90,25 @@ IED_REGION_GROUPS = {
 }
 IED_SERIES_PREFIX = "F068.G1.STO.Z.IED.Z.Z.Z.Z.CL.IED.6"
 
+# Encuesta de Expectativas Económicas (EEE): mediana del crecimiento del PIB que esperan los
+# economistas para un año (una serie por año proyectado, una observación por encuesta mensual).
+# Desde 2019 el código lleva el año; antes, un número propio de cada serie.
+EEE_PIB_OLD_CODES = {
+    2010: "22", 2011: "23", 2012: "31", 2013: "36", 2014: "37", 2015: "38", 2016: "39", 2017: "80", 2018: "81",
+}
+EEE_FIRST_YEAR = 2010
+EEE_YEARS_AHEAD = 3  # la encuesta pregunta hasta dos años más allá del actual; uno extra por si se adelanta
+
+
+def eee_pib_years(today=None):
+    """Años proyectados que se sincronizan: desde 2010 hasta unos años adelante del actual."""
+    return range(EEE_FIRST_YEAR, (today or date.today()).year + EEE_YEARS_AHEAD + 1)
+
+
+def eee_pib_code(year):
+    return f"F089.PIB.V12.{EEE_PIB_OLD_CODES.get(year, year)}.M"
+
+
 # Actividades del PIB regional: clave -> código BDE.
 PIB_ACTIVITIES = {
     "bienes": "PB",
@@ -127,6 +148,8 @@ def build_series_config():
     entries["ied_total"] = (f"{IED_SERIES_PREFIX}.TPA.A", "IED stock total nacional", "A")
     for group_id, code in IED_REGION_GROUPS.items():
         entries[f"ied_reg_{group_id}"] = (f"{IED_SERIES_PREFIX}.{code}.A", f"IED stock {group_id}", "A")
+    for year in eee_pib_years():
+        entries[f"eee_pib_{year}"] = (eee_pib_code(year), f"Expectativas PIB {year} (EEE, mediana)", "M")
     return {
         key: {"id": series_id, "name": name, "frequency": frequency}
         for key, (series_id, name, frequency) in entries.items()

@@ -44,3 +44,24 @@ describe('bcch_series.json', () => {
         });
     });
 });
+
+// public/data/proyecciones.json (python/import_proyecciones.py): ediciones del IPoM y del FMI.
+const projections = JSON.parse(fs.readFileSync(new URL('../../../public/data/proyecciones.json', import.meta.url), 'utf8'));
+
+describe('proyecciones.json', () => {
+    it.each(['ipom', 'weo'])('%s trae ediciones ordenadas con fecha, nombre y valores por año', (key) => {
+        const vintages = projections[key]?.vintages || [];
+        expect(vintages.length).toBeGreaterThan(0);
+        const dates = vintages.map((vintage) => vintage.date);
+        expect([...dates].sort()).toEqual(dates);
+        vintages.forEach((vintage) => {
+            expect(vintage.date).toMatch(/^\d{4}-\d{2}-01$/);
+            expect(vintage.label).toBeTruthy();
+            Object.entries(vintage.values).forEach(([year, value]) => {
+                expect(year).toMatch(/^\d{4}$/);
+                const numbers = key === 'ipom' ? value : [value];
+                expect(numbers.every(Number.isFinite), `${vintage.label} ${year}`).toBe(true);
+            });
+        });
+    });
+});

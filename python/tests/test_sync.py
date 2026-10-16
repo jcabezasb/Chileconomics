@@ -19,7 +19,8 @@ def test_config_keys_and_ids_are_unique():
     assert len(ids) == len(set(ids))
     regional = len(bcch_shared.REGIONS) * (7 + len(bcch_shared.PIB_ACTIVITIES))
     ied = 1 + len(bcch_shared.IED_REGION_GROUPS)
-    assert len(config) == len(bcch_shared.NATIONAL_SERIES) + regional + ied
+    eee = len(bcch_shared.eee_pib_years())
+    assert len(config) == len(bcch_shared.NATIONAL_SERIES) + regional + ied + eee
 
 
 def test_regional_codes_follow_bde_patterns():
@@ -36,6 +37,16 @@ def test_ied_codes_follow_bde_patterns():
     assert config["ied_reg_RM"]["id"] == "F068.G1.STO.Z.IED.Z.Z.Z.Z.CL.IED.6.RM.A"
     assert config["ied_reg_XVI_VIII_IX"]["id"] == "F068.G1.STO.Z.IED.Z.Z.Z.Z.CL.IED.6.RVIIIRXVIRIX.A"
     assert config["ied_reg_no_asignado"]["frequency"] == "A"
+
+
+def test_eee_codes_follow_bde_patterns():
+    from datetime import date
+
+    assert bcch_shared.eee_pib_code(2012) == "F089.PIB.V12.31.M"
+    assert bcch_shared.eee_pib_code(2018) == "F089.PIB.V12.81.M"
+    assert bcch_shared.eee_pib_code(2026) == "F089.PIB.V12.2026.M"
+    assert list(bcch_shared.eee_pib_years(date(2026, 10, 1)))[-1] == 2029
+    assert bcch_shared.SERIES_CONFIG["eee_pib_2010"]["id"] == "F089.PIB.V12.22.M"
 
 
 def test_frontend_keys_exist_in_config():

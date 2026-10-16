@@ -14,8 +14,9 @@ español, y preferir soluciones simples y legibles.
 - `main` es producción (Vercel publica cada push). Trabajar en ramas; la vista previa de Vercel y el
   CI (`.github/workflows/ci.yml`) validan antes del merge.
 - `public/data/bcch_series.json` lo genera `python/sync_bcch_data.py`,
-  `public/data/finanzas_publicas.json` lo genera `python/import_dipres.py` e
-  `public/data/ied_paises.json` lo genera `python/import_ied_paises.py`: no editarlos a mano.
+  `public/data/finanzas_publicas.json` lo genera `python/import_dipres.py`,
+  `public/data/ied_paises.json` lo genera `python/import_ied_paises.py` y
+  `public/data/proyecciones.json` lo genera `python/import_proyecciones.py`: no editarlos a mano.
 - Las series se referencian por **clave** (`dolar`, `pib_reg_RM`), definidas en
   `python/bcch_shared.py` y `src/data/bcch/seriesKeys.js`. Nunca por el código del Banco Central
   dentro del frontend.
@@ -33,6 +34,7 @@ npm run build
 npm run sync-data    # requiere .env con BCCH_USER/BCCH_PASSWORD y el venv de Python activo
 npm run import-dipres -- informe.xlsx   # finanzas públicas, cada trimestre
 npm run import-ied-paises               # IED por país (también corre solo en la sincronización)
+npm run import-proyecciones             # IPoM y FMI (también corre solo en la sincronización)
 python -m pytest python/tests
 ```
 
@@ -44,6 +46,10 @@ python -m pytest python/tests
 - `src/features/overview/`: `IndicatorCard` y la vista de detalle en `detail/` (desgloses por
   indicador en `detail/breakdowns/`). Rango de fechas y variación en 12 meses en `useIndicatorSeries`.
 - `src/features/regional/`: `useRegionalView` (cálculos) + componentes de cada ficha.
+- `src/features/datos/`: `DatosPage` con el menú de secciones (solo se muestra la elegida, que va en
+  la URL: `/datos#ied`).
+- `src/features/proyecciones/`: proyecciones de crecimiento (EEE, IPoM y FMI). Cálculos en
+  `projectionsView.js`; vistas "Por año" y "Revisiones".
 - `src/features/ied/`: inversión extranjera directa: globo, barra y mapa de Chile (`IedFlowChart`),
   hacia Chile o desde Chile. Datos y estado en `useIedView`; geometría pura en `iedLayout.js`.
 - `src/features/pib/`: composición del PIB (`usePibComposition`).
@@ -53,7 +59,7 @@ python -m pytest python/tests
 - `src/shared/utils/`: funciones puras con pruebas (`*.test.js`).
 - `src/styles/`: `global.css` importa las partes en orden; variables de tema en `variables.css`.
 - `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, `import_dipres.py`,
-  `import_ied_paises.py` (Excel de IED por país), `buscar_series.py` (busca códigos en el catálogo
+  `import_ied_paises.py` (Excel de IED por país), `import_proyecciones.py` (IPoM y FMI), `buscar_series.py` (busca códigos en el catálogo
   de la API), pruebas en `python/tests/`.
 
 ## Convenciones
