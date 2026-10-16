@@ -1,0 +1,321 @@
+/* Proyecciones de crecimiento (ProjectionsSection). Como la IED, la sección cabe en una pantalla:
+   el gráfico y el panel tienen un alto ligado al de la ventana (--proj-stage-h). */
+
+.proj-section {
+    --proj-stage-h: clamp(300px, calc(100vh - 300px), 520px);
+    /* Colores categóricos en orden fijo (validados para daltonismo en claro y oscuro); el efectivo es
+       neutro para que las proyecciones resalten. */
+    --proj-eee: #2a78d6;
+    --proj-ipom: #eb6834;
+    --proj-weo: #1baf7a;
+    --proj-actual: #a3adbb;
+    padding: 2rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .proj-section {
+        --proj-eee: #3987e5;
+        --proj-ipom: #d95926;
+        --proj-weo: #199e70;
+        --proj-actual: #5b6678;
+    }
+}
+
+[data-theme="dark"] .proj-section {
+    --proj-eee: #3987e5;
+    --proj-ipom: #d95926;
+    --proj-weo: #199e70;
+    --proj-actual: #5b6678;
+}
+
+.regional-card.proj-card {
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.proj-header {
+    margin-bottom: 0.9rem;
+    text-align: center;
+}
+
+.proj-header .regional-subtitle {
+    margin: 0.25rem auto 0;
+}
+
+.proj-empty {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.proj-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Gráfico y panel lado a lado */
+.proj-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.proj-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    height: var(--proj-stage-h);
+}
+
+.proj-stage-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.4rem 1rem;
+}
+
+.proj-plot {
+    flex: 1;
+    min-height: 0;
+}
+
+/* Botones de producto (también leyenda) */
+.proj-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+}
+
+.proj-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.65rem;
+    font: inherit;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.proj-key:hover {
+    border-color: var(--text-secondary);
+}
+
+.proj-key.is-static {
+    border-color: transparent;
+    cursor: default;
+    padding-left: 0;
+}
+
+.proj-key.is-off {
+    opacity: 0.45;
+    text-decoration: line-through;
+}
+
+.proj-key i,
+.proj-tooltip i,
+.proj-summary i {
+    display: inline-block;
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.proj-key i.is-actual,
+.proj-tooltip i.is-actual {
+    background: var(--proj-actual);
+}
+
+.proj-target {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.proj-target select {
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.proj-tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+}
+
+.proj-tooltip span {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.proj-tooltip b {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Panel lateral */
+.proj-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: var(--proj-stage-h);
+    min-height: 0;
+}
+
+.proj-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+    padding: 0.75rem 0.9rem;
+    background: color-mix(in srgb, var(--bg-primary) 45%, var(--bg-card));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    overflow-y: auto;
+}
+
+.proj-summary-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.proj-summary table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.proj-summary th,
+.proj-summary td {
+    padding: 0.3rem 0.2rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.proj-summary thead th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: right;
+    color: var(--text-secondary);
+}
+
+.proj-summary tbody th {
+    display: grid;
+    grid-template-columns: 10px auto;
+    align-items: center;
+    column-gap: 0.4rem;
+    font-weight: 700;
+    text-align: left;
+    color: var(--text-primary);
+}
+
+.proj-summary tbody th small {
+    grid-column: 2;
+    white-space: nowrap;
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.proj-summary td {
+    text-align: right;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.proj-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.proj-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+.proj-notes b {
+    color: var(--text-primary);
+}
+
+.proj-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.proj-footnote {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 960px) {
+    .proj-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .proj-side {
+        max-height: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .proj-section {
+        --proj-stage-h: 340px;
+    }
+
+    .regional-card.proj-card {
+        padding: 1rem 0.75rem 1.25rem;
+    }
+
+    .proj-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .proj-key {
+        font-size: 0.78rem;
+        padding: 0.2rem 0.55rem;
+    }
+}

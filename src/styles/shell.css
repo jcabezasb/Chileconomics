@@ -164,7 +164,7 @@
 }
 
 .data-header {
-    padding: 4.5rem 0 1.2rem;
+    padding: 3.5rem 0 0.6rem;
     text-align: center;
 }
 
@@ -173,6 +173,90 @@
     font-size: clamp(2rem, 4.4vw, 3rem);
     letter-spacing: 0.22em;
     text-transform: uppercase;
+}
+
+/* Menú de secciones de Datos: queda fijo arriba al bajar; debajo se muestra solo la sección elegida. */
+.datos-menu {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    padding: 0.6rem 0;
+    background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.datos-menu-track {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.datos-menu-track::-webkit-scrollbar {
+    display: none;
+}
+
+.datos-menu-item {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.95rem;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.datos-menu-item:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.datos-menu-item.is-active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
+}
+
+.datos-menu-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Al menos una pantalla de alto: así siempre se puede bajar hasta dejar el menú fijo arriba, aunque
+   la sección todavía esté cargando. */
+.datos-panel {
+    min-height: 100vh;
+}
+
+/* Todas las secciones con el mismo margen (y espacio abajo para la navegación flotante). */
+.datos-panel > section {
+    padding: 1rem 0 5rem;
+}
+
+.datos-panel .reveal {
+    transition-delay: 0s;
+}
+
+@media (max-width: 760px) {
+    .datos-menu-track {
+        justify-content: flex-start;
+        padding: 0 0.25rem;
+    }
+
+    .datos-menu-item {
+        padding: 0.45rem 0.8rem;
+        font-size: 0.82rem;
+    }
 }
 
 .theme-toggle {

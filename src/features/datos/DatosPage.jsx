@@ -1,11 +1,13 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import useBcchData from '../../data/bcch/useBcchData';
-import useRevealOnScroll from '../../app/hooks/useRevealOnScroll';
 import OverviewSection from '../overview/OverviewSection';
 import RegionalSection from '../regional/RegionalSection';
 import PibCompositionSection from '../pib/PibCompositionSection';
 import FiscalSection from '../fiscal/FiscalSection';
 import IedSection from '../ied/IedSection';
+import ProjectionsSection from '../proyecciones/ProjectionsSection';
+import { DATOS_SECTIONS } from './datosSections';
+import useDatosSection from './useDatosSection';
 
 const CHART_ORDER = ['ipc', 'dolar', 'desempleo', 'cobre'];
 
@@ -20,11 +22,17 @@ const IMACEC_PLACEHOLDER = {
     description: 'Indicador Mensual de Actividad Economica'
 };
 
-// Página /datos: indicadores principales, análisis regional, inversión extranjera, composición del PIB
-// y finanzas públicas.
+// Muestra la sección apenas se monta (con la animación de entrada de .reveal).
+const showSection = (element) => {
+    if (element) requestAnimationFrame(() => element.classList.add('is-visible'));
+};
+
+// Página /datos: un menú con las secciones (indicadores, proyecciones, regiones, inversión extranjera,
+// PIB y finanzas públicas) y debajo solo la sección elegida, para no tener que recorrer la página.
 const DatosPage = ({ theme }) => {
     const { indicators, regionalData, realPibData, populationData, nominalSeries, availablePeriods } = useBcchData();
-    const registerReveal = useRevealOnScroll(0.25);
+    const { section, chooseSection } = useDatosSection();
+    const headerRef = useRef(null);
 
     const chartIndicators = useMemo(() => (
         indicators
@@ -37,31 +45,72 @@ const DatosPage = ({ theme }) => {
         [indicators]
     );
 
+    // Al elegir una sección, la página baja hasta dejar el menú fijo arriba: la sección queda a
+    // pantalla completa, sin tener que buscarla. Se hace después de dibujar la sección nueva (antes
+    // la página puede ser más corta y no alcanza a bajar).
+    const scrollPending = useRef(false);
+    const select = (id) => {
+        scrollPending.current = true;
+        chooseSection(id);
+    };
+    useEffect(() => {
+        const header = headerRef.current;
+        if (!scrollPending.current || !header) return;
+        scrollPending.current = false;
+        // Posición natural del menú = fin del encabezado (offsetTop de un elemento fijo cambia al bajar).
+        window.scrollTo({ top: header.offsetTop + header.offsetHeight, behavior: 'smooth' });
+    }, [section]);
+
     return (
         <>
-            <section className="data-header">
+            <section className="data-header" ref={headerRef}>
                 <h1 className="data-title">DATOS</h1>
             </section>
-            <OverviewSection
-                sectionRef={registerReveal(0)}
-                theme={theme}
-                chartIndicators={chartIndicators}
-                imacecIndicator={imacecIndicator}
-            />
-            <RegionalSection
-                sectionRef={registerReveal(1)}
-                theme={theme}
-                regionalData={regionalData}
-                realPibData={realPibData}
-                populationData={populationData}
-            />
-            <IedSection sectionRef={registerReveal(2)} />
-            <PibCompositionSection
-                sectionRef={registerReveal(3)}
-                nominalSeries={nominalSeries}
-                availablePeriods={availablePeriods}
-            />
-            <FiscalSection sectionRef={registerReveal(4)} />
+            <nav className="datos-menu" aria-label="Secciones de datos">
+                <div className="datos-menu-track">
+                    {DATOS_SECTIONS.map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            type="button"
+                            className={`datos-menu-item${section === id ? ' is-active' : ''}`}
+                            aria-current={section === id ? 'page' : undefined}
+                            onClick={() => select(id)}
+                        >
+                            <Icon size={16} strokeWidth={2} aria-hidden="true" />
+                            <span>{label}</span>
+                        </button>
+                    ))}
+                </div>
+            </nav>
+            <div className="datos-panel" key={section}>
+                {section === 'indicadores' ? (
+                    <OverviewSection
+                        sectionRef={showSection}
+                        theme={theme}
+                        chartIndicators={chartIndicators}
+                        imacecIndicator={imacecIndicator}
+                    />
+                ) : null}
+                {section === 'proyecciones' ? <ProjectionsSection sectionRef={showSection} /> : null}
+                {section === 'regiones' ? (
+                    <RegionalSection
+                        sectionRef={showSection}
+                        theme={theme}
+                        regionalData={regionalData}
+                        realPibData={realPibData}
+                        populationData={populationData}
+                    />
+                ) : null}
+                {section === 'ied' ? <IedSection sectionRef={showSection} /> : null}
+                {section === 'pib' ? (
+                    <PibCompositionSection
+                        sectionRef={showSection}
+                        nominalSeries={nominalSeries}
+                        availablePeriods={availablePeriods}
+                    />
+                ) : null}
+                {section === 'fiscal' ? <FiscalSection sectionRef={showSection} /> : null}
+            </div>
         </>
     );
 };

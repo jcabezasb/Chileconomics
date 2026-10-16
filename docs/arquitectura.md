@@ -42,7 +42,8 @@ Las fechas son texto `YYYY-MM-DD`. Las series mensuales y trimestrales vienen co
 | Carpeta | Contenido |
 |---|---|
 | `app/` | `App.jsx` (elige la vista según la URL), `routes.js`, hooks `useRoute`, `useTheme`, `useRevealOnScroll` y la navegación (`shell/`) |
-| `features/datos/` | `DatosPage`: arma la página /datos con sus secciones |
+| `features/datos/` | `DatosPage`: arma la página /datos. Un menú fijo arriba (`datosSections.js`) elige qué sección se muestra; la elegida queda en la URL (`/datos#proyecciones`, ver `useDatosSection`) y solo esa se monta |
+| `features/proyecciones/` | Proyecciones de crecimiento del PIB: Banco Central (EEE e IPoM) y FMI (WEO). `projectionsView.js` (funciones puras) arma las ediciones de cada fuente, el crecimiento efectivo y las dos vistas: `ProjectionsYearChart` (por año) y `ProjectionsRevisionChart` (cómo cambió lo proyectado para un año). Estado en `useProjectionsView` |
 | `features/overview/` | Tarjetas de indicadores (`IndicatorCard`) y vista de detalle (`detail/`): gráfico principal, selector de fechas y un desglose por indicador (`detail/breakdowns/`) |
 | `features/regional/` | Mapa y fichas regionales. `useRegionalView` concentra los cálculos; los componentes solo dibujan |
 | `features/ied/` | Inversión extranjera directa. `IedFlowChart` dibuja globo, barra y mapa de Chile (hacia Chile) o mapa, barra y globo (desde Chile); el globo va en un canvas (`GlobeCanvas`, más fluido que SVG al girar) y se gira con `useGlobeRotation`. `IedLinesChart` es la vista alternativa de líneas. `useIedView` carga las series por región y `ied_paises.json`, y maneja sentido, año y destacado. Geometría pura en `iedLayout.js`; países y su ubicación en `iedCountries.js` |
@@ -77,6 +78,15 @@ Datos y gráficos se cargan solo al entrar a /datos (`React.lazy`), y las librer
   "no asignada" a ninguna región, que va en la barra pero sin cinta hacia el mapa. Las partes suman
   el total nacional. Cada cinta llega al mapa con el mismo grosor que su segmento de la barra (el
   ancho representa el monto), sin pasarse de la franja de su región.
+- **Proyecciones** (`features/proyecciones/`, `python/import_proyecciones.py`): tres fuentes.
+  La Encuesta de Expectativas Económicas viene de la API (una serie por año proyectado, claves
+  `eee_pib_<año>`; antes de 2019 el código BDE no lleva el año, ver `EEE_PIB_OLD_CODES`). El IPoM
+  sale del Excel "Proyecciones IPoM 2010-20xx" que el Banco Central publica con cada informe (el
+  enlace se busca en la página del IPoM); sus rangos se guardan como [mín, máx] y el gráfico muestra
+  el punto medio con el rango. El FMI sale de la API SDMX (`api.imf.org`; imf.org bloquea a GitHub
+  Actions); la API solo trae unas pocas ediciones del WEO, así que el importador conserva las que ya
+  tiene y el historial crece con cada edición nueva. El crecimiento efectivo se calcula con la suma
+  de los cuatro trimestres del PIB real, solo para años completos.
 - **Correlación cobre–dólar** (`shared/utils/correlation.js`): Pearson sobre variaciones semanales.
   Semanales porque el dólar observado de cada día se calcula con transacciones del día anterior,
   lo que hace que la comparación diaria subestime la relación.
