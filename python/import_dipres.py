@@ -1,10 +1,13 @@
 """Importa el informe trimestral de ejecución presupuestaria de la DIPRES y actualiza
 public/data/finanzas_publicas.json, el archivo que lee la sección de finanzas públicas.
 
-Uso (cuando la DIPRES publica un trimestre nuevo):
-    1. Descargar "Informes de Ejecución Presupuestaria" (.xlsx) desde
-       https://www.dipres.gob.cl/598/w3-propertyvalue-15492.html
-    2. npm run import-dipres -- ruta/al/archivo.xlsx   (se pueden pasar varios)
+Uso: npm run import-dipres                          (descarga el informe más reciente)
+     npm run import-dipres -- ruta/al/archivo.xlsx   (usa archivos ya descargados; se pueden pasar varios)
+
+Corre solo en la sincronización diaria de GitHub: busca en la página de la DIPRES
+(https://www.dipres.gob.cl/598/w3-propertyvalue-15492.html) el Excel "Informes de Ejecución
+Presupuestaria" más reciente, que es el primero de la lista, y lo importa. Si la DIPRES aún no publica
+un trimestre nuevo, el resultado es el mismo de antes.
 
 Cada archivo trae los meses publicados de un año. Esos meses reemplazan a los que había para ese
 año (la DIPRES revisa cifras anteriores), y los demás años quedan como estaban.
@@ -16,12 +19,17 @@ Antes de escribir se verifica que cada partida sea la suma de sus componentes; s
 formato del Excel cambió y el script termina con error sin tocar el JSON.
 """
 
+import io
 import json
 import os
 import re
 import sys
 import unicodedata
+import zipfile
+from datetime import date
+from urllib.parse import urljoin
 
+import requests
 from openpyxl import load_workbook
 
 OUTPUT_PATH = os.path.join("public", "data", "finanzas_publicas.json")
@@ -29,6 +37,8 @@ SOURCE_URL = "https://www.dipres.gob.cl/598/w3-propertyvalue-15492.html"
 MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
           "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 TOLERANCE = 5  # millones de pesos: las sumas del Excel pueden diferir por redondeo
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; Chileconomics/1.0; +https://chileconomics.cl)"}
+TIMEOUT = 120
 
 
 def row(sheet, label, after=None):
@@ -167,24 +177,28 @@ def find_row(rows, label, after=None):
     raise ValueError(f"No se encontró la fila '{label}'")
 
 
-def parse_workbook(path):
-    """{'year', 'months': [1..n publicados], 'series': {id: {mes: valor}}} de un archivo."""
+def parse_workbook(path, name=None):
+    """{'year', 'months': [1..n publicados], 'series': {id: {mes: valor}}} de un archivo.
+
+    path puede ser una ruta o el archivo ya descargado (BytesIO); name es cómo se nombra en los errores.
+    """
+    where = name or path
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         sheets = {name: read_sheet(workbook, name) for name in ("Total", "IngTrib")}
     except ValueError as error:
-        raise ValueError(f"{path}: {error}") from error
+        raise ValueError(f"{where}: {error}") from error
     year = sheets["Total"][0]
     if year is None:
-        raise ValueError(f"{path}: no se encontró el año en el título de la hoja Total")
+        raise ValueError(f"{where}: no se encontró el año en el título de la hoja Total")
     # Algunos años el cuadro tributario no lleva el año en el título.
     if sheets["IngTrib"][0] not in (None, year):
-        raise ValueError(f"{path}: las hojas Total e IngTrib son de años distintos")
+        raise ValueError(f"{where}: las hojas Total e IngTrib son de años distintos")
 
     # Meses publicados: los que tienen dato de ingresos totales (los demás vienen vacíos o en 0).
     published = sorted(find_row(sheets["Total"][1], "TOTAL INGRESOS"))
     if not published or published != list(range(1, len(published) + 1)):
-        raise ValueError(f"{path}: meses publicados inesperados {published}")
+        raise ValueError(f"{where}: meses publicados inesperados {published}")
 
     series = {}
     for item in list(walk(TREE)) + EXTRA:
@@ -198,7 +212,7 @@ def parse_workbook(path):
             series[item["id"]] = {
                 month: sum(series[child["id"]][month] for child in item["children"]) for month in published
             }
-    check_totals(series, published, f"{path} ({year})")
+    check_totals(series, published, f"{where} ({year})")
     return {"year": year, "months": published, "series": series}
 
 
@@ -267,21 +281,47 @@ def merge(existing, parsed_files):
     }
 
 
+def find_latest_excel(html):
+    """Enlace (URL absoluta) al Excel "Informes de Ejecución Presupuestaria" más reciente.
+
+    La página lista los informes por año, del más nuevo al más antiguo, y cada archivo se llama
+    articles-<número>_doc_xls_informes.xlsx: el primero es el último trimestre publicado.
+    """
+    match = re.search(r'href="([^"]*_doc_xls_informes\.xlsx[^"]*)"', html)
+    return urljoin(SOURCE_URL, match.group(1)) if match else None
+
+
+def download():
+    """Descarga el informe más reciente: (archivo en memoria, URL)."""
+    page = requests.get(SOURCE_URL, headers=HEADERS, timeout=TIMEOUT)
+    page.raise_for_status()
+    link = find_latest_excel(page.text)
+    if not link:
+        raise ValueError("No se encontró el Excel de informes en la página de la DIPRES")
+    response = requests.get(link, headers=HEADERS, timeout=TIMEOUT)
+    response.raise_for_status()
+    return io.BytesIO(response.content), link
+
+
 def main(paths):
-    if not paths:
-        print(__doc__)
-        return 1
     try:
-        parsed = [parse_workbook(path) for path in paths]
-    except ValueError as error:
-        print(f"Error: {error}")
+        if paths:
+            parsed = [parse_workbook(path) for path in paths]
+        else:
+            excel, link = download()
+            print(f"Informe más reciente: {link}")
+            parsed = [parse_workbook(excel, name=link)]
+    except (requests.RequestException, ValueError, zipfile.BadZipFile) as error:
+        # BadZipFile: lo descargado no es un Excel (por ejemplo, una página de error).
+        print(f"No se actualizó {OUTPUT_PATH}: {error}")
         return 1
 
     existing = None
     if os.path.exists(OUTPUT_PATH):
         with open(OUTPUT_PATH, encoding="utf-8") as handle:
             existing = json.load(handle)
-    output = merge(existing, parsed)
+    # checked_at: día en que se revisó la fuente (lo muestra la sección Fuentes).
+    output = {"checked_at": date.today().isoformat(), **merge(existing, parsed)}
 
     temp_path = OUTPUT_PATH + ".tmp"
     with open(temp_path, "w", encoding="utf-8") as handle:

@@ -232,7 +232,8 @@ def main():
     failures = 0
     for key, loader in (("ipom", load_ipom), ("weo", lambda: load_weo(previous.get("weo", {}).get("vintages", [])))):
         try:
-            payload[key] = loader()
+            # checked_at: día en que se revisó la fuente. Si falla, queda el de la versión anterior.
+            payload[key] = {**loader(), "checked_at": date.today().isoformat()}
             print(f"{key}: {len(payload[key]['vintages'])} ediciones, la última {payload[key]['vintages'][-1]['label']}")
         except Exception as error:  # red, formato o API: se conserva lo anterior
             failures += 1

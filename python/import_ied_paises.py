@@ -20,6 +20,7 @@ import os
 import re
 import sys
 import unicodedata
+from datetime import date
 
 import requests
 from openpyxl import load_workbook
@@ -154,6 +155,7 @@ def main(args):
     source = args[0] if args else download()
     years, data = parse_workbook(source)
     payload = {
+        "checked_at": date.today().isoformat(),  # día en que se revisó la fuente
         "source": SOURCE_URL,
         "unit": "Millones de dólares",
         "note": "País del inversionista inmediato (puede diferir del país del controlador final).",
