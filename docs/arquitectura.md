@@ -21,8 +21,12 @@ API Banco Central ──(python/sync_bcch_data.py, diario)──> public/data/bc
   (`dataContract.test.js`) verifica que todas existan en el JSON.
 - **`python/import_dipres.py`** lee el Excel trimestral de la DIPRES (hojas `Total` e `IngTrib`) y
   escribe `public/data/finanzas_publicas.json`: el árbol de partidas (`tree`) y una serie mensual
-  por partida, en millones de pesos, desde `start` hasta `last_period`. Se corre a mano cada
-  trimestre (ver `docs/flujo-de-trabajo.md`).
+  por partida, en millones de pesos, desde `start` hasta `last_period`. Corre en la sincronización
+  diaria: busca en la página de la DIPRES el Excel más reciente (el primero de la lista) y lo importa.
+- **Fecha de revisión**: los importadores guardan `checked_at` (día en que consultaron la fuente con
+  éxito) en `finanzas_publicas.json`, `ied_paises.json` y en `ipom` y `weo` de `proyecciones.json`; en
+  `bcch_series.json` es `last_update`. Si una fuente falla, queda la fecha anterior. La sección
+  Fuentes muestra esa fecha junto al último dato de cada fuente.
 
 Formato del JSON:
 
@@ -49,6 +53,7 @@ Las fechas son texto `YYYY-MM-DD`. Las series mensuales y trimestrales vienen co
 | `features/ied/` | Inversión extranjera directa. `IedFlowChart` dibuja globo, barra y mapa de Chile (hacia Chile) o mapa, barra y globo (desde Chile); el globo va en un canvas (`GlobeCanvas`, más fluido que SVG al girar) y se gira con `useGlobeRotation`. `IedLinesChart` es la vista alternativa de líneas. `useIedView` carga las series por región y `ied_paises.json`, y maneja sentido, año y destacado. Geometría pura en `iedLayout.js`; países y su ubicación en `iedCountries.js` |
 | `features/pib/` | Composición del PIB por el lado del gasto (`usePibComposition`) |
 | `features/fiscal/` | Finanzas públicas: `useFiscalView` carga los datos de la DIPRES; `fiscalView.js` suma por período, calcula % del PIB y variación real; `FiscalTree` es la tabla desplegable |
+| `features/fuentes/` | Fuentes: un botón por institución y una tabla con cada dato, la sección donde se usa, su frecuencia, el último dato y la fecha de revisión. `sourcesCatalog.js` es la lista fija; `sourcesView.js` (funciones puras) lee las fechas de los cuatro JSON |
 | `features/blog*`, `contact/`, `development/` | Secciones de contenido |
 | `shared/components/` | `TrendChart` (todos los gráficos de línea), `SeriesTable` (tablas de series de tiempo: agrupar por período, variaciones, ordenar, copiar), `DataTable` (tablas simples), `DataTableModal`, `controls` |
 | `shared/utils/` | Funciones puras con pruebas: fechas, formato, estadísticas, per cápita, correlación, reducción de puntos |

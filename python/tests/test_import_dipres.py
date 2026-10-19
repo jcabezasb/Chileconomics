@@ -1,7 +1,10 @@
 """Pruebas del importador de la DIPRES con un Excel armado en la prueba (mismo formato que el real)."""
 
+import io
+import json
 import os
 import sys
+from datetime import date
 
 import pytest
 from openpyxl import Workbook
@@ -112,3 +115,36 @@ def test_merge_replaces_only_the_years_in_the_new_files(tmp_path):
     assert second["series"]["ingresos"][0] == first["series"]["ingresos"][0]
     assert second["tree"][0]["id"] == "ingresos"
     assert "source" not in second["tree"][0]
+
+
+def test_find_latest_excel_takes_the_first_report():
+    html = """
+        <a href="articles-410030_doc_pdf_Indice.pdf?ts=1">Indice</a>
+        <a href="articles-410030_doc_xls_informes.xlsx?ts=1785510639">Informes de Ejecución Presupuestaria</a>
+        <a href="articles-369688_doc_xls_informes.xlsx?ts=1769806589">Informes de Ejecución Presupuestaria</a>
+        <a href="articles-99111_doc_xls_iniciativas_inversion_region.xls?ts=1">Iniciativas de inversión</a>
+    """
+    assert import_dipres.find_latest_excel(html) == (
+        "https://www.dipres.gob.cl/598/articles-410030_doc_xls_informes.xlsx?ts=1785510639"
+    )
+    assert import_dipres.find_latest_excel('<a href="otro.pdf">x</a>') is None
+
+
+def test_main_writes_the_check_date(tmp_path, monkeypatch):
+    path = tmp_path / "informe.xlsx"
+    write_workbook(path, year=2026, months=3)
+    output = tmp_path / "finanzas_publicas.json"
+    monkeypatch.setattr(import_dipres, "OUTPUT_PATH", str(output))
+    assert import_dipres.main([str(path)]) == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["checked_at"] == date.today().isoformat()
+    assert payload["last_period"] == "2026-03"
+
+
+def test_main_does_not_touch_the_data_if_the_download_is_not_an_excel(tmp_path, monkeypatch):
+    output = tmp_path / "finanzas_publicas.json"
+    output.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(import_dipres, "OUTPUT_PATH", str(output))
+    monkeypatch.setattr(import_dipres, "download", lambda: (io.BytesIO(b"<html>bloqueado</html>"), "https://x"))
+    assert import_dipres.main([]) == 1
+    assert output.read_text(encoding="utf-8") == "{}"

@@ -50,7 +50,7 @@ En este proyecto:
 | Lint, pruebas y build | GitHub Actions (`ci.yml`) | Cada push a cualquier rama y cada Pull Request |
 | Vista previa | Vercel | Cada push a una rama que no sea `main` |
 | Producción | Vercel | Cada push a `main` |
-| Datos del Banco Central | GitHub Actions (`data-sync.yml`) | Todos los días a las 00:00 UTC, al hacer merge a `main` y a mano (*Actions → Data Sync → Run workflow*) |
+| Datos (Banco Central, DIPRES, FMI) | GitHub Actions (`data-sync.yml`) | Todos los días a las 00:00 UTC, al hacer merge a `main` y a mano (*Actions → Data Sync → Run workflow*) |
 
 La sincronización de datos hace commit en `main` solo si los datos cambiaron, y ese commit dispara
 la publicación. Las credenciales del Banco Central están como *secrets* del repositorio
@@ -64,21 +64,19 @@ la publicación. Las credenciales del Banco Central están como *secrets* del re
    esperar la sincronización automática.
 4. `npm test` confirma que la clave existe en el JSON.
 
-## Actualizar finanzas públicas (cada trimestre)
+## Finanzas públicas (DIPRES)
 
 La DIPRES publica el informe de ejecución del Gobierno Central unas tres o cuatro semanas después
-de cada trimestre. No hay sincronización automática: se importa a mano.
-
-1. Bajar el Excel "Informes de Ejecución Presupuestaria" del trimestre desde
-   https://www.dipres.gob.cl/598/w3-propertyvalue-15492.html (año → último informe).
-2. En una rama nueva: `npm run import-dipres -- ~/Descargas/archivo.xlsx`
-   (con el entorno de Python activo). El script reemplaza los meses de ese año y deja los demás.
-3. Revisar en `npm run dev` y seguir el ciclo normal (subir la rama, vista previa, merge).
+de cada trimestre. La sincronización diaria busca el Excel "Informes de Ejecución Presupuestaria" más
+reciente en https://www.dipres.gob.cl/598/w3-propertyvalue-15492.html y lo importa: reemplaza los
+meses de ese año y deja los demás. Mientras no haya un informe nuevo, los datos quedan iguales.
 
 El importador revisa que cada partida sea igual a la suma de sus componentes. Si la DIPRES cambia
 el formato del Excel, termina con un error que dice qué fila no encontró o qué suma no cuadra, y no
-toca el archivo de datos. Al cerrar un año conviene importar el informe del cuarto trimestre, que
-trae las cifras revisadas de los doce meses.
+toca el archivo de datos (en *Actions → Data Sync* el paso "Descargar finanzas públicas" queda con
+aviso). En ese caso se puede importar a mano un archivo descargado, con el entorno de Python activo:
+`npm run import-dipres -- ~/Descargas/archivo.xlsx` (se pueden pasar varios, por ejemplo para
+corregir años anteriores).
 
 ## Si algo sale mal
 
