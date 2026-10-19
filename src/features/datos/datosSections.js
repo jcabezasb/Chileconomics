@@ -1,4 +1,4 @@
-import { Globe, Landmark, LayoutDashboard, Map as MapIcon, PieChart, TrendingUp } from 'lucide-react';
+import { BookOpen, Globe, Landmark, LayoutDashboard, Map as MapIcon, PieChart, TrendingUp } from 'lucide-react';
 
 // Secciones de la página Datos, en el orden del menú. El id va en la URL (/datos#proyecciones).
 export const DATOS_SECTIONS = [
@@ -7,7 +7,8 @@ export const DATOS_SECTIONS = [
     { id: 'regiones', label: 'Regiones', icon: MapIcon },
     { id: 'ied', label: 'Inversión extranjera', icon: Globe },
     { id: 'pib', label: 'PIB', icon: PieChart },
-    { id: 'fiscal', label: 'Finanzas públicas', icon: Landmark }
+    { id: 'fiscal', label: 'Finanzas públicas', icon: Landmark },
+    { id: 'fuentes', label: 'Fuentes', icon: BookOpen }
 ];
 
 export const DEFAULT_SECTION = DATOS_SECTIONS[0].id;

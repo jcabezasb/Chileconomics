@@ -6,6 +6,7 @@ import PibCompositionSection from '../pib/PibCompositionSection';
 import FiscalSection from '../fiscal/FiscalSection';
 import IedSection from '../ied/IedSection';
 import ProjectionsSection from '../proyecciones/ProjectionsSection';
+import SourcesSection from '../fuentes/SourcesSection';
 import { DATOS_SECTIONS } from './datosSections';
 import useDatosSection from './useDatosSection';
 
@@ -28,7 +29,7 @@ const showSection = (element) => {
 };
 
 // Página /datos: un menú con las secciones (indicadores, proyecciones, regiones, inversión extranjera,
-// PIB y finanzas públicas) y debajo solo la sección elegida, para no tener que recorrer la página.
+// PIB, finanzas públicas y fuentes) y debajo solo la sección elegida, para no tener que recorrer la página.
 const DatosPage = ({ theme }) => {
     const { indicators, regionalData, realPibData, populationData, nominalSeries, availablePeriods } = useBcchData();
     const { section, chooseSection } = useDatosSection();
@@ -110,6 +111,7 @@ const DatosPage = ({ theme }) => {
                     />
                 ) : null}
                 {section === 'fiscal' ? <FiscalSection sectionRef={showSection} /> : null}
+                {section === 'fuentes' ? <SourcesSection sectionRef={showSection} onSelectSection={select} /> : null}
             </div>
         </>
     );

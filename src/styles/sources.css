@@ -1,0 +1,171 @@
+/* Fuentes (SourcesSection): tabla de fuentes por institución. En pantallas angostas cada fila
+   se muestra como una ficha, con el nombre de la columna al lado de cada valor (data-label). */
+
+.sources-section {
+    padding: 2rem 0;
+}
+
+.regional-card.sources-card {
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.sources-header {
+    margin-bottom: 0.9rem;
+    text-align: center;
+}
+
+.sources-header .regional-subtitle {
+    margin: 0.25rem auto 0;
+}
+
+.sources-toolbar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.9rem;
+}
+
+.sources-intro {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.sources-intro b {
+    color: var(--text-primary);
+}
+
+.sources-table-wrap {
+    overflow-x: auto;
+}
+
+.sources-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.sources-table th,
+.sources-table td {
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+    color: var(--text-primary);
+}
+
+.sources-table thead th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.sources-table tbody th {
+    font-weight: 600;
+}
+
+.sources-table tbody th small {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.sources-table td {
+    white-space: nowrap;
+}
+
+.sources-section-link {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--color-accent);
+    cursor: pointer;
+}
+
+.sources-section-link:hover,
+.sources-link:hover {
+    text-decoration: underline;
+}
+
+.sources-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.sources-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.sources-footnote {
+    margin: 0.9rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.sources-footnote b {
+    color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+    .regional-card.sources-card {
+        padding: 1rem 0.75rem 1.25rem;
+    }
+
+    .sources-table thead {
+        display: none;
+    }
+
+    .sources-table,
+    .sources-table tbody,
+    .sources-table tr,
+    .sources-table th,
+    .sources-table td {
+        display: block;
+    }
+
+    .sources-table tr {
+        padding: 0.7rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sources-table th,
+    .sources-table td {
+        padding: 0.15rem 0;
+        border-bottom: none;
+        white-space: normal;
+    }
+
+    .sources-table tbody th {
+        margin-bottom: 0.3rem;
+    }
+
+    .sources-table td[data-label] {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .sources-table td[data-label]::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+    }
+
+    .sources-link-cell {
+        padding-top: 0.35rem;
+    }
+}
