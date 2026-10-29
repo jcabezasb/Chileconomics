@@ -1,7 +1,7 @@
 # Sincronización de datos: descarga las series del Banco Central (y el Excel de IED por país, las
-# proyecciones del IPoM y del FMI y el informe de la DIPRES) y, si cambiaron, hace commit de los JSON
-# de public/data en main. Ese commit dispara la publicación en Vercel (producción). Corre todos los
-# días, al hacer merge a main y a mano desde la pestaña Actions ("Run workflow").
+# proyecciones del IPoM y del FMI, los mercados de EE.UU. y el informe de la DIPRES) y, si cambiaron,
+# hace commit de los JSON de public/data en main. Ese commit dispara la publicación en Vercel
+# (producción). Corre todos los días, al hacer merge a main y a mano desde la pestaña Actions.
 name: Data Sync
 
 on:
@@ -54,6 +54,12 @@ jobs:
         continue-on-error: true
         run: python python/import_proyecciones.py
 
+      # Tasas y mercados de EE.UU.: Tesoro, Fed de Nueva York y FRED (públicos). Si una fuente falla,
+      # se conserva su versión anterior.
+      - name: Descargar mercados de EE.UU.
+        continue-on-error: true
+        run: python python/import_mercados_eeuu.py
+
       # Finanzas públicas: el informe de ejecución presupuestaria más reciente de la DIPRES (público).
       # La DIPRES publica cada trimestre; mientras no haya uno nuevo, los datos quedan iguales.
       - name: Descargar finanzas públicas (DIPRES)
@@ -64,7 +70,7 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add public/data/bcch_series.json public/data/ied_paises.json public/data/proyecciones.json public/data/finanzas_publicas.json
+          git add public/data/bcch_series.json public/data/ied_paises.json public/data/proyecciones.json public/data/finanzas_publicas.json public/data/mercados_eeuu.json
           if git diff --staged --quiet; then
             echo "Sin cambios en los datos."
           else

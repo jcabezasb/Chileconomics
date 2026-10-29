@@ -33,6 +33,16 @@ NATIONAL_SERIES = {
     "tc_ars": ("F072.CLP.ARS.N.O.D", "Tipo de cambio Peso Argentino", "D"),
     "tc_jpy": ("F072.CLP.JPY.N.O.D", "Tipo de cambio Yen", "D"),
     "cobre": ("F019.PPB.PRE.100.D", "Precio del Cobre", "D"),
+    "petroleo_wti": ("F019.PPB.PRE.41B.D", "Precio del petroleo WTI (US$/barril)", "D"),
+    # Tasas de interés (porcentaje anual): política monetaria y bonos del Banco Central en el
+    # mercado secundario, en pesos (BCP) y en UF (BCU/BTU). No hay BCP a 3 años y el de 1 año se
+    # dejó de publicar en 2025.
+    "tpm": ("F022.TPM.TIN.D001.NO.Z.D", "Tasa de politica monetaria", "D"),
+    "bcp_2": ("F022.BCLP.TIS.AN02.NO.Z.D", "Tasa BCP 2 anos (mercado secundario)", "D"),
+    "bcp_5": ("F022.BCLP.TIS.AN05.NO.Z.D", "Tasa BCP 5 anos (mercado secundario)", "D"),
+    "bcp_10": ("F022.BCLP.TIS.AN10.NO.Z.D", "Tasa BCP 10 anos (mercado secundario)", "D"),
+    "bcu_5": ("F022.BUF.TIS.AN05.UF.Z.D", "Tasa bonos en UF 5 anos (mercado secundario)", "D"),
+    "bcu_10": ("F022.BUF.TIS.AN10.UF.Z.D", "Tasa bonos en UF 10 anos (mercado secundario)", "D"),
     # Mercado laboral
     "desempleo": ("F049.DES.TAS.INE9.10.M", "Desempleo", "M"),
     # Actividad (IMACEC, índice 2018=100)
