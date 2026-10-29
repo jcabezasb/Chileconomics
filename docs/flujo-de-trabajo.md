@@ -50,7 +50,7 @@ En este proyecto:
 | Lint, pruebas y build | GitHub Actions (`ci.yml`) | Cada push a cualquier rama y cada Pull Request |
 | Vista previa | Vercel | Cada push a una rama que no sea `main` |
 | Producción | Vercel | Cada push a `main` |
-| Datos (Banco Central, DIPRES, FMI) | GitHub Actions (`data-sync.yml`) | Todos los días a las 00:00 UTC, al hacer merge a `main` y a mano (*Actions → Data Sync → Run workflow*) |
+| Datos (Banco Central, DIPRES, FMI, EE.UU.) | GitHub Actions (`data-sync.yml`) | Todos los días a las 00:00 UTC, al hacer merge a `main` y a mano (*Actions → Data Sync → Run workflow*) |
 
 La sincronización de datos hace commit en `main` solo si los datos cambiaron, y ese commit dispara
 la publicación. Las credenciales del Banco Central están como *secrets* del repositorio

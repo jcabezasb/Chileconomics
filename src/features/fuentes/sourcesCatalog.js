@@ -1,5 +1,6 @@
 import { REGION_IDS } from '../../shared/constants/regions';
 import { PIB_ACTIVITIES, SERIES, iedKey, regionalKey } from '../../data/bcch/seriesKeys';
+import { US_SERIES } from '../../data/mercados/client';
 
 // De dónde sale cada dato del sitio, agrupado por institución (un botón por institución).
 // Lo que se escribe aquí es fijo (qué es, dónde se usa, cada cuánto se publica, enlace); las fechas
@@ -10,6 +11,7 @@ import { PIB_ACTIVITIES, SERIES, iedKey, regionalKey } from '../../data/bcch/ser
 //   dipres     -> finanzas_publicas.json (last_period).
 //   iedPaises  -> ied_paises.json (último año).
 //   ipom, weo  -> proyecciones.json (última edición).
+//   us         -> mercados_eeuu.json: `keys()` y `source` (treasury, nyfed o fred), para la revisión.
 // `projection: true` marca series que traen proyecciones a futuro (población del INE).
 
 const BDE_URL = 'https://si3.bcentral.cl/siete';
@@ -84,6 +86,37 @@ export const SOURCE_GROUPS = [
                 dataset: 'bcch',
                 period: 'M',
                 keys: () => [SERIES.desempleo]
+            },
+            {
+                id: 'tpm',
+                label: 'Tasa de política monetaria',
+                section: 'mercados',
+                frequency: 'Diaria',
+                url: BDE_URL,
+                dataset: 'bcch',
+                period: 'D',
+                keys: () => [SERIES.tpm]
+            },
+            {
+                id: 'bonos',
+                label: 'Tasas de los bonos del Banco Central',
+                note: 'En pesos (BCP) a 2, 5 y 10 años y en UF a 5 y 10 años, mercado secundario',
+                section: 'mercados',
+                frequency: 'Diaria',
+                url: BDE_URL,
+                dataset: 'bcch',
+                period: 'D',
+                keys: () => [SERIES.bcp2, SERIES.bcp5, SERIES.bcp10, SERIES.bcu5, SERIES.bcu10]
+            },
+            {
+                id: 'wti',
+                label: 'Precio del petróleo WTI',
+                section: 'mercados',
+                frequency: 'Diaria',
+                url: BDE_URL,
+                dataset: 'bcch',
+                period: 'D',
+                keys: () => [SERIES.wti]
             },
             {
                 id: 'cuentas',
@@ -190,6 +223,47 @@ export const SOURCE_GROUPS = [
                 frequency: 'Trimestral',
                 url: 'https://www.dipres.gob.cl/598/w3-propertyvalue-15492.html',
                 dataset: 'dipres'
+            }
+        ]
+    },
+    {
+        id: 'eeuu',
+        label: 'EE.UU.',
+        name: 'Fuentes oficiales de EE.UU.',
+        description: 'Tasas y precios de mercado de EE.UU. para compararlos con los de Chile, descargados de cada fuente original.',
+        rows: [
+            {
+                id: 'tesoro',
+                label: 'Bonos del Tesoro y bonos indexados a la inflación (TIPS)',
+                note: 'Nominales a 1, 2, 3, 5 y 10 años; reales a 5 y 10 años',
+                section: 'mercados',
+                frequency: 'Diaria',
+                url: 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates',
+                dataset: 'us',
+                source: 'treasury',
+                keys: () => [...['1', '2', '3', '5', '10'].map(US_SERIES.treasury), ...['5', '10'].map(US_SERIES.tips)]
+            },
+            {
+                id: 'fed',
+                label: 'Tasa de fondos federales (efectiva y rango meta)',
+                note: 'Fed de Nueva York',
+                section: 'mercados',
+                frequency: 'Diaria',
+                url: 'https://www.newyorkfed.org/markets/reference-rates/effr',
+                dataset: 'us',
+                source: 'nyfed',
+                keys: () => [US_SERIES.effr]
+            },
+            {
+                id: 'fred',
+                label: 'Índice amplio del dólar y VIX',
+                note: 'Reserva Federal y Cboe, vía FRED (Fed de St. Louis)',
+                section: 'mercados',
+                frequency: 'Diaria',
+                url: 'https://fred.stlouisfed.org',
+                dataset: 'us',
+                source: 'fred',
+                keys: () => [US_SERIES.dollarIndex, US_SERIES.vix]
             }
         ]
     },

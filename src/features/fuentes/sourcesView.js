@@ -33,13 +33,18 @@ const lastVintage = (product) => product?.vintages?.[product.vintages.length - 1
 
 // Último dato y fecha de revisión de una fila, según el archivo del que sale. null si falta.
 const rowDates = (row, data, year) => {
-    const { bcch, fiscal, iedPaises, projections } = data;
+    const { bcch, fiscal, iedPaises, projections, us } = data;
     switch (row.dataset) {
         case 'bcch': {
             const date = latestDate(bcch?.series, row.keys(year));
             const lastData = row.projection && date ? `Proyección hasta ${date.slice(0, 4)}` : formatPeriod(date, row.period);
             return { lastData, checked: formatDay(bcch?.lastUpdate) };
         }
+        case 'us':
+            return {
+                lastData: formatPeriod(latestDate(us?.series, row.keys(year)), 'D'),
+                checked: formatDay(us?.sources?.[row.source]?.checked_at)
+            };
         case 'dipres':
             return {
                 lastData: fiscal?.last_period ? formatMonthLabelSpace(`${fiscal.last_period}-01`) : null,
@@ -60,7 +65,7 @@ const rowDates = (row, data, year) => {
 };
 
 // Grupos de SOURCE_GROUPS con las fechas de cada fila. data: { bcch: { lastUpdate, series }, fiscal,
-// iedPaises, projections } (cualquiera puede faltar: esas fechas quedan en null).
+// iedPaises, projections, us: { sources, series } } (cualquiera puede faltar: esas fechas quedan en null).
 export const buildSourceGroups = (data, today = new Date()) => {
     const year = today.getFullYear();
     return SOURCE_GROUPS.map((group) => ({

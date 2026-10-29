@@ -22,6 +22,10 @@ const DATA = {
     projections: {
         ipom: { vintages: [{ date: '2026-06-01' }, { date: '2026-09-01' }] },
         weo: { vintages: [{ date: '2026-10-01' }], checked_at: '2026-10-19' }
+    },
+    us: {
+        sources: { treasury: { checked_at: '2026-10-19' } },
+        series: { ust_10: point('2026-10-16'), tips_5: point('2026-10-15') }
     }
 };
 
@@ -70,6 +74,11 @@ describe('buildSourceGroups', () => {
         expect(rows.ejecucion).toMatchObject({ lastData: 'jun 2026', checked: '19 oct 2026', sectionLabel: 'Finanzas públicas' });
         expect(rows['ied-pais']).toMatchObject({ lastData: '2025', checked: '18 oct 2026' });
         expect(rows.weo).toMatchObject({ lastData: 'oct 2026', checked: '19 oct 2026' });
+    });
+
+    it('lee las fuentes de EE.UU. de mercados_eeuu.json', () => {
+        expect(rows.tesoro).toMatchObject({ lastData: '16 oct 2026', checked: '19 oct 2026', sectionLabel: 'Tasas y mercados' });
+        expect(rows.fed).toMatchObject({ lastData: null, checked: null });
     });
 
     it('deja vacío lo que falta, sin inventar fechas', () => {

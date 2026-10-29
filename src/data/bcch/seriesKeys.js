@@ -38,6 +38,16 @@ export const SERIES = {
     tcr: 'tcr',
     tcr5: 'tcr_5',
 
+    // Tasas de interés (diario, % anual): política monetaria y bonos del Banco Central en pesos (BCP)
+    // y en UF (BCU/BTU), mercado secundario. Petróleo WTI (diario, US$ por barril).
+    tpm: 'tpm',
+    bcp2: 'bcp_2',
+    bcp5: 'bcp_5',
+    bcp10: 'bcp_10',
+    bcu5: 'bcu_5',
+    bcu10: 'bcu_10',
+    wti: 'petroleo_wti',
+
     // Mercado laboral y población
     desempleo: 'desempleo',
     pobTotal: 'pob_total',
