@@ -1,0 +1,265 @@
+/* Mercados (MercadosSection): tasas de Chile y EE.UU., tasas reales e inflación, monedas y materias primas. */
+
+.mk-section {
+    /* Chile y EE.UU.: el mismo par de Proyecciones (validado para daltonismo en claro y oscuro). */
+    --mk-chile: #eb6834;
+    --mk-us: #2a78d6;
+    --mk-neutral: #3d4a5c;
+    /* Efecto de carga (ascii-reveal): toma los colores del sitio. */
+    --ascii-accent: var(--accent);
+    --ascii-glyph: var(--text-secondary);
+    --ascii-flash: var(--accent);
+    --ascii-font: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    padding: 2rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .mk-section {
+        --mk-chile: #d95926;
+        --mk-us: #3987e5;
+        --mk-neutral: #cbd5e1;
+    }
+}
+
+[data-theme="dark"] .mk-section {
+    --mk-chile: #d95926;
+    --mk-us: #3987e5;
+    --mk-neutral: #cbd5e1;
+}
+
+.regional-card.mk-card {
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.mk-header {
+    margin-bottom: 0.9rem;
+    text-align: center;
+}
+
+.mk-header .regional-subtitle {
+    margin: 0.25rem auto 0;
+}
+
+.mk-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.mk-subbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.mk-loading {
+    min-height: 420px;
+}
+
+.mk-empty {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+/* Tarjetas */
+.mk-tiles,
+.mk-markets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.mk-tiles.is-two {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.mk-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.mk-tile-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.mk-tile-value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.mk-tile-detail,
+.mk-source {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.mk-source {
+    font-size: 0.72rem;
+}
+
+.mk-change {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.mk-pair {
+    display: flex;
+    gap: 1.25rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.mk-pair small {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.mk-tile i,
+.mk-legend i,
+.mk-tooltip i {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 0.35rem;
+}
+
+.mk-spark {
+    width: 100%;
+    height: 40px;
+    margin: 0.3rem 0 0.2rem;
+}
+
+.mk-spark path {
+    fill: none;
+    stroke: var(--mk-neutral);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+}
+
+/* Paneles con gráficos */
+.mk-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.mk-panel {
+    min-width: 0;
+    margin-bottom: 1rem;
+    padding: 0.9rem 1rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.mk-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.4rem 0.8rem;
+}
+
+.mk-panel-head h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.mk-panel-sub {
+    margin: 0.2rem 0 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.mk-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.mk-chart {
+    width: 100%;
+}
+
+.mk-note {
+    margin: 0.4rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.mk-tooltip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    box-shadow: var(--shadow-md);
+}
+
+.mk-tooltip strong {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.mk-tooltip span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.mk-tooltip b {
+    margin-left: auto;
+    padding-left: 0.75rem;
+}
+
+@media (max-width: 760px) {
+    .regional-card.mk-card {
+        padding: 1rem 0.75rem 1.25rem;
+    }
+
+    .mk-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mk-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Los botones de pestaña pasan a una segunda línea en vez de salirse de la pantalla. */
+    .mk-section .detail-segmented {
+        flex-wrap: wrap;
+        border-radius: 14px;
+    }
+}

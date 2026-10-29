@@ -6,6 +6,7 @@ import PibCompositionSection from '../pib/PibCompositionSection';
 import FiscalSection from '../fiscal/FiscalSection';
 import IedSection from '../ied/IedSection';
 import ProjectionsSection from '../proyecciones/ProjectionsSection';
+import MercadosSection from '../mercados/MercadosSection';
 import SourcesSection from '../fuentes/SourcesSection';
 import { DATOS_SECTIONS } from './datosSections';
 import useDatosSection from './useDatosSection';
@@ -28,7 +29,7 @@ const showSection = (element) => {
     if (element) requestAnimationFrame(() => element.classList.add('is-visible'));
 };
 
-// Página /datos: un menú con las secciones (indicadores, proyecciones, regiones, inversión extranjera,
+// Página /datos: un menú con las secciones (indicadores, tasas y mercados, proyecciones, regiones, inversión extranjera,
 // PIB, finanzas públicas y fuentes) y debajo solo la sección elegida, para no tener que recorrer la página.
 const DatosPage = ({ theme }) => {
     const { indicators, regionalData, realPibData, populationData, nominalSeries, availablePeriods } = useBcchData();
@@ -92,6 +93,7 @@ const DatosPage = ({ theme }) => {
                         imacecIndicator={imacecIndicator}
                     />
                 ) : null}
+                {section === 'mercados' ? <MercadosSection sectionRef={showSection} /> : null}
                 {section === 'proyecciones' ? <ProjectionsSection sectionRef={showSection} /> : null}
                 {section === 'regiones' ? (
                     <RegionalSection

@@ -50,6 +50,9 @@ python -m pytest python/tests
 - `src/features/regional/`: `useRegionalView` (cálculos) + componentes de cada ficha.
 - `src/features/datos/`: `DatosPage` con el menú de secciones (solo se muestra la elegida, que va en
   la URL: `/datos#ied`).
+- `src/features/mercados/`: tasas y mercados de Chile y EE.UU. (tasas, tasas reales e inflación,
+  monedas y materias primas). Cálculos en `mercadosView.js`; datos de EE.UU. en `src/data/mercados/`.
+  Efecto de carga `ascii-reveal` (estilo dither), instalado desde GitHub fijado a un commit.
 - `src/features/proyecciones/`: proyecciones de crecimiento (EEE, IPoM y FMI). Cálculos en
   `projectionsView.js`; vistas "Por año" y "Revisiones".
 - `src/features/ied/`: inversión extranjera directa: globo, barra y mapa de Chile o lista de sectores
