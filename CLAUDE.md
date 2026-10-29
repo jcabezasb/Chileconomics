@@ -16,7 +16,8 @@ español, y preferir soluciones simples y legibles.
 - `public/data/bcch_series.json` lo genera `python/sync_bcch_data.py`,
   `public/data/finanzas_publicas.json` lo genera `python/import_dipres.py`,
   `public/data/ied_paises.json` lo genera `python/import_ied_paises.py` y
-  `public/data/proyecciones.json` lo genera `python/import_proyecciones.py`: no editarlos a mano.
+  `public/data/proyecciones.json` lo genera `python/import_proyecciones.py` y
+  `public/data/mercados_eeuu.json` lo genera `python/import_mercados_eeuu.py`: no editarlos a mano.
 - Las series se referencian por **clave** (`dolar`, `pib_reg_RM`), definidas en
   `python/bcch_shared.py` y `src/data/bcch/seriesKeys.js`. Nunca por el código del Banco Central
   dentro del frontend.
@@ -35,6 +36,7 @@ npm run sync-data    # requiere .env con BCCH_USER/BCCH_PASSWORD y el venv de Py
 npm run import-dipres                   # finanzas públicas (también corre solo en la sincronización)
 npm run import-ied-paises               # IED por país (también corre solo en la sincronización)
 npm run import-proyecciones             # IPoM y FMI (también corre solo en la sincronización)
+npm run import-mercados-eeuu            # tasas y mercados de EE.UU. (también corre solo)
 python -m pytest python/tests
 ```
 
@@ -62,7 +64,7 @@ python -m pytest python/tests
 - `src/shared/utils/`: funciones puras con pruebas (`*.test.js`).
 - `src/styles/`: `global.css` importa las partes en orden; variables de tema en `variables.css`.
 - `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, `import_dipres.py`,
-  `import_ied_paises.py` (Excel de IED por país y sector), `import_proyecciones.py` (IPoM y FMI), `buscar_series.py` (busca códigos en el catálogo
+  `import_ied_paises.py` (Excel de IED por país y sector), `import_proyecciones.py` (IPoM y FMI), `import_mercados_eeuu.py` (Tesoro, NY Fed y FRED), `buscar_series.py` (busca códigos en el catálogo
   de la API), pruebas en `python/tests/`.
 
 ## Convenciones

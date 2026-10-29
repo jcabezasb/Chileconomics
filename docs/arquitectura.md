@@ -23,6 +23,11 @@ API Banco Central ──(python/sync_bcch_data.py, diario)──> public/data/bc
   escribe `public/data/finanzas_publicas.json`: el árbol de partidas (`tree`) y una serie mensual
   por partida, en millones de pesos, desde `start` hasta `last_period`. Corre en la sincronización
   diaria: busca en la página de la DIPRES el Excel más reciente (el primero de la lista) y lo importa.
+- **`python/import_mercados_eeuu.py`** escribe `public/data/mercados_eeuu.json` con tasas y precios
+  de EE.UU. desde 2015: curva del Tesoro (1, 2, 3, 5 y 10 años) y curva real TIPS (5 y 10), tasa efectiva
+  y rango meta de la Fed (NY Fed, desde 2016) y, vía FRED, el índice amplio del dólar y el VIX. Mismo
+  formato de series que `bcch_series.json`; `sources` guarda la fecha de revisión de cada fuente. Con
+  historia guardada solo vuelve a bajar los dos últimos años.
 - **Fecha de revisión**: los importadores guardan `checked_at` (día en que consultaron la fuente con
   éxito) en `finanzas_publicas.json`, `ied_paises.json` y en `ipom` y `weo` de `proyecciones.json`; en
   `bcch_series.json` es `last_update`. Si una fuente falla, queda la fecha anterior. La sección
