@@ -24,11 +24,14 @@ const VIDEO_ITEMS = [
     }
 ];
 
+// Secciones que se agregarán al sitio (página En desarrollo). done: true las marca como listas.
 const DEVELOPMENT_ITEMS = [
-    { id: 'dev-1', label: 'Detalles en graficos', done: true },
-    { id: 'dev-2', label: 'Descarga de datos', done: true },
-    { id: 'dev-3', label: 'Correcciones y mejoras visuales', done: true },
-    { id: 'dev-4', label: 'Correo oficial', done: true }
+    { id: 'macro-financiero', label: 'Panorama macro-financiero', done: false },
+    { id: 'bolsa', label: 'Bolsa de EE.UU. y Chile', done: false },
+    { id: 'mercado-laboral', label: 'Mercado laboral: dinámicas y proyecciones', done: false },
+    { id: 'desigualdad', label: 'Desigualdad y pobreza', done: false },
+    { id: 'mineria', label: 'Industria minera', done: false },
+    { id: 'industrias', label: 'Panorama de otras industrias', done: false }
 ];
 
 const useHasScrolled = () => {
