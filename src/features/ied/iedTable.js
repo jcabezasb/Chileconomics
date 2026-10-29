@@ -34,8 +34,8 @@ const rankingRows = (items, total, totalChange) => {
 const csvRow = (cells) => cells.join(';');
 const csvValue = (value) => (Number.isFinite(value) ? formatNumber(value, 1) : '');
 
-// Tablas del año elegido (por país y, hacia Chile, por región) y un CSV con todos los años.
-export const iedTable = ({ direction, year, regional, countries, regionalData, countryData }) => {
+// Tablas del año elegido (por país, por sector y, hacia Chile, por región) y un CSV con todos los años.
+export const iedTable = ({ direction, year, regional, countries, sectors, regionalData, countryData }) => {
     const inward = direction === 'inward';
     const tables = [];
     const csv = [];
@@ -44,6 +44,11 @@ export const iedTable = ({ direction, year, regional, countries, regionalData, c
         csv.push(csvRow(['tipo', 'nombre', ...countryData.years]));
         countries.items.forEach((item) => csv.push(csvRow(['país', item.label, ...item.values.map(csvValue)])));
         csv.push(csvRow(['país', 'Total', ...countryData[direction].total.map(csvValue)]));
+    }
+    if (sectors) {
+        tables.push({ heading: 'Por sector económico', columns: COLUMNS('Sector'), rows: rankingRows(sectors.items, sectors.total, sectors.totalChange) });
+        if (!csv.length) csv.push(csvRow(['tipo', 'nombre', ...countryData.years]));
+        countryData.sectors[direction].items.forEach((item) => csv.push(csvRow(['sector', item.label, ...item.values.map(csvValue)])));
     }
     if (inward && regional) {
         tables.push({ heading: 'Por región', columns: COLUMNS('Región'), rows: rankingRows(regional.items, regional.total, regional.totalChange) });

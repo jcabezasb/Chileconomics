@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadBcchData } from '../../data/bcch/client';
 import { iedKey } from '../../data/bcch/seriesKeys';
 import { IED_GROUPS, IED_ITEMS, IED_UNASSIGNED } from './iedGroups';
-import { buildCountryData, countrySnapshot, lineSeries } from './iedCountryView';
+import { buildCountryData, countrySnapshot, lineSeries, sectorSnapshot } from './iedCountryView';
+import { SECTOR_UNASSIGNED_ID } from './iedSectors';
 import { buildIedData, iedHistory, iedSnapshot } from './iedView';
 import useTweenedValues from './useTweenedValues';
 
@@ -18,18 +19,31 @@ const NOTES = {
     rest: 'Países que el Banco Central publica agrupados.',
     continent: 'El Banco Central no desglosa este continente por país.',
     unassignedCountry: 'Parte del stock que el Banco Central no asigna a ningún país.',
-    outwardRegions: 'El Banco Central no publica por región la inversión de Chile en el exterior.'
+    outwardRegions: 'El Banco Central no publica por región la inversión de Chile en el exterior.',
+    unassignedSector: 'Parte del stock que el Banco Central no asigna a ningún sector. Países y sectores se asignan '
+        + 'por separado, por eso no coincide con los no asignados por país.'
 };
 
 const loadCountries = () => fetch(COUNTRIES_URL)
     .then((response) => (response.ok ? response.json() : null))
     .catch(() => null);
 
-// Ficha de lo destacado: todo Chile si no hay nada, una región o un país.
-const buildFocus = ({ direction, year, regional, countries, activeId }) => {
+// Ficha de lo destacado: todo Chile si no hay nada, una región, un sector o un país.
+const buildFocus = ({ direction, year, regional, countries, sectors, activeId }) => {
     const inward = direction === 'inward';
     const region = inward ? regional?.items.find((item) => item.id === activeId) : null;
     const country = countries?.items.find((item) => item.id === activeId);
+    const sector = sectors?.items.find((item) => item.id === activeId);
+    if (sector) {
+        return {
+            label: sector.label,
+            value: sector.value,
+            share: sector.share,
+            change: sector.change,
+            history: sector.history,
+            note: sector.id === SECTOR_UNASSIGNED_ID ? NOTES.unassignedSector : null
+        };
+    }
     if (region) {
         const group = IED_GROUPS.find((entry) => entry.id === region.id);
         return {
@@ -60,7 +74,7 @@ const buildFocus = ({ direction, year, regional, countries, activeId }) => {
         value: source.total,
         change: source.totalChange,
         history: source.totalHistory,
-        note: inward ? null : NOTES.outwardRegions
+        note: inward || sectors ? null : NOTES.outwardRegions
     };
 };
 
@@ -71,6 +85,8 @@ const useIedView = () => {
     const [direction, setDirection] = useState('inward');
     const [chartView, setChartView] = useState(initialView);
     const [lineBreakdown, setLineBreakdown] = useState('paises');
+    // Lado de Chile en el mapa: regiones o sectores. Desde Chile solo hay sectores (no hay regiones).
+    const [mapBreakdown, setMapBreakdown] = useState('regiones');
     const [year, setYear] = useState(null);
     const [playing, setPlaying] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
@@ -141,22 +157,35 @@ const useIedView = () => {
         () => (countryData && currentYear ? countrySnapshot(countryData, direction, currentYear) : null),
         [countryData, direction, currentYear]
     );
+    const sectors = useMemo(
+        () => (countryData && currentYear ? sectorSnapshot(countryData, direction, currentYear) : null),
+        [countryData, direction, currentYear]
+    );
+    const hasSectors = Boolean(sectors);
+    const inward = direction === 'inward';
+    const breakdown = !inward ? (hasSectors ? 'sectores' : null) : hasSectors ? mapBreakdown : 'regiones';
 
     // Montos que se animan al cambiar de año o de sentido: regiones y países juntos.
     const targetValues = useMemo(() => {
         if (!regional) return null;
         const values = Object.fromEntries(regional.items.map((item) => [item.id, item.value]));
-        (countries?.items || []).forEach((item) => {
+        [...(countries?.items || []), ...(sectors?.items || [])].forEach((item) => {
             values[item.id] = item.value;
         });
         return values;
-    }, [regional, countries]);
+    }, [regional, countries, sectors]);
     const animatedValues = useTweenedValues(targetValues);
 
-    // Gráfico de líneas: principales países del sentido elegido, o regiones (solo hacia Chile).
+    // Gráfico de líneas: principales países o sectores del sentido elegido, o regiones (solo hacia Chile).
     const lines = useMemo(() => {
         if (!regionalData) return null;
-        const breakdown = direction === 'inward' ? lineBreakdown : 'paises';
+        const breakdown = lineBreakdown === 'regiones' && direction !== 'inward' ? 'paises' : lineBreakdown;
+        if (breakdown === 'sectores' && countryData?.sectors) {
+            const items = countryData.sectors[direction].items
+                .filter((item) => item.kind === 'sector')
+                .map((item) => ({ id: item.id, label: item.short, values: item.values }));
+            return { breakdown, ...lineSeries(items, countryData.years) };
+        }
         if (breakdown === 'regiones') {
             const items = IED_GROUPS.map((group) => ({
                 id: group.id,
@@ -171,8 +200,8 @@ const useIedView = () => {
 
     const activeId = hoveredId || selectedId;
     const focus = useMemo(
-        () => buildFocus({ direction, year: currentYear, regional, countries, activeId }),
-        [direction, currentYear, regional, countries, activeId]
+        () => buildFocus({ direction, year: currentYear, regional, countries, sectors: breakdown === 'sectores' ? sectors : null, activeId }),
+        [direction, currentYear, regional, countries, sectors, breakdown, activeId]
     );
 
     return {
@@ -186,6 +215,10 @@ const useIedView = () => {
         setChartView,
         lineBreakdown,
         setLineBreakdown,
+        breakdown,
+        setMapBreakdown,
+        hasSectors,
+        sectors,
         lines,
         years,
         year: currentYear,

@@ -158,7 +158,7 @@ export const SOURCE_GROUPS = [
             },
             {
                 id: 'ied-pais',
-                label: 'Inversión extranjera directa por país',
+                label: 'Inversión extranjera directa por país y sector',
                 note: 'Excel "IED por país, sector y región"',
                 section: 'ied',
                 frequency: 'Anual',

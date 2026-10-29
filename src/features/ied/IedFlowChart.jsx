@@ -5,7 +5,8 @@ import chileTopo from '../../assets/chile.json';
 import { REGION_ID_BY_NAME } from '../../shared/constants/regions';
 import { formatNumber } from '../../shared/utils/format';
 import { IED_GROUPS, IED_ITEMS, IED_UNASSIGNED, iedGroupOfRegion } from './iedGroups';
-import { barSegments, contiguousSpans, ribbonPath, ribbonTarget, spreadLabels } from './iedLayout';
+import { barSegments, contiguousSpans, listSlots, ribbonPath, ribbonTarget, spreadLabels } from './iedLayout';
+import { SECTOR_UNASSIGNED_ID } from './iedSectors';
 import GlobeCanvas from './GlobeCanvas';
 import { WORLD } from './globeData';
 import useGlobeRotation from './useGlobeRotation';
@@ -26,6 +27,9 @@ const BAR_RIGHT = BAR_X + COLUMN * 2 + COLUMN_GAP;
 const SEGMENT_GAP = 1.5;
 const LABEL_GAP = 16;
 const MIN_LABEL_SEGMENT = 11;
+// Lista de sectores (en lugar del mapa): dónde llegan las cintas y medida de los íconos.
+const SECTOR_RIBBON = 160;
+const SECTOR_ICON = 16;
 
 // Hacia Chile: globo, barra, mapa. Desde Chile: mapa, barra, globo.
 const LAYOUT = {
@@ -82,9 +86,14 @@ const globeDot = (projection, center, at) => (
     geoDistance(at, center) < Math.PI / 2 - 0.05 ? projection(at) : null
 );
 
-const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, year, activeId, onHover, onSelect, onReset }) => {
+// breakdown: lado de Chile ('regiones', 'sectores' o null si no hay desglose: Chile completo).
+const IedFlowChart = ({
+    direction, breakdown, regionValues, countryItems, countryValues, sectorItems, year, activeId, onHover, onSelect, onReset
+}) => {
     const layout = LAYOUT[direction];
     const inward = direction === 'inward';
+    const bySector = breakdown === 'sectores' && sectorItems.length > 0;
+    const byRegion = inward && !bySector;
     const { rotation, rotateTo, wasDrag, dragHandlers } = useGlobeRotation(layout.initialRotation);
 
     const svgRef = useRef(null);
@@ -119,10 +128,17 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
         countryItems.map((item) => ({ id: item.id, value: Math.max(0, countryValues[item.id] || 0) })),
         { top: TOP, height: BOTTOM - TOP, gap: SEGMENT_GAP }
     );
-    const regionSegments = inward
+    const regionSegments = byRegion
         ? barSegments(IED_ITEMS.map((item) => ({ id: item.id, value: regionValues[item.id] })), { top: TOP, height: BOTTOM - TOP, gap: 2 })
         : [];
     const regionSegment = Object.fromEntries(regionSegments.map((segment) => [segment.id, segment]));
+    const sectorSegments = bySector
+        ? barSegments(sectorItems.map((item) => ({ id: item.id, value: Math.max(0, countryValues[item.id] || 0) })), { top: TOP, height: BOTTOM - TOP, gap: 2 })
+        : [];
+    const sectorSlots = listSlots(sectorSegments.length, TOP, BOTTOM);
+    const sectorById = Object.fromEntries(sectorItems.map((item) => [item.id, item]));
+    // La lista va donde estaba el mapa: a la izquierda de la barra (desde Chile) o a la derecha (hacia Chile).
+    const sectorX = inward ? BAR_RIGHT + SECTOR_RIBBON : BAR_X - SECTOR_RIBBON;
     const itemById = Object.fromEntries(countryItems.map((item) => [item.id, item]));
     const { isoToItem, dataIsos, dataCountries } = useMemo(() => {
         const byIso = Object.fromEntries(countryItems.filter((item) => item.place?.iso).map((item) => [item.place.iso, item.id]));
@@ -205,8 +221,8 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                 activeIso={activeIso}
             />
             <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={inward
-                ? `Inversión extranjera directa en Chile por país de origen y por región, ${year}`
-                : `Inversión directa de Chile en el exterior por país de destino, ${year}`}
+                ? `Inversión extranjera directa en Chile por país de origen y por ${bySector ? 'sector' : 'región'}, ${year}`
+                : `Inversión directa de Chile en el exterior por país de destino${bySector ? ' y por sector' : ''}, ${year}`}
             >
                 <defs>
                     <pattern id="ied-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -255,8 +271,18 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                         );
                     })}
 
-                    {/* Cintas hacia las regiones (o desde todo Chile, en el otro sentido) */}
-                    {inward
+                    {/* Cintas hacia los sectores, hacia las regiones o desde todo Chile */}
+                    {bySector ? sectorSegments.map((segment, index) => {
+                        const slot = sectorSlots[index];
+                        const target = ribbonTarget(segment, slot);
+                        const d = inward
+                            ? ribbonPath(BAR_RIGHT, [segment.y0, segment.y1], sectorX, target)
+                            : ribbonPath(sectorX, target, BAR_X, [segment.y0, segment.y1]);
+                        const unassigned = segment.id === SECTOR_UNASSIGNED_ID;
+                        return (
+                            <path key={segment.id} className={`ied-ribbon is-sector${unassigned ? ' is-unassigned' : ''}${state(segment.id)}`} d={d} {...handlers(segment.id)} />
+                        );
+                    }) : byRegion
                         ? chile.groups.map((group) => {
                             const segment = regionSegment[group.id];
                             const span = chile.spans[group.id];
@@ -277,12 +303,12 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                             />
                         )}
 
-                    {/* Barra: países a un lado; regiones (o Chile completo) al otro */}
+                    {/* Barra: países a un lado; regiones, sectores (o Chile completo) al otro */}
                     <text className="ied-bar-title" x={BAR_X + COLUMN} y={TOP - 12} textAnchor="end" onClick={onReset}>
-                        {inward ? 'Países' : 'Chile'}
+                        {inward ? 'Países' : bySector ? 'Sectores' : 'Chile'}
                     </text>
                     <text className="ied-bar-title" x={BAR_RIGHT - COLUMN} y={TOP - 12} textAnchor="start" onClick={onReset}>
-                        {inward ? 'Regiones' : 'Países'}
+                        {!inward ? 'Países' : bySector ? 'Sectores' : 'Regiones'}
                     </text>
                     {countrySegments.map((segment) => {
                         const item = itemById[segment.id];
@@ -304,7 +330,23 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                             />
                         );
                     })}
-                    {inward
+                    {bySector ? sectorSegments.map((segment) => (
+                        <rect
+                            key={segment.id}
+                            className={`ied-segment${segment.id === SECTOR_UNASSIGNED_ID ? ' is-unassigned' : ''}${state(segment.id)}`}
+                            x={otherColumnX}
+                            y={segment.y0}
+                            width={COLUMN}
+                            height={segmentHeight(segment)}
+                            rx={1.5}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`${sectorById[segment.id].label}: ${formatNumber(countryValues[segment.id], 0)} millones de dólares`}
+                            onFocus={() => onHover(segment.id)}
+                            onBlur={() => onHover(null)}
+                            {...handlers(segment.id)}
+                        />
+                    )) : byRegion
                         ? regionSegments.map((segment) => (
                             <rect
                                 key={segment.id}
@@ -324,8 +366,8 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                         ))
                         : <rect className="ied-segment is-chile" x={otherColumnX} y={TOP} width={COLUMN} height={BOTTOM - TOP} rx={1.5} onClick={onReset} />}
 
-                    {/* Mapa de Chile (encima de las cintas, que llegan a su costa) */}
-                    {chile.regions.map((region) => (
+                    {/* Mapa de Chile (encima de las cintas, que llegan a su costa); no va con los sectores */}
+                    {bySector ? null : chile.regions.map((region) => (
                         <path
                             key={region.key}
                             className={`ied-region${inward ? state(region.groupId) : ' is-source'}`}
@@ -349,7 +391,30 @@ const IedFlowChart = ({ direction, regionValues, countryItems, countryValues, ye
                                 </text>
                             </g>
                         ))}
-                        {inward ? chile.groups.map((group, index) => {
+                        {bySector ? sectorSegments.map((segment, index) => {
+                            const item = sectorById[segment.id];
+                            const Icon = item.icon;
+                            const y = sectorSlots[index].middle;
+                            const iconX = inward ? sectorX + 8 : sectorX - 8 - SECTOR_ICON;
+                            return (
+                                <g key={segment.id} className={`ied-label ied-sector${state(segment.id)}`} {...handlers(segment.id)}>
+                                    {Icon ? (
+                                        <Icon className="ied-sector-icon" x={iconX} y={y - SECTOR_ICON / 2} width={SECTOR_ICON} height={SECTOR_ICON} strokeWidth={1.8} aria-hidden="true" />
+                                    ) : (
+                                        <rect className="ied-sector-hatch" x={iconX + 2} y={y - 6} width={12} height={12} rx={2} />
+                                    )}
+                                    <text
+                                        x={inward ? iconX + SECTOR_ICON + 8 : iconX - 8}
+                                        y={y}
+                                        dy="0.35em"
+                                        textAnchor={inward ? 'start' : 'end'}
+                                    >
+                                        <tspan className="ied-label-name">{item.short}</tspan>
+                                        <tspan className="ied-label-value" dx="6">{formatNumber(countryValues[segment.id], 0)}</tspan>
+                                    </text>
+                                </g>
+                            );
+                        }) : inward ? chile.groups.map((group, index) => {
                             const span = chile.spans[group.id];
                             const labelX = chile.east + 22;
                             const y = regionLabelYs[index];

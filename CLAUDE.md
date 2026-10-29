@@ -50,8 +50,9 @@ python -m pytest python/tests
   la URL: `/datos#ied`).
 - `src/features/proyecciones/`: proyecciones de crecimiento (EEE, IPoM y FMI). Cálculos en
   `projectionsView.js`; vistas "Por año" y "Revisiones".
-- `src/features/ied/`: inversión extranjera directa: globo, barra y mapa de Chile (`IedFlowChart`),
-  hacia Chile o desde Chile. Datos y estado en `useIedView`; geometría pura en `iedLayout.js`.
+- `src/features/ied/`: inversión extranjera directa: globo, barra y mapa de Chile o lista de sectores
+  (`IedFlowChart`), hacia Chile o desde Chile. Datos y estado en `useIedView`; geometría pura en
+  `iedLayout.js`; sectores (nombre corto e ícono) en `iedSectors.js`.
 - `src/features/pib/`: composición del PIB (`usePibComposition`).
 - `src/features/fiscal/`: finanzas públicas (DIPRES). Cálculos en `fiscalView.js`, textos de cada
   partida en `fiscalNotes.js`.
@@ -61,7 +62,7 @@ python -m pytest python/tests
 - `src/shared/utils/`: funciones puras con pruebas (`*.test.js`).
 - `src/styles/`: `global.css` importa las partes en orden; variables de tema en `variables.css`.
 - `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, `import_dipres.py`,
-  `import_ied_paises.py` (Excel de IED por país), `import_proyecciones.py` (IPoM y FMI), `buscar_series.py` (busca códigos en el catálogo
+  `import_ied_paises.py` (Excel de IED por país y sector), `import_proyecciones.py` (IPoM y FMI), `buscar_series.py` (busca códigos en el catálogo
   de la API), pruebas en `python/tests/`.
 
 ## Convenciones

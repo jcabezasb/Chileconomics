@@ -50,7 +50,7 @@ Las fechas son texto `YYYY-MM-DD`. Las series mensuales y trimestrales vienen co
 | `features/proyecciones/` | Proyecciones de crecimiento del PIB: Banco Central (EEE e IPoM) y FMI (WEO). `projectionsView.js` (funciones puras) arma las ediciones de cada fuente, el crecimiento efectivo y las dos vistas: `ProjectionsYearChart` (por año) y `ProjectionsRevisionChart` (cómo cambió lo proyectado para un año). Estado en `useProjectionsView` |
 | `features/overview/` | Tarjetas de indicadores (`IndicatorCard`) y vista de detalle (`detail/`): gráfico principal, selector de fechas y un desglose por indicador (`detail/breakdowns/`) |
 | `features/regional/` | Mapa y fichas regionales. `useRegionalView` concentra los cálculos; los componentes solo dibujan |
-| `features/ied/` | Inversión extranjera directa. `IedFlowChart` dibuja globo, barra y mapa de Chile (hacia Chile) o mapa, barra y globo (desde Chile); el globo va en un canvas (`GlobeCanvas`, más fluido que SVG al girar) y se gira con `useGlobeRotation`. `IedLinesChart` es la vista alternativa de líneas. `useIedView` carga las series por región y `ied_paises.json`, y maneja sentido, año y destacado. Geometría pura en `iedLayout.js`; países y su ubicación en `iedCountries.js` |
+| `features/ied/` | Inversión extranjera directa. `IedFlowChart` dibuja globo, barra y mapa de Chile o lista de sectores (hacia Chile) o sectores, barra y globo (desde Chile); el globo va en un canvas (`GlobeCanvas`, más fluido que SVG al girar) y se gira con `useGlobeRotation`. `IedLinesChart` es la vista alternativa de líneas. `useIedView` carga las series por región y `ied_paises.json`, y maneja sentido, año y destacado. Geometría pura en `iedLayout.js`; países y su ubicación en `iedCountries.js` |
 | `features/pib/` | Composición del PIB por el lado del gasto (`usePibComposition`) |
 | `features/fiscal/` | Finanzas públicas: `useFiscalView` carga los datos de la DIPRES; `fiscalView.js` suma por período, calcula % del PIB y variación real; `FiscalTree` es la tabla desplegable |
 | `features/fuentes/` | Fuentes: un botón por institución y una tabla con cada dato, la sección donde se usa, su frecuencia, el último dato y la fecha de revisión. `sourcesCatalog.js` es la lista fija; `sourcesView.js` (funciones puras) lee las fechas de los cuatro JSON |
@@ -78,6 +78,12 @@ Datos y gráficos se cargan solo al entrar a /datos (`React.lazy`), y las librer
   su total coincide exacto con el de la serie por región (el direccional da otro total). El país es
   el del inversionista inmediato. Desde Chile no hay desglose por región, así que en ese sentido el
   mapa es un solo bloque.
+- **IED por sector** (`python/import_ied_paises.py`, hoja *Sector (Activo y Pasivo)*): stock por sector
+  económico en ambos sentidos, mismo total que por país. El Banco Central no cruza sector con país, así que
+  son dos desgloses del mismo total: en el gráfico no hay cintas entre la columna de sectores y la de
+  países, y los "no asignados" de cada desglose no coinciden. La lista de sectores reemplaza al mapa
+  (siempre desde Chile; hacia Chile con el botón Regiones | Sectores). Nombre corto e ícono de cada sector
+  en `features/ied/iedSectors.js`.
 - **IED por región** (`features/ied/`): stock a fin de año en millones de US$, desde 2012. El Banco
   Central agrupa algunas regiones (por ejemplo, Ñuble, Biobío y La Araucanía) y publica una parte
   "no asignada" a ninguna región, que va en la barra pero sin cinta hacia el mapa. Las partes suman

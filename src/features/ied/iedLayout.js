@@ -65,3 +65,14 @@ export const sparkline = (values, width, height) => {
     const area = points.length ? `${line} L${points[points.length - 1].x},${height} L${points[0].x},${height} Z` : '';
     return { points, line, area };
 };
+
+// Tramos verticales iguales para una lista de `count` filas entre top y bottom (la lista de sectores
+// que reemplaza al mapa). Cada cinta llega al centro de su fila con el grosor de su segmento, sin
+// pasarse de `fill` (fracción de la fila) para que cintas vecinas no se toquen.
+export const listSlots = (count, top, bottom, fill = 0.7) => {
+    const size = count ? (bottom - top) / count : 0;
+    return Array.from({ length: count }, (_, index) => {
+        const middle = top + size * (index + 0.5);
+        return { y0: middle - (size * fill) / 2, y1: middle + (size * fill) / 2, middle };
+    });
+};
