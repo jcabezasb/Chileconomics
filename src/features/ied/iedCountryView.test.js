@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { IED_COUNTRIES } from './iedCountries';
-import { buildCountryData, countryItems, countrySnapshot, lineSeries } from './iedCountryView';
+import { buildCountryData, countryItems, countrySnapshot, lineSeries, sectorSnapshot } from './iedCountryView';
+import { listSlots } from './iedLayout';
+import { SECTOR_UNASSIGNED_ID, sectorItems } from './iedSectors';
 
 const stock = (scale) => ({
     continents: [
@@ -55,6 +57,43 @@ describe('IED por país', () => {
     });
 });
 
+const sectors = {
+    items: [{ name: 'Minería', values: [10, 20] }, { name: 'Sector nuevo', values: [5, 5] }],
+    unassigned: [5, 15],
+    total: [20, 40]
+};
+
+describe('IED por sector', () => {
+    it('asocia nombre corto e ícono, y deja los no asignados al final', () => {
+        const items = sectorItems(sectors);
+        expect(items.map((item) => [item.id, item.kind])).toEqual([
+            ['s-mineria', 'sector'],
+            ['s-sector-nuevo', 'sector'],
+            [SECTOR_UNASSIGNED_ID, 'unassigned']
+        ]);
+        expect(items[0].short).toBe('Minería');
+        expect(items[0].icon).toBeTruthy();
+        // Un sector que no está en la lista se muestra con su nombre del Excel.
+        expect(items[1].short).toBe('Sector nuevo');
+        expect(items[2].icon).toBeNull();
+    });
+
+    it('calcula el año de cada sector; sin sectores en el archivo devuelve null', () => {
+        const withSectors = buildCountryData({ ...payload, inward: { ...payload.inward, sectors }, outward: { ...payload.outward, sectors } });
+        const snapshot = sectorSnapshot(withSectors, 'inward', 2025);
+        expect(snapshot.total).toBe(40);
+        expect(snapshot.items[0]).toMatchObject({ value: 20, share: 0.5, change: 100 });
+        expect(sectorSnapshot(buildCountryData(payload), 'inward', 2025)).toBeNull();
+    });
+
+    it('reparte la lista en filas iguales, con la cinta centrada en cada una', () => {
+        const slots = listSlots(4, 0, 100, 0.5);
+        expect(slots.map((slot) => slot.middle)).toEqual([12.5, 37.5, 62.5, 87.5]);
+        expect(slots[0]).toMatchObject({ y0: 6.25, y1: 18.75 });
+        expect(listSlots(0, 0, 100)).toEqual([]);
+    });
+});
+
 // Contrato con public/data/ied_paises.json: cada país del Excel tiene su lugar en el globo.
 describe('ied_paises.json', () => {
     const json = JSON.parse(fs.readFileSync(new URL('../../../public/data/ied_paises.json', import.meta.url), 'utf8'));
@@ -64,6 +103,16 @@ describe('ied_paises.json', () => {
             .flatMap((continent) => continent.countries.map((country) => country.name)));
         const missing = names.filter((name) => !name.startsWith('Resto') && !IED_COUNTRIES[name]);
         expect(missing).toEqual([]);
+    });
+
+    it('los sectores suman el mismo total que los países, en ambos sentidos', () => {
+        ['inward', 'outward'].forEach((direction) => {
+            const { sectors: block, stock } = json[direction];
+            const last = block.total.length - 1;
+            const parts = block.items.reduce((sum, item) => sum + item.values[last], 0) + block.unassigned[last];
+            expect(parts).toBeCloseTo(block.total[last], 0);
+            expect(block.total[last]).toBeCloseTo(stock.total[last], 0);
+        });
     });
 
     it('las partes suman el total del stock en Chile', () => {

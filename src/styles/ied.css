@@ -110,7 +110,7 @@
     margin: 0 auto;
 }
 
-.ied-chart svg {
+.ied-chart > svg {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -232,6 +232,26 @@
     fill: var(--map-fill-selected);
     stroke: var(--text-primary);
     stroke-width: 1.2;
+}
+
+.ied-ribbon.is-sector.is-unassigned {
+    fill: url(#ied-hatch);
+    fill-opacity: 0.5;
+}
+
+/* Lista de sectores (en lugar del mapa): ícono, nombre y monto */
+.ied-sector-icon {
+    color: var(--accent);
+    pointer-events: none;
+}
+
+.ied-sector-hatch {
+    fill: url(#ied-hatch);
+    stroke: var(--border);
+}
+
+.ied-sector {
+    cursor: pointer;
 }
 
 .ied-chile-note {

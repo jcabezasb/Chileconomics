@@ -33,7 +33,21 @@ def block(sheet, title, continents, unassigned):
     sheet.append([None, "(*) Incluye títulos de capital"])
 
 
-def workbook(break_total=False):
+def sector_block(sheet, title, sectors, unassigned, break_total=False):
+    """Bloque de sectores como en el Excel: título, unidad, fila "Ítem | años", sectores y TOTAL."""
+    sheet.append([None, title])
+    sheet.append([None, "(Millones de dólares)"])
+    sheet.append([])
+    sheet.append([None, "Ítem", *YEARS])
+    for name, values in sectors:
+        sheet.append([None, name, *values])
+    sheet.append([None, "No asignados", *unassigned])
+    total = [sum(v[i] for _, v in sectors) + unassigned[i] for i in range(2)]
+    sheet.append([None, "TOTAL", total[0] + (50 if break_total else 0), total[1]])
+    sheet.append([None, "(**) Incluye patrimonio e instrumentos de deuda"])
+
+
+def workbook(break_total=False, break_sectors=False):
     book = Workbook()
     book.active.title = "Portada"
     sheet = book.create_sheet("País (Activo y Pasivo)")
@@ -48,6 +62,13 @@ def workbook(break_total=False):
     ]
     block(sheet, "FLUJOS DE INVERSIÓN  DIRECTA PASIVA POR PAIS (*) (***)", inward[:2], [1, 2])
     block(sheet, "STOCK DE INVERSIÓN DIRECTA PASIVA POR PAÍS (**) (***)", inward, [30, 33])
+    sectors = book.create_sheet("Sector (Activo y Pasivo)")
+    sectors.append([None, "PRINCIPIO ACTIVO/PASIVO (1) (2) (3) "])
+    sector_block(sectors, "FLUJOS DE INVERSIÓN DIRECTA ACTIVA POR SECTOR ECONÓMICO (*)", [("Minería", [1, 1])], [0, 0])
+    sector_block(sectors, "STOCK DE INVERSIÓN DIRECTA ACTIVA POR SECTOR ECONÓMICO (**)",
+                 [("Minería", [4, 5]), ("Servicios financieros", [10, 11])], [3, 4])
+    sector_block(sectors, "STOCK DE INVERSIÓN DIRECTA PASIVA POR SECTOR ECONÓMICO (**)",
+                 [("Minería", [60, 70]), ("Comercio", [3, 3])], [30, 30], break_total=break_sectors)
     if break_total:
         for row in sheet.iter_rows():
             if row[1].value == "TOTAL":
@@ -91,3 +112,17 @@ def test_normaliza_titulos_y_notas():
         "stock de inversion directa pasiva por pais"
     )
     assert import_ied_paises.clean_name("Estados Unidos (4)") == "Estados Unidos"
+
+
+def test_lee_el_stock_por_sector_en_ambos_sentidos():
+    _, data = import_ied_paises.parse_workbook(workbook())
+    outward = data["outward"]["sectors"]
+    assert outward["items"] == [{"name": "Minería", "values": [4, 5]}, {"name": "Servicios financieros", "values": [10, 11]}]
+    assert outward["unassigned"] == [3, 4]
+    assert outward["total"] == [17, 20]
+    assert data["inward"]["sectors"]["total"] == [93, 103]
+
+
+def test_si_los_sectores_no_suman_el_total_falla():
+    with pytest.raises(ValueError, match="sectores"):
+        import_ied_paises.parse_workbook(workbook(break_sectors=True))

@@ -1,5 +1,5 @@
-"""Descarga el Excel de inversión extranjera directa por país del Banco Central y genera
-public/data/ied_paises.json, que usa la sección de IED (globo y barra por país).
+"""Descarga el Excel de inversión extranjera directa por país y sector del Banco Central y genera
+public/data/ied_paises.json, que usa la sección de IED (globo, barra por país y lista de sectores).
 
 Uso: npm run import-ied-paises            (descarga el Excel)
      npm run import-ied-paises -- archivo.xlsx   (usa un archivo ya descargado)
@@ -12,6 +12,10 @@ Se lee la hoja "País (Activo y Pasivo)", que trae cuatro bloques (millones de U
 Cada bloque tiene filas de continente (columna B), sus países (columna C), "No asignados" y
 "TOTAL". Antes de escribir se verifica que países, continentes y total cuadren; si no, el formato
 cambió y el script termina con error sin tocar el JSON (el sitio sigue con los datos anteriores).
+
+De la hoja "Sector (Activo y Pasivo)" se lee el stock por sector económico en ambos sentidos
+(filas: sector, "No asignados" y "TOTAL"); también se verifica que los sectores sumen el total.
+El Banco Central no cruza sector con país: son dos desgloses del mismo total.
 """
 
 import io
@@ -40,6 +44,13 @@ BLOCKS = {
 }
 
 
+# Bloques de la hoja de sectores (solo stock) -> sentido.
+SECTOR_BLOCKS = {
+    "stock de inversion directa activa por sector economico": "outward",
+    "stock de inversion directa pasiva por sector economico": "inward",
+}
+
+
 def plain(text):
     """Minúsculas, sin tildes y con espacios simples."""
     text = unicodedata.normalize("NFKD", str(text or ""))
@@ -61,12 +72,12 @@ def as_number(value):
     return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
 
-def find_sheet(workbook):
+def find_sheet(workbook, prefix="pais", label="País"):
     for sheet in workbook.worksheets:
         name = plain(sheet.title)
-        if name.startswith("pais") and "activo" in name and "pasivo" in name:
+        if name.startswith(prefix) and "activo" in name and "pasivo" in name:
             return sheet
-    raise ValueError("No se encontró la hoja 'País (Activo y Pasivo)'.")
+    raise ValueError(f"No se encontró la hoja '{label} (Activo y Pasivo)'.")
 
 
 def year_columns(row):
@@ -124,6 +135,57 @@ def check_block(block, where):
             raise ValueError(f"{where}: el TOTAL no es la suma de continentes y no asignados (año {i}).")
 
 
+def parse_sector_block(rows, start):
+    """Bloque de sectores desde su título: (años, {"items": [{name, values}], "unassigned", "total"})."""
+    index = start + 1
+    while index < len(rows) and not year_columns(rows[index]):
+        index += 1
+    if index >= len(rows):
+        raise ValueError("Un bloque de sectores no tiene la fila de años.")
+    columns = sorted(year_columns(rows[index]))
+    years = [int(rows[index][i]) for i in columns]
+    block = {"items": [], "unassigned": None, "total": None}
+    for row in rows[index + 1:]:
+        name = row[1] if len(row) > 1 else None
+        if not name:
+            continue
+        values = [round(as_number(row[i]), 3) if i < len(row) and as_number(row[i]) is not None else None for i in columns]
+        if normalize(name) == "total":
+            block["total"] = values
+            return years, block
+        if normalize(name).startswith("no asignado"):
+            block["unassigned"] = values
+        else:
+            block["items"].append({"name": clean_name(name), "values": values})
+    raise ValueError("Un bloque de sectores no termina en una fila TOTAL.")
+
+
+def check_sectors(block, where):
+    """Los sectores y los no asignados suman el total, año por año."""
+    for i, value in enumerate(block["total"]):
+        parts = sum(item["values"][i] or 0 for item in block["items"]) + ((block["unassigned"] or [0] * len(block["total"]))[i] or 0)
+        if value is not None and abs(value - parts) > TOLERANCE:
+            raise ValueError(f"{where}: el TOTAL no es la suma de los sectores (año {i}).")
+
+
+def parse_sectors(workbook, years):
+    """Stock por sector en ambos sentidos, con los mismos años que la hoja de países."""
+    rows = [list(row) for row in find_sheet(workbook, "sector", "Sector").iter_rows(values_only=True)]
+    sectors = {}
+    for index, row in enumerate(rows):
+        direction = SECTOR_BLOCKS.get(normalize(row[1] if len(row) > 1 else ""))
+        if direction:
+            block_years, block = parse_sector_block(rows, index)
+            if block_years != years:
+                raise ValueError("La hoja de sectores no tiene los mismos años que la de países.")
+            check_sectors(block, f"sectores {direction}")
+            sectors[direction] = block
+    missing = [d for d in SECTOR_BLOCKS.values() if d not in sectors]
+    if missing:
+        raise ValueError(f"Faltan bloques de sectores en el Excel: {', '.join(missing)}")
+    return sectors
+
+
 def parse_workbook(source):
     workbook = load_workbook(source, read_only=True, data_only=True)
     rows = [list(row) for row in find_sheet(workbook).iter_rows(values_only=True)]
@@ -142,6 +204,8 @@ def parse_workbook(source):
     missing = [f"{d}/{m}" for d, m in BLOCKS.values() if m not in data[d]]
     if missing:
         raise ValueError(f"Faltan bloques en el Excel: {', '.join(missing)}")
+    for direction, block in parse_sectors(workbook, years).items():
+        data[direction]["sectors"] = block
     return years, data
 
 

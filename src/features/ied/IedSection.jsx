@@ -20,9 +20,16 @@ const VIEWS = [
     { id: 'mapa', label: 'Mapa' },
     { id: 'lineas', label: 'Líneas' }
 ];
-const BREAKDOWNS = [
+// Desglose del gráfico de líneas (regiones solo hacia Chile; sectores si el archivo los trae).
+const lineBreakdowns = (inward, hasSectors) => [
     { id: 'paises', label: 'Países' },
-    { id: 'regiones', label: 'Regiones' }
+    ...(inward ? [{ id: 'regiones', label: 'Regiones' }] : []),
+    ...(hasSectors ? [{ id: 'sectores', label: 'Sectores' }] : [])
+];
+// Lado de Chile en el mapa, hacia Chile.
+const MAP_BREAKDOWNS = [
+    { id: 'regiones', label: 'Regiones' },
+    { id: 'sectores', label: 'Sectores' }
 ];
 const LIST_SIZE = 10;
 
@@ -44,7 +51,7 @@ const FocusCard = ({ view }) => {
             {focus.isTotal ? (
                 <span className="ied-focus-hint">
                     {chartView === 'mapa'
-                        ? 'Pasa el mouse (o toca) un país, la barra o una región. Arrastra el globo para girarlo.'
+                        ? 'Pasa el mouse (o toca) un país, la barra, una región o un sector. Arrastra el globo para girarlo.'
                         : 'Pasa el mouse (o toca) una línea o la leyenda. Toca el gráfico para elegir un año.'}
                 </span>
             ) : null}
@@ -55,21 +62,26 @@ const FocusCard = ({ view }) => {
     );
 };
 
-// Lista de apoyo (y para celular): principales países y, hacia Chile, las regiones.
+// Lista de apoyo (y para celular): principales países y, según el desglose, las regiones o los sectores.
 const FocusList = ({ view }) => {
-    const { direction, countries, regional, activeId, toggleSelected } = view;
+    const { direction, breakdown, countries, regional, sectors, activeId, toggleSelected } = view;
     const topCountries = countries ? [...countries.items].sort((a, b) => b.value - a.value).slice(0, LIST_SIZE) : [];
-    const rows = [
-        ...topCountries.map((item) => ({ id: item.id, label: item.label, value: item.value, share: item.share })),
-        ...(direction === 'inward' && regional
+    const secondary = breakdown === 'sectores' && sectors
+        ? [...sectors.items]
+            .sort((a, b) => (a.kind === 'unassigned') - (b.kind === 'unassigned') || b.value - a.value)
+            .map((item) => ({ id: item.id, label: item.short, value: item.value, share: item.share }))
+        : direction === 'inward' && regional
             ? [...IED_GROUPS, IED_UNASSIGNED].map((group) => {
                 const item = regional.items.find((entry) => entry.id === group.id);
-                return { id: group.id, label: group.short, value: item.value, share: item.share, region: true };
+                return { id: group.id, label: group.short, value: item.value, share: item.share };
             })
-            : [])
+            : [];
+    const rows = [
+        ...topCountries.map((item) => ({ id: item.id, label: item.label, value: item.value, share: item.share })),
+        ...secondary.map((row) => ({ ...row, region: true }))
     ];
     return (
-        <ul className="ied-list" aria-label="Stock por país y región">
+        <ul className="ied-list" aria-label={`Stock por país y ${breakdown === 'sectores' ? 'sector' : 'región'}`}>
             {rows.map((row, index) => (
                 <li key={row.id} className={row.region && !rows[index - 1]?.region ? 'is-first-region' : ''}>
                     <button
@@ -94,7 +106,8 @@ const IedSection = ({ sectionRef }) => {
     const view = useIedView();
     const {
         loading, hasCountries, direction, chooseDirection, chartView, setChartView, lineBreakdown, setLineBreakdown, lines,
-        years, year, chooseYear, playing, togglePlay, regional, countries, animatedValues, activeId
+        breakdown, setMapBreakdown, hasSectors, sectors, years, year, chooseYear, playing, togglePlay, regional, countries,
+        animatedValues, activeId
     } = view;
     const [table, setTable] = useState(null);
     const closeTable = useCallback(() => setTable(null), []);
@@ -107,8 +120,10 @@ const IedSection = ({ sectionRef }) => {
                     <h2 className="regional-title">Inversión Extranjera Directa</h2>
                     <p className="regional-subtitle">
                         {inward
-                            ? 'De qué países viene la inversión extranjera en Chile y en qué regiones está.'
-                            : 'En qué países invierten las empresas chilenas.'}
+                            ? `De qué países viene la inversión extranjera en Chile y en qué ${breakdown === 'sectores' ? 'sectores' : 'regiones'} está.`
+                            : hasSectors
+                                ? 'En qué países y en qué sectores invierten las empresas chilenas.'
+                                : 'En qué países invierten las empresas chilenas.'}
                     </p>
                 </div>
 
@@ -125,8 +140,16 @@ const IedSection = ({ sectionRef }) => {
                                     <Segmented ariaLabel="Sentido de la inversión" options={DIRECTIONS} value={direction} onChange={chooseDirection} />
                                 ) : null}
                                 <Segmented ariaLabel="Tipo de gráfico" options={VIEWS} value={chartView} onChange={setChartView} />
-                                {chartView === 'lineas' && inward ? (
-                                    <Segmented ariaLabel="Líneas por" options={BREAKDOWNS} value={lineBreakdown} onChange={setLineBreakdown} />
+                                {chartView === 'mapa' && inward && hasSectors ? (
+                                    <Segmented ariaLabel="Chile por" options={MAP_BREAKDOWNS} value={breakdown} onChange={setMapBreakdown} />
+                                ) : null}
+                                {chartView === 'lineas' && (inward || hasSectors) ? (
+                                    <Segmented
+                                        ariaLabel="Líneas por"
+                                        options={lineBreakdowns(inward, hasSectors)}
+                                        value={lines?.breakdown || lineBreakdown}
+                                        onChange={setLineBreakdown}
+                                    />
                                 ) : null}
                             </div>
                             <div className="ied-years">
@@ -155,6 +178,8 @@ const IedSection = ({ sectionRef }) => {
                                 {chartView === 'mapa' ? (
                                     <IedFlowChart
                                         direction={direction}
+                                        breakdown={breakdown}
+                                        sectorItems={sectors?.items || []}
                                         regionValues={animatedValues}
                                         countryItems={countries?.items || []}
                                         countryValues={animatedValues}
@@ -183,7 +208,8 @@ const IedSection = ({ sectionRef }) => {
                                 <div className="ied-notes">
                                     <p className="ied-footnote">
                                         Stock a fin de año, millones de US$. País del inversionista inmediato (puede
-                                        diferir del dueño final). Fuente: Banco Central de Chile.
+                                        diferir del dueño final).{hasSectors ? ' El Banco Central publica por separado el desglose por país y por sector: no se sabe qué sector va a qué país.' : ''}{' '}
+                                        Fuente: Banco Central de Chile.
                                     </p>
                                     <IconButton
                                         icon={Table2}
