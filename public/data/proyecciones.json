@@ -1062,7 +1062,7 @@
     }
    }
   ],
-  "checked_at": "2026-10-29"
+  "checked_at": "2026-10-30"
  },
  "weo": {
   "source": "https://api.imf.org/external/sdmx/2.1/data/IMF.RES,WEO/CHL.NGDP_RPCH.A",
@@ -1104,6 +1104,6 @@
     }
    }
   ],
-  "checked_at": "2026-10-29"
+  "checked_at": "2026-10-30"
  }
 }
