@@ -8,7 +8,7 @@ const LaborCards = ({ cards, theme, onOpenTable }) => (
             const latest = card.series.length ? card.series[card.series.length - 1].value : null;
             const { chartData } = card;
             return (
-                <div key={card.id} className="regional-labor-card">
+                <div key={card.id} className="regional-labor-card" data-ascii="surface">
                     <div className="regional-labor-header">
                         <div className="regional-labor-label">{card.title}</div>
                         <button

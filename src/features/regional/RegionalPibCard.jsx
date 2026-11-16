@@ -19,6 +19,7 @@ const RegionalPibCard = ({ view, theme, onOpenTable, onOpenActivities }) => {
     return (
         <div
             className="regional-pib-card is-clickable"
+            data-ascii="surface"
             role="button"
             tabIndex={0}
             onClick={onOpenTable}

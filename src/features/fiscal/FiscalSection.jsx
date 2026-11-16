@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Download, Table2 } from 'lucide-react';
+import DataReveal from '../../shared/components/DataReveal';
 import DataTableModal from '../../shared/components/DataTableModal';
 import SeriesTable from '../../shared/components/SeriesTable';
 import { IconButton, Segmented } from '../../shared/components/controls';
@@ -72,7 +73,12 @@ const SummaryCard = ({ item, period, active, onSelect }) => {
     const isBalance = item.id === 'balance';
     const tone = isBalance && Number.isFinite(item.value) ? (item.value < 0 ? ' is-deficit' : ' is-surplus') : '';
     return (
-        <button type="button" className={`fiscal-kpi${active ? ' is-active' : ''}${tone}`} onClick={() => onSelect(item.id)}>
+        <button
+            type="button"
+            className={`fiscal-kpi${active ? ' is-active' : ''}${tone}`}
+            onClick={() => onSelect(item.id)}
+            data-ascii="surface"
+        >
             <span className="fiscal-kpi-label">
                 {SUMMARY_LABELS[item.id]}
                 {isBalance && Number.isFinite(item.value) ? <em>{item.value < 0 ? 'déficit' : 'superávit'}</em> : null}
@@ -130,73 +136,75 @@ const FiscalSection = ({ sectionRef }) => {
                     </p>
                 </div>
 
-                {loading ? <p className="fiscal-empty">Cargando datos…</p> : null}
-                {error ? <p className="fiscal-empty">No se pudieron cargar los datos de finanzas públicas.</p> : null}
+                <DataReveal loading={loading} replayOn={[period?.id, mode]}>
+                    {loading ? <div className="data-loading" role="status" aria-label="Cargando datos" /> : null}
+                    {error ? <p className="fiscal-empty">No se pudieron cargar los datos de finanzas públicas.</p> : null}
 
-                {view && period ? (
-                    <>
-                        <div className="fiscal-toolbar">
-                            <label className="fiscal-period">
-                                <span>Período</span>
-                                <select className="period-select" value={period.id} onChange={(event) => setPeriodId(event.target.value)}>
-                                    {periods.map((item) => (
-                                        <option key={item.id} value={item.id}>{item.label}</option>
-                                    ))}
-                                </select>
-                            </label>
-                            <IconButton
-                                icon={Download}
-                                label="Descargar período (CSV)"
-                                onClick={() => downloadCsv(treeCsv(view.tree, formatNumber), `finanzas-publicas-${period.id}.csv`)}
-                            />
-                        </div>
-
-                        <div className="fiscal-kpis">
-                            {view.summary.map((item) => (
-                                <SummaryCard key={item.id} item={item} period={period} active={selectedId === item.id} onSelect={selectNode} />
-                            ))}
-                        </div>
-
-                        <div className="fiscal-trees">
-                            {view.tree.map((root) => (
-                                <FiscalTree key={root.id} root={root} selectedId={selectedId} onSelect={selectNode} />
-                            ))}
-                        </div>
-
-                        <div className="fiscal-detail" ref={detailRef}>
-                            <div className="fiscal-detail-header">
-                                <div>
-                                    <h3 className="fiscal-detail-title">{selectedLabel}</h3>
-                                    <p className="fiscal-detail-note">{FISCAL_NOTES[selectedId]}</p>
-                                </div>
-                                <div className="fiscal-detail-actions">
-                                    {selectedId !== 'resumen' ? (
-                                        <>
-                                            <Segmented options={modes} value={mode} onChange={setMode} ariaLabel="Unidad del gráfico" />
-                                            <IconButton icon={Table2} label="Ver datos mensuales" onClick={() => setShowTable(true)} />
-                                            <IconButton icon={ArrowLeft} label="Volver al resumen" onClick={() => setSelectedId('resumen')} />
-                                        </>
-                                    ) : null}
-                                </div>
+                    {view && period ? (
+                        <>
+                            <div className="fiscal-toolbar" data-ascii="skip">
+                                <label className="fiscal-period">
+                                    <span>Período</span>
+                                    <select className="period-select" value={period.id} onChange={(event) => setPeriodId(event.target.value)}>
+                                        {periods.map((item) => (
+                                            <option key={item.id} value={item.id}>{item.label}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <IconButton
+                                    icon={Download}
+                                    label="Descargar período (CSV)"
+                                    onClick={() => downloadCsv(treeCsv(view.tree, formatNumber), `finanzas-publicas-${period.id}.csv`)}
+                                />
                             </div>
-                            {chart ? <FiscalHistoryChart data={chart.data} series={chart.series} axisFormat={chart.axisFormat} /> : null}
-                            {selectedId === 'resumen' ? (
-                                <div className="fiscal-legend">
-                                    <span><i style={{ background: COLORS.ingresos }} />Ingresos</span>
-                                    <span><i style={{ background: COLORS.gastos }} />Gastos</span>
-                                    <span><i className="is-line" style={{ background: COLORS.balance }} />Balance</span>
-                                </div>
-                            ) : null}
-                        </div>
 
-                        <p className="fiscal-footnote">
-                            Fuente: <a href={data.sourceUrl} target="_blank" rel="noreferrer">DIPRES</a>, Estado de Operaciones del
-                            Gobierno Central Total (base devengado), e IPC y PIB del Banco Central. Montos en pesos de cada año.
-                            Var. real: comparación con los mismos meses del año anterior, descontando la inflación.
-                            {periods[0]?.partial ? ` *${periods[0].year}: acumulado ${periods[0].short.replace(` ${periods[0].year}`, '')} (año en curso).` : ''}
-                        </p>
-                    </>
-                ) : null}
+                            <div className="fiscal-kpis">
+                                {view.summary.map((item) => (
+                                    <SummaryCard key={item.id} item={item} period={period} active={selectedId === item.id} onSelect={selectNode} />
+                                ))}
+                            </div>
+
+                            <div className="fiscal-trees">
+                                {view.tree.map((root) => (
+                                    <FiscalTree key={root.id} root={root} selectedId={selectedId} onSelect={selectNode} />
+                                ))}
+                            </div>
+
+                            <div className="fiscal-detail" ref={detailRef}>
+                                <div className="fiscal-detail-header">
+                                    <div>
+                                        <h3 className="fiscal-detail-title">{selectedLabel}</h3>
+                                        <p className="fiscal-detail-note">{FISCAL_NOTES[selectedId]}</p>
+                                    </div>
+                                    <div className="fiscal-detail-actions">
+                                        {selectedId !== 'resumen' ? (
+                                            <>
+                                                <Segmented options={modes} value={mode} onChange={setMode} ariaLabel="Unidad del gráfico" />
+                                                <IconButton icon={Table2} label="Ver datos mensuales" onClick={() => setShowTable(true)} />
+                                                <IconButton icon={ArrowLeft} label="Volver al resumen" onClick={() => setSelectedId('resumen')} />
+                                            </>
+                                        ) : null}
+                                    </div>
+                                </div>
+                                {chart ? <FiscalHistoryChart data={chart.data} series={chart.series} axisFormat={chart.axisFormat} /> : null}
+                                {selectedId === 'resumen' ? (
+                                    <div className="fiscal-legend">
+                                        <span><i style={{ background: COLORS.ingresos }} />Ingresos</span>
+                                        <span><i style={{ background: COLORS.gastos }} />Gastos</span>
+                                        <span><i className="is-line" style={{ background: COLORS.balance }} />Balance</span>
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            <p className="fiscal-footnote">
+                                Fuente: <a href={data.sourceUrl} target="_blank" rel="noreferrer">DIPRES</a>, Estado de Operaciones del
+                                Gobierno Central Total (base devengado), e IPC y PIB del Banco Central. Montos en pesos de cada año.
+                                Var. real: comparación con los mismos meses del año anterior, descontando la inflación.
+                                {periods[0]?.partial ? ` *${periods[0].year}: acumulado ${periods[0].short.replace(` ${periods[0].year}`, '')} (año en curso).` : ''}
+                            </p>
+                        </>
+                    ) : null}
+                </DataReveal>
             </div>
 
             {showTable && data ? (

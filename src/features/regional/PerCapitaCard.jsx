@@ -13,7 +13,7 @@ const PerCapitaCard = ({ view, theme, onOpenRanking }) => {
     const { selected, history, ranking, extremes } = perCapita;
 
     return (
-        <div className="regional-pib-card regional-percapita-card">
+        <div className="regional-pib-card regional-percapita-card" data-ascii="surface">
             <div className="regional-pib-header">
                 <div>
                     <div className="regional-pib-label">

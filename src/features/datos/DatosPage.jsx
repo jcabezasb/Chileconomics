@@ -32,7 +32,7 @@ const showSection = (element) => {
 // Página /datos: un menú con las secciones (indicadores, tasas y mercados, proyecciones, regiones, inversión extranjera,
 // PIB, finanzas públicas y fuentes) y debajo solo la sección elegida, para no tener que recorrer la página.
 const DatosPage = ({ theme }) => {
-    const { indicators, regionalData, realPibData, populationData, nominalSeries, availablePeriods } = useBcchData();
+    const { loading, indicators, regionalData, realPibData, populationData, nominalSeries, availablePeriods } = useBcchData();
     const { section, chooseSection } = useDatosSection();
     const headerRef = useRef(null);
 
@@ -89,6 +89,7 @@ const DatosPage = ({ theme }) => {
                     <OverviewSection
                         sectionRef={showSection}
                         theme={theme}
+                        loading={loading}
                         chartIndicators={chartIndicators}
                         imacecIndicator={imacecIndicator}
                     />
@@ -99,6 +100,7 @@ const DatosPage = ({ theme }) => {
                     <RegionalSection
                         sectionRef={showSection}
                         theme={theme}
+                        loading={loading}
                         regionalData={regionalData}
                         realPibData={realPibData}
                         populationData={populationData}
@@ -108,6 +110,7 @@ const DatosPage = ({ theme }) => {
                 {section === 'pib' ? (
                     <PibCompositionSection
                         sectionRef={showSection}
+                        loading={loading}
                         nominalSeries={nominalSeries}
                         availablePeriods={availablePeriods}
                     />

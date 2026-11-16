@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Download, Table2 } from 'lucide-react';
+import DataReveal from '../../shared/components/DataReveal';
 import DataTable from '../../shared/components/DataTable';
 import DataTableModal from '../../shared/components/DataTableModal';
 import { IconButton, Segmented } from '../../shared/components/controls';
@@ -59,7 +60,7 @@ const ProductToggles = ({ view }) => {
 const Summary = ({ summary, sourceProducts }) => {
     if (!summary) return null;
     return (
-        <div className="proj-summary">
+        <div className="proj-summary" data-ascii="surface">
             <span className="proj-summary-title">Última proyección</span>
             <table>
                 <thead>
@@ -113,64 +114,66 @@ const ProjectionsSection = ({ sectionRef }) => {
                     </p>
                 </div>
 
-                {loading ? <p className="proj-empty">Cargando proyecciones…</p> : null}
-                {!loading && !hasData ? <p className="proj-empty">Las proyecciones aún no están disponibles.</p> : null}
+                <DataReveal loading={loading} replayOn={[source, chartView, targetYear]}>
+                    {loading ? <div className="data-loading" role="status" aria-label="Cargando proyecciones" /> : null}
+                    {!loading && !hasData ? <p className="proj-empty">Las proyecciones aún no están disponibles.</p> : null}
 
-                {!loading && hasData ? (
-                    <>
-                        <div className="proj-toolbar">
-                            <Segmented
-                                ariaLabel="Fuente"
-                                options={SOURCES.map(({ id, label }) => ({ id, label }))}
-                                value={source}
-                                onChange={chooseSource}
-                            />
-                            <Segmented ariaLabel="Vista" options={VIEWS} value={chartView} onChange={setView} />
-                        </div>
-
-                        <div className="proj-body">
-                            <div className="proj-stage">
-                                <div className="proj-stage-head">
-                                    <ProductToggles view={view} />
-                                    {chartView === 'revisiones' && years.length ? (
-                                        <label className="proj-target">
-                                            <span>Proyecciones para</span>
-                                            <select value={targetYear ?? ''} onChange={(event) => setTarget(Number(event.target.value))}>
-                                                {years.map((year) => <option key={year} value={year}>{year}</option>)}
-                                            </select>
-                                        </label>
-                                    ) : null}
-                                </div>
-                                {chartView === 'anual' ? (
-                                    <ProjectionsYearChart rows={rows} products={products} editions={editions} hoveredId={hoveredId} />
-                                ) : (
-                                    <ProjectionsRevisionChart
-                                        series={revisions}
-                                        target={targetYear}
-                                        actual={actual[targetYear]}
-                                        hoveredId={hoveredId}
-                                    />
-                                )}
+                    {!loading && hasData ? (
+                        <>
+                            <div className="proj-toolbar" data-ascii="skip">
+                                <Segmented
+                                    ariaLabel="Fuente"
+                                    options={SOURCES.map(({ id, label }) => ({ id, label }))}
+                                    value={source}
+                                    onChange={chooseSource}
+                                />
+                                <Segmented ariaLabel="Vista" options={VIEWS} value={chartView} onChange={setView} />
                             </div>
 
-                            <aside className="proj-side">
-                                <Summary summary={summary} sourceProducts={sourceProducts} />
-                                <div className="proj-footer">
-                                    <p className="proj-footnote">
-                                        Variación anual del PIB real (%). Efectivo: Cuentas Nacionales del Banco Central.
-                                        Fuentes: Banco Central de Chile (EEE e IPoM) y FMI (World Economic Outlook).
-                                    </p>
-                                    <IconButton
-                                        icon={Table2}
-                                        label="Ver tabla"
-                                        showLabel
-                                        onClick={() => setTable(projectionsTable({ view: chartView, rows, revisions, products, editions, targetYear }))}
-                                    />
+                            <div className="proj-body">
+                                <div className="proj-stage">
+                                    <div className="proj-stage-head">
+                                        <ProductToggles view={view} />
+                                        {chartView === 'revisiones' && years.length ? (
+                                            <label className="proj-target">
+                                                <span>Proyecciones para</span>
+                                                <select value={targetYear ?? ''} onChange={(event) => setTarget(Number(event.target.value))}>
+                                                    {years.map((year) => <option key={year} value={year}>{year}</option>)}
+                                                </select>
+                                            </label>
+                                        ) : null}
+                                    </div>
+                                    {chartView === 'anual' ? (
+                                        <ProjectionsYearChart rows={rows} products={products} editions={editions} hoveredId={hoveredId} />
+                                    ) : (
+                                        <ProjectionsRevisionChart
+                                            series={revisions}
+                                            target={targetYear}
+                                            actual={actual[targetYear]}
+                                            hoveredId={hoveredId}
+                                        />
+                                    )}
                                 </div>
-                            </aside>
-                        </div>
-                    </>
-                ) : null}
+
+                                <aside className="proj-side">
+                                    <Summary summary={summary} sourceProducts={sourceProducts} />
+                                    <div className="proj-footer">
+                                        <p className="proj-footnote">
+                                            Variación anual del PIB real (%). Efectivo: Cuentas Nacionales del Banco Central.
+                                            Fuentes: Banco Central de Chile (EEE e IPoM) y FMI (World Economic Outlook).
+                                        </p>
+                                        <IconButton
+                                            icon={Table2}
+                                            label="Ver tabla"
+                                            showLabel
+                                            onClick={() => setTable(projectionsTable({ view: chartView, rows, revisions, products, editions, targetYear }))}
+                                        />
+                                    </div>
+                                </aside>
+                            </div>
+                        </>
+                    ) : null}
+                </DataReveal>
             </div>
 
             {table ? (

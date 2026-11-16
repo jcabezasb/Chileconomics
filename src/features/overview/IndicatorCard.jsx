@@ -23,6 +23,7 @@ const IndicatorCard = ({ indicator, theme, onOpen, featured = false }) => {
     return (
         <div
             className={`indicator-card${featured ? ' indicator-card--featured' : ''}`}
+            data-ascii="surface"
             role="button"
             tabIndex={0}
             onClick={open}

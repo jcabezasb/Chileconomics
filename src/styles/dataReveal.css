@@ -1,0 +1,13 @@
+/* Efecto de carga de las secciones de Datos (DataReveal, librería ascii-reveal): toma los colores del sitio. */
+
+.data-reveal {
+    --ascii-accent: var(--accent);
+    --ascii-glyph: var(--text-secondary);
+    --ascii-flash: var(--accent);
+    --ascii-font: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* Espacio que ocupa el brillo de caracteres mientras cargan los datos. */
+.data-loading {
+    min-height: 420px;
+}

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Download, Pause, Play, Table2 } from 'lucide-react';
+import DataReveal from '../../shared/components/DataReveal';
 import DataTable from '../../shared/components/DataTable';
 import DataTableModal from '../../shared/components/DataTableModal';
 import { IconButton, Segmented } from '../../shared/components/controls';
@@ -38,7 +39,7 @@ const FocusCard = ({ view }) => {
     const { focus, year, selectedId, clearSelected, chooseYear, chartView } = view;
     if (!focus) return null;
     return (
-        <div className={`ied-focus${focus.isTotal ? ' is-chile' : ''}`}>
+        <div className={`ied-focus${focus.isTotal ? ' is-chile' : ''}`} data-ascii="surface">
             <span className="ied-focus-label">{focus.isTotal ? focus.label : `${focus.label} · ${year}`}</span>
             <span className="ied-focus-value">US$ {formatMillions(focus.value)}</span>
             <span className="ied-focus-meta">
@@ -127,101 +128,103 @@ const IedSection = ({ sectionRef }) => {
                     </p>
                 </div>
 
-                {loading ? <p className="ied-empty">Cargando datos…</p> : null}
-                {!loading && !regional ? (
-                    <p className="ied-empty">Los datos de inversión extranjera aún no están disponibles.</p>
-                ) : null}
+                <DataReveal loading={loading} replayOn={[direction, chartView, breakdown, lineBreakdown]}>
+                    {loading ? <div className="data-loading" role="status" aria-label="Cargando datos" /> : null}
+                    {!loading && !regional ? (
+                        <p className="ied-empty">Los datos de inversión extranjera aún no están disponibles.</p>
+                    ) : null}
 
-                {regional && animatedValues ? (
-                    <>
-                        <div className="ied-toolbar">
-                            <div className="ied-toolbar-group">
-                                {hasCountries ? (
-                                    <Segmented ariaLabel="Sentido de la inversión" options={DIRECTIONS} value={direction} onChange={chooseDirection} />
-                                ) : null}
-                                <Segmented ariaLabel="Tipo de gráfico" options={VIEWS} value={chartView} onChange={setChartView} />
-                                {chartView === 'mapa' && inward && hasSectors ? (
-                                    <Segmented ariaLabel="Chile por" options={MAP_BREAKDOWNS} value={breakdown} onChange={setMapBreakdown} />
-                                ) : null}
-                                {chartView === 'lineas' && (inward || hasSectors) ? (
-                                    <Segmented
-                                        ariaLabel="Líneas por"
-                                        options={lineBreakdowns(inward, hasSectors)}
-                                        value={lines?.breakdown || lineBreakdown}
-                                        onChange={setLineBreakdown}
-                                    />
-                                ) : null}
-                            </div>
-                            <div className="ied-years">
-                                <IconButton
-                                    icon={playing ? Pause : Play}
-                                    label={playing ? 'Pausar' : 'Recorrer los años'}
-                                    onClick={togglePlay}
-                                    active={playing}
-                                />
-                                <input
-                                    type="range"
-                                    className="ied-year-range"
-                                    min={years[0]}
-                                    max={years[years.length - 1]}
-                                    step={1}
-                                    value={year}
-                                    onChange={(event) => chooseYear(Number(event.target.value))}
-                                    aria-label="Año"
-                                />
-                                <span className="ied-year-value">{year}</span>
-                            </div>
-                        </div>
-
-                        <div className="ied-body">
-                            <div className={`ied-stage is-${chartView}`}>
-                                {chartView === 'mapa' ? (
-                                    <IedFlowChart
-                                        direction={direction}
-                                        breakdown={breakdown}
-                                        sectorItems={sectors?.items || []}
-                                        regionValues={animatedValues}
-                                        countryItems={countries?.items || []}
-                                        countryValues={animatedValues}
-                                        year={year}
-                                        activeId={activeId}
-                                        onHover={view.setHoveredId}
-                                        onSelect={view.toggleSelected}
-                                        onReset={view.clearSelected}
-                                    />
-                                ) : lines ? (
-                                    <IedLinesChart
-                                        series={lines.series}
-                                        rows={lines.rows}
-                                        year={year}
-                                        activeId={activeId}
-                                        onHover={view.setHoveredId}
-                                        onSelect={view.toggleSelected}
-                                        onChooseYear={chooseYear}
-                                    />
-                                ) : null}
-                            </div>
-
-                            <aside className="ied-side">
-                                <FocusCard view={view} />
-                                <FocusList view={view} />
-                                <div className="ied-notes">
-                                    <p className="ied-footnote">
-                                        Stock a fin de año, millones de US$. País del inversionista inmediato (puede
-                                        diferir del dueño final).{hasSectors ? ' El Banco Central publica por separado el desglose por país y por sector: no se sabe qué sector va a qué país.' : ''}{' '}
-                                        Fuente: Banco Central de Chile.
-                                    </p>
-                                    <IconButton
-                                        icon={Table2}
-                                        label="Ver tabla"
-                                        showLabel
-                                        onClick={() => setTable(iedTable({ ...view, year }))}
-                                    />
+                    {regional && animatedValues ? (
+                        <>
+                            <div className="ied-toolbar" data-ascii="skip">
+                                <div className="ied-toolbar-group">
+                                    {hasCountries ? (
+                                        <Segmented ariaLabel="Sentido de la inversión" options={DIRECTIONS} value={direction} onChange={chooseDirection} />
+                                    ) : null}
+                                    <Segmented ariaLabel="Tipo de gráfico" options={VIEWS} value={chartView} onChange={setChartView} />
+                                    {chartView === 'mapa' && inward && hasSectors ? (
+                                        <Segmented ariaLabel="Chile por" options={MAP_BREAKDOWNS} value={breakdown} onChange={setMapBreakdown} />
+                                    ) : null}
+                                    {chartView === 'lineas' && (inward || hasSectors) ? (
+                                        <Segmented
+                                            ariaLabel="Líneas por"
+                                            options={lineBreakdowns(inward, hasSectors)}
+                                            value={lines?.breakdown || lineBreakdown}
+                                            onChange={setLineBreakdown}
+                                        />
+                                    ) : null}
                                 </div>
-                            </aside>
-                        </div>
-                    </>
-                ) : null}
+                                <div className="ied-years">
+                                    <IconButton
+                                        icon={playing ? Pause : Play}
+                                        label={playing ? 'Pausar' : 'Recorrer los años'}
+                                        onClick={togglePlay}
+                                        active={playing}
+                                    />
+                                    <input
+                                        type="range"
+                                        className="ied-year-range"
+                                        min={years[0]}
+                                        max={years[years.length - 1]}
+                                        step={1}
+                                        value={year}
+                                        onChange={(event) => chooseYear(Number(event.target.value))}
+                                        aria-label="Año"
+                                    />
+                                    <span className="ied-year-value">{year}</span>
+                                </div>
+                            </div>
+
+                            <div className="ied-body">
+                                <div className={`ied-stage is-${chartView}`}>
+                                    {chartView === 'mapa' ? (
+                                        <IedFlowChart
+                                            direction={direction}
+                                            breakdown={breakdown}
+                                            sectorItems={sectors?.items || []}
+                                            regionValues={animatedValues}
+                                            countryItems={countries?.items || []}
+                                            countryValues={animatedValues}
+                                            year={year}
+                                            activeId={activeId}
+                                            onHover={view.setHoveredId}
+                                            onSelect={view.toggleSelected}
+                                            onReset={view.clearSelected}
+                                        />
+                                    ) : lines ? (
+                                        <IedLinesChart
+                                            series={lines.series}
+                                            rows={lines.rows}
+                                            year={year}
+                                            activeId={activeId}
+                                            onHover={view.setHoveredId}
+                                            onSelect={view.toggleSelected}
+                                            onChooseYear={chooseYear}
+                                        />
+                                    ) : null}
+                                </div>
+
+                                <aside className="ied-side">
+                                    <FocusCard view={view} />
+                                    <FocusList view={view} />
+                                    <div className="ied-notes">
+                                        <p className="ied-footnote">
+                                            Stock a fin de año, millones de US$. País del inversionista inmediato (puede
+                                            diferir del dueño final).{hasSectors ? ' El Banco Central publica por separado el desglose por país y por sector: no se sabe qué sector va a qué país.' : ''}{' '}
+                                            Fuente: Banco Central de Chile.
+                                        </p>
+                                        <IconButton
+                                            icon={Table2}
+                                            label="Ver tabla"
+                                            showLabel
+                                            onClick={() => setTable(iedTable({ ...view, year }))}
+                                        />
+                                    </div>
+                                </aside>
+                            </div>
+                        </>
+                    ) : null}
+                </DataReveal>
             </div>
 
             {table ? (

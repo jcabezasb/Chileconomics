@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
+import DataReveal from '../../shared/components/DataReveal';
 import IndicatorCard from './IndicatorCard';
 import IndicatorModal from './IndicatorModal';
 
 // Grilla principal: IMACEC destacado a la izquierda y 4 indicadores (2x2) a la derecha.
-const OverviewSection = ({ sectionRef, theme, chartIndicators, imacecIndicator }) => {
+const OverviewSection = ({ sectionRef, theme, loading, chartIndicators, imacecIndicator }) => {
     const [activeIndicator, setActiveIndicator] = useState(null);
     const closeModal = useCallback(() => setActiveIndicator(null), []);
 
@@ -14,14 +15,16 @@ const OverviewSection = ({ sectionRef, theme, chartIndicators, imacecIndicator }
             ref={sectionRef}
             style={{ paddingBottom: '4rem' }}
         >
-            <div className="overview-grid">
-                <div className="overview-featured">
-                    <IndicatorCard indicator={imacecIndicator} theme={theme} onOpen={setActiveIndicator} featured />
+            <DataReveal loading={loading}>
+                <div className="overview-grid">
+                    <div className="overview-featured">
+                        <IndicatorCard indicator={imacecIndicator} theme={theme} onOpen={setActiveIndicator} featured />
+                    </div>
+                    {chartIndicators.slice(0, 4).map((indicator) => (
+                        <IndicatorCard key={indicator.id} indicator={indicator} theme={theme} onOpen={setActiveIndicator} />
+                    ))}
                 </div>
-                {chartIndicators.slice(0, 4).map((indicator) => (
-                    <IndicatorCard key={indicator.id} indicator={indicator} theme={theme} onOpen={setActiveIndicator} />
-                ))}
-            </div>
+            </DataReveal>
             {activeIndicator ? (
                 <IndicatorModal indicator={activeIndicator} theme={theme} onClose={closeModal} />
             ) : null}

@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { AsciiReveal } from 'ascii-reveal';
+import DataReveal from '../../shared/components/DataReveal';
 import { Segmented } from '../../shared/components/controls';
 import { formatNumber } from '../../shared/utils/format';
 import { CurveChart, Sparkline, TimeChart } from './MercadosCharts';
@@ -158,38 +157,10 @@ const MarketsView = ({ view }) => (
 );
 
 // Mercados: tasas de Chile y EE.UU. comparadas en los mismos plazos, tasas reales e inflación, y los
-// precios de mercado que más mueven a la economía chilena. El efecto de carga (ascii-reveal, estilo
-// dither) decodifica el contenido al llegar los datos y al cambiar de pestaña, rango o plazo.
+// precios de mercado que más mueven a la economía chilena.
 const MercadosSection = ({ sectionRef }) => {
     const view = useMercadosView();
     const { loading, rates, view: active, setView, range, setRange, spreadTenor, realTenor } = view;
-    const reveal = useRef(null);
-    const body = useRef(null);
-    const origin = useRef('center');
-
-    // El efecto parte dos cuadros después de dibujar los datos: si arranca en el mismo cuadro pesado
-    // de los gráficos, la librería lo salta (protección para equipos lentos).
-    const [settled, setSettled] = useState(false);
-    useEffect(() => {
-        if (loading) return undefined;
-        let frame = requestAnimationFrame(() => {
-            frame = requestAnimationFrame(() => setSettled(true));
-        });
-        return () => cancelAnimationFrame(frame);
-    }, [loading]);
-
-    // Cada cambio vuelve a decodificar el contenido, desde donde se hizo clic.
-    const first = useRef(true);
-    useEffect(() => {
-        if (first.current) {
-            first.current = false;
-            return;
-        }
-        if (body.current) reveal.current?.reveal({ within: body.current, origin: origin.current });
-    }, [active, range, spreadTenor, realTenor]);
-    const rememberClick = (event) => {
-        if (event.clientX) origin.current = { x: event.clientX, y: event.clientY };
-    };
 
     return (
         <section className="mk-section reveal reveal-delay-1" ref={sectionRef}>
@@ -201,19 +172,17 @@ const MercadosSection = ({ sectionRef }) => {
                         economía chilena.
                     </p>
                 </div>
-                <div className="mk-toolbar" onClickCapture={rememberClick}>
-                    <Segmented ariaLabel="Vista" options={VIEWS} value={active} onChange={setView} />
-                    {active !== 'mercados' ? <Segmented ariaLabel="Rango" options={RANGES} value={range} onChange={setRange} /> : null}
-                </div>
-                <AsciiReveal ref={reveal} preset="dither" loading={!settled} lazy={false}>
-                    <div ref={body} onClickCapture={rememberClick}>
-                        {loading ? <div className="mk-loading" /> : null}
-                        {!loading && !rates ? <p className="mk-empty">Los datos de mercado aún no están disponibles.</p> : null}
-                        {!loading && rates && active === 'tasas' ? <RatesView view={view} /> : null}
-                        {!loading && rates && active === 'reales' ? <RealView view={view} /> : null}
-                        {!loading && rates && active === 'mercados' ? <MarketsView view={view} /> : null}
+                <DataReveal loading={loading} replayOn={[active, range, spreadTenor, realTenor]}>
+                    <div className="mk-toolbar" data-ascii="skip">
+                        <Segmented ariaLabel="Vista" options={VIEWS} value={active} onChange={setView} />
+                        {active !== 'mercados' ? <Segmented ariaLabel="Rango" options={RANGES} value={range} onChange={setRange} /> : null}
                     </div>
-                </AsciiReveal>
+                    {loading ? <div className="data-loading" role="status" aria-label="Cargando datos" /> : null}
+                    {!loading && !rates ? <p className="mk-empty">Los datos de mercado aún no están disponibles.</p> : null}
+                    {!loading && rates && active === 'tasas' ? <RatesView view={view} /> : null}
+                    {!loading && rates && active === 'reales' ? <RealView view={view} /> : null}
+                    {!loading && rates && active === 'mercados' ? <MarketsView view={view} /> : null}
+                </DataReveal>
             </div>
         </section>
     );

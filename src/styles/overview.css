@@ -102,6 +102,14 @@
     font-weight: 600;
 }
 
+/* Envoltorio del efecto de carga: ocupa el alto que le deja el encabezado, como el cuerpo. */
+.overview-pib-reveal {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .overview-pib-body {
     display: flex;
     gap: 1.5rem;

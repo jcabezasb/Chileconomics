@@ -5,11 +5,6 @@
     --mk-chile: #eb6834;
     --mk-us: #2a78d6;
     --mk-neutral: #3d4a5c;
-    /* Efecto de carga (ascii-reveal): toma los colores del sitio. */
-    --ascii-accent: var(--accent);
-    --ascii-glyph: var(--text-secondary);
-    --ascii-flash: var(--accent);
-    --ascii-font: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     padding: 2rem 0;
 }
 
@@ -56,10 +51,6 @@
     margin-bottom: 0.9rem;
     font-size: 0.85rem;
     color: var(--text-secondary);
-}
-
-.mk-loading {
-    min-height: 420px;
 }
 
 .mk-empty {

@@ -52,7 +52,6 @@ python -m pytest python/tests
   la URL: `/datos#ied`).
 - `src/features/mercados/`: tasas y mercados de Chile y EE.UU. (tasas, tasas reales e inflación,
   monedas y materias primas). Cálculos en `mercadosView.js`; datos de EE.UU. en `src/data/mercados/`.
-  Efecto de carga `ascii-reveal` (estilo dither), instalado desde GitHub fijado a un commit.
 - `src/features/proyecciones/`: proyecciones de crecimiento (EEE, IPoM y FMI). Cálculos en
   `projectionsView.js`; vistas "Por año" y "Revisiones".
 - `src/features/ied/`: inversión extranjera directa: globo, barra y mapa de Chile o lista de sectores
@@ -64,6 +63,9 @@ python -m pytest python/tests
 - `src/features/fuentes/`: sección Fuentes. Qué es cada fuente en `sourcesCatalog.js`; las fechas
   (último dato y `checked_at`, día en que se revisó la fuente) se leen de los JSON en `sourcesView.js`.
 - `src/shared/components/TrendChart.jsx`: todos los gráficos de línea (`detailed` agrega ejes).
+- `src/shared/components/DataReveal.jsx`: efecto de carga de todas las secciones de Datos (`ascii-reveal`,
+  estilo dither, instalado desde GitHub fijado a un commit). Recibe `loading` y `replayOn` (lo que,
+  al cambiar, vuelve a decodificar el contenido); `data-ascii="skip"` deja quietas las barras de botones.
 - `src/shared/utils/`: funciones puras con pruebas (`*.test.js`).
 - `src/styles/`: `global.css` importa las partes en orden; variables de tema en `variables.css`.
 - `python/`: `bcch_shared.py` (registro de series), `sync_bcch_data.py`, `import_dipres.py`,

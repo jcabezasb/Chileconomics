@@ -41,7 +41,7 @@ const PopulationCards = ({ population, onOpenTable }) => {
             </div>
 
             {SPLIT.map(({ key, label, color }) => (
-                <div key={key} className="regional-pop-card">
+                <div key={key} className="regional-pop-card" data-ascii="surface">
                     <div className="regional-pop-card-label">
                         <span className="regional-pop-dot" style={{ background: color }}></span>
                         {label}

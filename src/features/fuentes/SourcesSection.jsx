@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react';
+import DataReveal from '../../shared/components/DataReveal';
 import { Segmented } from '../../shared/components/controls';
 import useSourcesView from './useSourcesView';
 import '../../styles/sources.css';
@@ -20,63 +21,65 @@ const SourcesSection = ({ sectionRef, onSelectSection }) => {
                     </p>
                 </div>
 
-                <div className="sources-toolbar">
-                    <Segmented
-                        ariaLabel="Institución"
-                        options={groups.map(({ id, label }) => ({ id, label }))}
-                        value={group}
-                        onChange={setGroup}
-                    />
-                </div>
+                <DataReveal loading={loading} replayOn={[group]}>
+                    <div className="sources-toolbar" data-ascii="skip">
+                        <Segmented
+                            ariaLabel="Institución"
+                            options={groups.map(({ id, label }) => ({ id, label }))}
+                            value={group}
+                            onChange={setGroup}
+                        />
+                    </div>
 
-                <p className="sources-intro">
-                    <b>{current.name}.</b> {current.description}
-                </p>
+                    <p className="sources-intro">
+                        <b>{current.name}.</b> {current.description}
+                    </p>
 
-                <div className="sources-table-wrap">
-                    <table className="sources-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Dato</th>
-                                <th scope="col">Sección</th>
-                                <th scope="col">Frecuencia</th>
-                                <th scope="col">Último dato</th>
-                                <th scope="col">Revisado</th>
-                                <th scope="col"><span className="sources-sr">Enlace</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {current.rows.map((row) => (
-                                <tr key={row.id}>
-                                    <th scope="row">
-                                        {row.label}
-                                        {row.note ? <small>{row.note}</small> : null}
-                                    </th>
-                                    <td data-label="Sección">
-                                        <button type="button" className="sources-section-link" onClick={() => onSelectSection(row.section)}>
-                                            {row.sectionLabel}
-                                        </button>
-                                    </td>
-                                    <td data-label="Frecuencia">{row.frequency}</td>
-                                    <td data-label="Último dato">{loading ? '…' : row.lastData || EMPTY}</td>
-                                    <td data-label="Revisado">{loading ? '…' : row.checked || EMPTY}</td>
-                                    <td className="sources-link-cell">
-                                        <a href={row.url} target="_blank" rel="noreferrer" className="sources-link">
-                                            Ver fuente
-                                            <ExternalLink size={13} strokeWidth={2} aria-hidden="true" />
-                                        </a>
-                                    </td>
+                    <div className="sources-table-wrap">
+                        <table className="sources-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Dato</th>
+                                    <th scope="col">Sección</th>
+                                    <th scope="col">Frecuencia</th>
+                                    <th scope="col">Último dato</th>
+                                    <th scope="col">Revisado</th>
+                                    <th scope="col"><span className="sources-sr">Enlace</span></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {current.rows.map((row) => (
+                                    <tr key={row.id}>
+                                        <th scope="row">
+                                            {row.label}
+                                            {row.note ? <small>{row.note}</small> : null}
+                                        </th>
+                                        <td data-label="Sección">
+                                            <button type="button" className="sources-section-link" onClick={() => onSelectSection(row.section)}>
+                                                {row.sectionLabel}
+                                            </button>
+                                        </td>
+                                        <td data-label="Frecuencia">{row.frequency}</td>
+                                        <td data-label="Último dato">{loading ? '…' : row.lastData || EMPTY}</td>
+                                        <td data-label="Revisado">{loading ? '…' : row.checked || EMPTY}</td>
+                                        <td className="sources-link-cell">
+                                            <a href={row.url} target="_blank" rel="noreferrer" className="sources-link">
+                                                Ver fuente
+                                                <ExternalLink size={13} strokeWidth={2} aria-hidden="true" />
+                                            </a>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
 
-                <p className="sources-footnote">
-                    <b>Último dato:</b> el período más reciente que ha publicado la fuente.{' '}
-                    <b>Revisado:</b> el último día en que el sitio consultó la fuente con éxito. Un dato puede tener
-                    meses y estar al día: algunas fuentes publican cada trimestre o cada año.
-                </p>
+                    <p className="sources-footnote">
+                        <b>Último dato:</b> el período más reciente que ha publicado la fuente.{' '}
+                        <b>Revisado:</b> el último día en que el sitio consultó la fuente con éxito. Un dato puede tener
+                        meses y estar al día: algunas fuentes publican cada trimestre o cada año.
+                    </p>
+                </DataReveal>
             </div>
         </section>
     );

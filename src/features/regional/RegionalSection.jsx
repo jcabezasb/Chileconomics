@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Download } from 'lucide-react';
+import DataReveal from '../../shared/components/DataReveal';
 import DataTable from '../../shared/components/DataTable';
 import DataTableModal from '../../shared/components/DataTableModal';
 import SeriesTable from '../../shared/components/SeriesTable';
@@ -16,7 +17,7 @@ import { laborTable, perCapitaRankingTable, pibTable, populationTable } from './
 
 // Análisis geográfico: mapa a la izquierda y fichas (PIB, per cápita, población, empleo) a la derecha.
 // Sin región elegida se muestran datos nacionales.
-const RegionalSection = ({ sectionRef, theme, regionalData, realPibData, populationData }) => {
+const RegionalSection = ({ sectionRef, theme, loading, regionalData, realPibData, populationData }) => {
     const view = useRegionalView({ regionalData, realPibData, populationData });
     const { selectedRegion, regionId } = view;
     const [table, setTable] = useState(null);
@@ -39,41 +40,43 @@ const RegionalSection = ({ sectionRef, theme, regionalData, realPibData, populat
                         </p>
                     </div>
 
-                    <div className="regional-layout">
-                        <RegionalMapPanel view={view} />
+                    <DataReveal loading={loading} replayOn={[regionId]}>
+                        <div className="regional-layout">
+                            <RegionalMapPanel view={view} />
 
-                        <div className="regional-cards">
-                            <h3 className="regional-highlight">
-                                <span className="regional-dot"></span>
-                                {selectedRegion || 'Chile (Nacional)'}
-                            </h3>
+                            <div className="regional-cards">
+                                <h3 className="regional-highlight">
+                                    <span className="regional-dot"></span>
+                                    {selectedRegion || 'Chile (Nacional)'}
+                                </h3>
 
-                            <div className="regional-metrics-grid">
-                                <div className="regional-metrics-left">
-                                    <RegionalPibCard
-                                        view={view}
+                                <div className="regional-metrics-grid">
+                                    <div className="regional-metrics-left">
+                                        <RegionalPibCard
+                                            view={view}
+                                            theme={theme}
+                                            onOpenTable={() => openTable(pibTable({ ...context, pib: view.pib }))}
+                                            onOpenActivities={() => setShowActivities(true)}
+                                        />
+                                        <PerCapitaCard
+                                            view={view}
+                                            theme={theme}
+                                            onOpenRanking={() => openTable(perCapitaRankingTable(view.perCapita.ranking))}
+                                        />
+                                        <PopulationCards
+                                            population={view.population}
+                                            onOpenTable={() => openTable(populationTable({ ...context, population: view.population }))}
+                                        />
+                                    </div>
+                                    <LaborCards
+                                        cards={view.laborCards}
                                         theme={theme}
-                                        onOpenTable={() => openTable(pibTable({ ...context, pib: view.pib }))}
-                                        onOpenActivities={() => setShowActivities(true)}
-                                    />
-                                    <PerCapitaCard
-                                        view={view}
-                                        theme={theme}
-                                        onOpenRanking={() => openTable(perCapitaRankingTable(view.perCapita.ranking))}
-                                    />
-                                    <PopulationCards
-                                        population={view.population}
-                                        onOpenTable={() => openTable(populationTable({ ...context, population: view.population }))}
+                                        onOpenTable={(card) => openTable(laborTable({ ...context, card }))}
                                     />
                                 </div>
-                                <LaborCards
-                                    cards={view.laborCards}
-                                    theme={theme}
-                                    onOpenTable={(card) => openTable(laborTable({ ...context, card }))}
-                                />
                             </div>
                         </div>
-                    </div>
+                    </DataReveal>
                 </div>
             </section>
 
